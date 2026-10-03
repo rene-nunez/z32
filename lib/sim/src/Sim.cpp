@@ -605,6 +605,36 @@ bool sim::step(uint32_t now) {
     }
   }
 
+  for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {
+    if (!_s.zombies[i].active) {
+      continue;
+    }
+    for (uint8_t j = (uint8_t)(i + 1u); j < MAX_ZOMBIES; ++j) {
+      if (!_s.zombies[j].active) {
+        continue;
+      }
+      float dx = _s.zombies[j].x - _s.zombies[i].x;
+      float dy = _s.zombies[j].y - _s.zombies[i].y;
+      float d2 = dx * dx + dy * dy;
+      if (d2 >= declump_dist * declump_dist) {
+        continue; // already side by side
+      }
+      float d = sqrtf(d2);
+      if (d < 0.1f) { // same spot: split along x so the pair opens up
+        dx = 1.0f;
+        dy = 0.0f;
+        d = 1.0f;
+      }
+      const float push = (declump_dist - d) / 2.0f;
+      const float nx = dx / d;
+      const float ny = dy / d;
+      _move_entity(_s.zombies[i].x, _s.zombies[i].y, -nx * push, -ny * push,
+                   ZOMBIE_SIZE);
+      _move_entity(_s.zombies[j].x, _s.zombies[j].y, nx * push, ny * push,
+                   ZOMBIE_SIZE);
+    }
+  }
+
   for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
     if (!_downed(p)) {
       continue;

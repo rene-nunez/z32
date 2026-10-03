@@ -140,6 +140,7 @@ class sim {
     static constexpr float fire_range = 160.0f;
     static constexpr float hit_dist = 5.0f;
     static constexpr float contact_dist = 9.0f;
+    static constexpr float declump_dist = 7.0f; // zombie-zombie push-out: core 6px + 1px air
     static constexpr uint32_t damage_cd_ms = 500;
 
     // 8-neighbourhood, cardinals first: the zombie aims at the best neighbour's centre,
