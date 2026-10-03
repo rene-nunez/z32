@@ -96,10 +96,12 @@ void panel::draw() {
   snprintf(buf, sizeof(buf), "POINTS %lu", v.points);
   display::text(buf, 4, render::ARENA_BOTTOM + 4, colour::yellow, 2);
 
-  // co-op squeezes the rows (8px pitch) to fit H2 + the 3 buff lines; solo keeps 12px
+  // co-op spreads the rows (10px pitch, 2px gutters) to fit HP2 + the 3 buff
+  // lines: HP1 192, HP2 202, DMG 212, SPD 222, RPD 232..240 (panel edge, exact);
+  // solo keeps 12px
   const int16_t hp_y = render::ARENA_BOTTOM + (p2 ? 22 : 24);
-  const int16_t pitch = p2 ? 8 : 12;
-  const int16_t tail_y = hp_y + (p2 ? 16 : 12); // DMG row (HP, [+H2,] then DMG/SPD/RPD)
+  const int16_t pitch = p2 ? 10 : 12;
+  const int16_t tail_y = hp_y + (p2 ? 20 : 12); // DMG row (HP1, [+HP2,] then DMG/SPD/RPD)
 
   auto hp_row = [&](uint8_t p, int16_t y, const char* label, uint16_t ok_col) {
     display::fill_rect(0, y, mx, 8, colour::black);
@@ -113,9 +115,9 @@ void panel::draw() {
     const uint16_t col = (v.players[p].hp <= 2) ? colour::red : ok_col; // low hp reads red
     _pip_row(y, label, v.players[p].hp, sim::PLAYER_HP_MAX, col);
   };
-  hp_row(0, hp_y, "HP", colour::green);
+  hp_row(0, hp_y, p2 ? "HP1" : "HP", colour::green);
   if (p2) {
-    hp_row(1, hp_y + pitch, "H2", colour::cyan);
+    hp_row(1, hp_y + pitch, "HP2", colour::cyan);
   }
   display::fill_rect(0, tail_y, mx, 8, colour::black);
   _pip_row(tail_y, "DMG", v.dmg_lvl, sim::MAX_LVL, colour::red);
