@@ -115,9 +115,11 @@ void panel::draw() {
     const uint16_t col = (v.players[p].hp <= 2) ? colour::red : ok_col; // low hp reads red
     _pip_row(y, label, v.players[p].hp, sim::PLAYER_HP_MAX, col);
   };
-  hp_row(0, hp_y, p2 ? "HP1" : "HP", colour::green);
+  hp_row(0, hp_y, p2 ? "HP1" : "HP", colour::green); // P1 suit reads green already
   if (p2) {
-    hp_row(1, hp_y + pitch, "HP2", colour::cyan);
+    // P2 suit is dark steel blue (0x3310): same hue, brightened to read at 8px
+    constexpr uint16_t hp2_col = 0x54DA; // rgb565(80,152,208)
+    hp_row(1, hp_y + pitch, "HP2", hp2_col);
   }
   display::fill_rect(0, tail_y, mx, 8, colour::black);
   _pip_row(tail_y, "DMG", v.dmg_lvl, sim::MAX_LVL, colour::red);
