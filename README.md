@@ -31,7 +31,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
   (daño 4), M16A1 (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
   volver como premio tonto.
 - **Disparo**: auto-apuntado al zombi más cercano (alcance 160px, 220px el M82A1).
-  Cada arma tiene su cadencia: Glock 0.5s, MP5 0.18s, SPAS-12 0.9s, M4 0.65s,
+  Cada arma tiene su cadencia: Glock 0.5s, MP5 0.18s, SPAS-12 0.9s, M4 0.55s,
   M16A1 ráfagas de 3 cada 0.6s, M82A1 1.4s.
 
 ## Controles

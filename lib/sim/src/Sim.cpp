@@ -380,7 +380,7 @@ uint32_t sim::_fire_cd(weapon w) {
   switch (w) {
     case weapon::smg: return 180;
     case weapon::shotgun: return 900;
-    case weapon::rifle: return 650; // brisk mid punch, clearly above the sniper
+    case weapon::rifle: return 550; // brisk mid punch, clearly above the sniper
     case weapon::m16: return 600;   // gap between bursts, rounds tick at burst_gap_ms
     case weapon::sniper: return 1400;
     default: return 500; // pistol
