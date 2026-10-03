@@ -36,7 +36,7 @@ volatile bool game::_rx_ready = false;
 bool game::_cli_mirror = false;
 bool game::_cli_was_down0 = false;
 bool game::_cli_was_down1 = false;
-uint8_t game::_cli_wave = 0;
+uint16_t game::_cli_wave = 0;
 net::game_state_msg game::_rx_state;
 net::game_state_msg game::_tx_state;
 uint32_t game::_cli_last_rx = 0;
@@ -65,7 +65,8 @@ uint32_t game::_intro_ms0 = 0;
 screens::id game::_scr = screens::id::logo;
 uint8_t game::_sel = 0;
 int8_t game::_nav_dir = 0;
-uint8_t game::_hud_wave = 0xFF, game::_hud_kills = 0xFF, game::_hud_role = 0xFF;
+uint16_t game::_hud_wave = 0xFFFF, game::_hud_kills = 0xFFFF;
+uint8_t game::_hud_role = 0xFF;
 sim::weapon game::_hud_gun = (sim::weapon)0xFF;
 bool game::_hud_first = true;
 
@@ -253,7 +254,7 @@ void game::_broadcast() {
   _handler.send(&_tx_state, sizeof(_tx_state));
 }
 
-uint8_t game::_roulette_active_at(uint8_t w, uint8_t n) {
+uint8_t game::_roulette_active_at(uint16_t w, uint8_t n) {
   if (n == 0 || w == 0) {
     return 0;
   }
@@ -271,11 +272,11 @@ uint8_t game::_roulette_active() {
 bool game::_roulette_moved() {
   // the banner fires only on a real relocation: never on wave 1, and never when
   // two epochs hash onto the same pad (the wheel did not move, nothing to say)
-  const uint8_t w = sim::view().wave;
+  const uint16_t w = sim::view().wave;
   if (w <= 1 || _shop_rn == 0) {
     return false;
   }
-  return _roulette_active_at(w, _shop_rn) != _roulette_active_at((uint8_t)(w - 1u), _shop_rn);
+  return _roulette_active_at(w, _shop_rn) != _roulette_active_at(w - 1u, _shop_rn);
 }
 
 void game::_scan_shops() {

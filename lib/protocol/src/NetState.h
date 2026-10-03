@@ -6,7 +6,7 @@
 // (snapshot/apply_snapshot); game only moves these bytes.
 //
 // Layout (little-endian, same core both ends):
-//   game_state: type(1) + seq(2) + players 2x7 + meta 13 + zombies 8x6 + bullets 8x6 = 126B
+//   game_state: type(1) + seq(2) + players 2x7 + meta 15 + zombies 8x6 + bullets 8x6 = 128B
 //   player_input: type(1) + jx(1) + jy(1) + buttons(1) + seq(1) = 5B
 // Both fit the 250 bytes/msg cap with room to spare.
 #include <cmath>
@@ -16,7 +16,7 @@ namespace net {
   constexpr uint8_t TYPE_STATE = 0x02; // == msg_type::game_state, asserted in Protocol.h
   constexpr uint8_t TYPE_INPUT = 0x10; // == msg_type::player_input, asserted in Protocol.h
 
-  constexpr size_t STATE_LEN = 126;
+  constexpr size_t STATE_LEN = 128;
   constexpr size_t INPUT_LEN = 5;
   constexpr size_t MAX_MSG = 250;
 
@@ -68,8 +68,8 @@ namespace net {
     uint8_t type = TYPE_STATE;
     uint16_t seq = 0;
     net_player players[2];
-    uint8_t wave = 0;
-    uint8_t kills = 0;
+    uint16_t wave = 0;
+    uint16_t kills = 0;
     uint32_t points = 0;
     uint8_t gun = 0;   // sim::weapon as u8
     uint8_t dmg_lvl = 0;

@@ -49,7 +49,7 @@ class game {
     static volatile bool _rx_ready; // snapshot waiting to apply (client)
     static bool _cli_mirror; // client is painting the host-owned pause (arena chrome is covered)
     static bool _cli_was_down0, _cli_was_down1; // downed flags last client frame, for the rise edge
-    static uint8_t _cli_wave; // wave last client frame, restarts resync silently
+    static uint16_t _cli_wave; // wave last client frame, restarts resync silently
     static net::game_state_msg _rx_state; // snapshot buffer (client)
     static net::game_state_msg _tx_state; // snapshot scratch (host)
     static uint32_t _cli_last_rx; // last snapshot applied (client, quiet check)
@@ -62,7 +62,7 @@ class game {
     static int16_t _shop_rx[MAX_PADS], _shop_ry[MAX_PADS];
     static uint8_t _shop_rn; // pads found (4 on the shipped map)
     static uint8_t _roulette_active(); // hash(wave/3) % _shop_rn, synced via sim wave
-    static uint8_t _roulette_active_at(uint8_t w, uint8_t n); // active pad at wave w
+    static uint8_t _roulette_active_at(uint16_t w, uint8_t n); // active pad at wave w
     static bool _roulette_moved(); // the pad really relocated this wave (banner gate)
     static bool _near_inactive_roulette(uint8_t p); // standing on a dead pad
     static char _hint_buf[28];         // transient result text ("NEED 100", "GUN: SMG")
@@ -102,7 +102,8 @@ class game {
     static void _send_input();            // ship sticks/buttons (client, every frame)
     static void _mirror_pause(); // host-owned pause chrome on the client (screen-driven)
     static void _draw_hud();     // 10px strip: W/K left, gun centre, role badge right
-    static uint8_t _hud_wave, _hud_kills, _hud_role; // last painted HUD (cache: skip if same)
+    static uint16_t _hud_wave, _hud_kills; // last painted HUD (cache: skip if same)
+    static uint8_t _hud_role; // role badge cache (stays one byte)
     static sim::weapon _hud_gun;
     static bool _hud_first; // force full wipe+repaint (menu chrome covered the strip)
     static bool _boss_alive();   // any active boss in the sim view (both boards mirror it)

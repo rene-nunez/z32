@@ -16,8 +16,8 @@ static void check(bool ok, const char* what) {
 }
 
 int main() {
-  check(sizeof(net::game_state_msg) == 126, "state len 126");
-  check(net::STATE_LEN == 126, "STATE_LEN 126");
+  check(sizeof(net::game_state_msg) == 128, "state len 128");
+  check(net::STATE_LEN == 128, "STATE_LEN 128");
   check(sizeof(net::player_input_msg) == 5, "input len 5");
   check(sizeof(net::game_state_msg) <= 250, "state under cap");
 
@@ -26,6 +26,12 @@ int main() {
   net::player_input_msg in;
   check(((const uint8_t*)&s)[0] == 0x02, "state type byte");
   check(((const uint8_t*)&in)[0] == 0x10, "input type byte");
+
+  // kills/wave ride u16: 300 must survive the wire (u8 wrapped it to 44)
+  s.kills = 300;
+  s.wave = 300;
+  check(s.kills == 300, "kills hold 300");
+  check(s.wave == 300, "wave holds 300");
 
   // positions: world 0..960 x 0..480, error under one quantum (0.25px)
   const float pxs[] = {0.0f, 1.3f, 159.9f, 480.0f, 959.75f};

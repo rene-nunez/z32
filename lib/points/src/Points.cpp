@@ -9,7 +9,7 @@
 #include "Points.h"
 
 namespace {
-  constexpr uint32_t _MAGIC = 0x5A3C21EFu; // bumped when best/kills totals were dropped
+  constexpr uint32_t _MAGIC = 0x5A3C21F0u; // bumped: run.wave went u8->u16 (kills/wave wrap fix)
   constexpr const char* _PATH = "/z32.json";
 
   struct _rtc_points {
@@ -132,7 +132,7 @@ void points::load() {
   _mirror_rtc();
 }
 
-void points::add_run(uint32_t kills, uint32_t wallet, uint8_t wave) {
+void points::add_run(uint32_t kills, uint32_t wallet, uint16_t wave) {
   _push({wallet, kills, wave});
   _mirror_rtc();
   _sd_save(); // once per death, cheap enough to mount+write here

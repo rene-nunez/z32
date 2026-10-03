@@ -14,11 +14,11 @@ class points {
     struct run {
       uint32_t pts;
       uint32_t kills;
-      uint8_t wave;
+      uint16_t wave;
     };
 
     static void load(); // boot, magic guarded
-    static void add_run(uint32_t kills, uint32_t wallet, uint8_t wave); // push one run and save
+    static void add_run(uint32_t kills, uint32_t wallet, uint16_t wave); // push one run and save
     static const run* history(); // HISTORY_N slots, recent first
     static uint8_t history_len(); // runs actually stored, 0..HISTORY_N
 };

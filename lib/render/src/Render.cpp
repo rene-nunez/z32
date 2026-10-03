@@ -132,7 +132,7 @@ static void _erase_box(int16_t wx, int16_t wy, int16_t w, int16_t h) {
 static int16_t _tags_cx = -1, _tags_cy = -1; // camera the tags were last erased for
 static uint8_t _tags_dmg = 0xFF, _tags_spd = 0xFF; // levels the tags were last erased for
 static uint8_t _tags_rpd = 0xFF;
-static uint8_t _tags_roll = 0xFF; // active roulette pad the tags were last erased for
+static uint16_t _tags_roll = 0xFFFF; // active roulette pad the tags were last erased for
 // active wheel pad: row-major scan order, hash(wave/3) % pads (3-wave epochs from
 // wave 3: waves 1-2, 3-5, 6-8, ...). Mirrors game::_roulette_active off the synced
 // wave, so tags follow the wheel with no extra net bytes.
@@ -140,7 +140,7 @@ static uint8_t _roll_active(uint8_t n) {
   if (n == 0) {
     return 0;
   }
-  const uint8_t w = sim::view().wave;
+  const uint16_t w = sim::view().wave;
   if (w == 0) {
     return 0;
   }
@@ -339,7 +339,7 @@ bool render::_tags_stale() {
     }
   }
   // before the first scan rn reads 0: fall back to comparing the wave itself
-  const uint8_t roll = (rn > 0) ? _roll_active(rn) : v.wave;
+  const uint16_t roll = (rn > 0) ? _roll_active(rn) : v.wave;
   if (_paint_y < ARENA_H || _cam_x != _tags_cx || _cam_y != _tags_cy ||
       v.dmg_lvl != _tags_dmg || v.spd_lvl != _tags_spd || v.rpd_lvl != _tags_rpd ||
       roll != _tags_roll) {

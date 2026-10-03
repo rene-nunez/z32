@@ -306,31 +306,34 @@ void sim::_spawn_wave() {
   _s.last_event = event::wave;
 }
 
-uint8_t sim::_wave_total(uint8_t wave) {
-  const uint8_t total = (uint8_t)(wave + 3u);
-  return total > MAX_ZOMBIES ? MAX_ZOMBIES : total;
+uint8_t sim::_wave_total(uint16_t wave) {
+  const uint16_t total = wave + 3u;
+  return total > MAX_ZOMBIES ? MAX_ZOMBIES : (uint8_t)total;
 }
 
-uint8_t sim::_wave_runners(uint8_t wave, uint8_t total) {
+uint8_t sim::_wave_runners(uint16_t wave, uint8_t total) {
   if (wave < 2) {
     return 0; // gentle start: wave 1 is all normals
   }
-  uint8_t runners = (uint8_t)(wave / 2u);
+  uint16_t runners = wave / 2u;
   if (runners > total / 2u) {
-    runners = (uint8_t)(total / 2u);
+    runners = (uint16_t)(total / 2u);
   }
-  return runners;
+  return (uint8_t)runners;
 }
 
-bool sim::_wave_boss(uint8_t wave) {
+bool sim::_wave_boss(uint16_t wave) {
   return wave % 5u == 0u;
 }
 
-uint8_t sim::_zombie_hp(actor_kind kind, uint8_t wave) {
+uint8_t sim::_zombie_hp(actor_kind kind, uint16_t wave) {
   switch (kind) {
-    case actor_kind::runner: return (uint8_t)(1u + (uint16_t)wave / 6u); // frail long, 2 hits from w6
-    case actor_kind::boss: return (uint8_t)(20u + wave); // 25 at w5, 30 at w10
-    default: return (uint8_t)(2u + (uint16_t)wave / 2u); // tougher every two waves
+    case actor_kind::runner: return (uint8_t)(1u + wave / 6u); // frail long, 2 hits from w6
+    case actor_kind::boss: { // 25 at w5, 30 at w10, capped: hp rides one byte
+      const uint16_t h = 20u + wave;
+      return h > 255u ? 255u : (uint8_t)h;
+    }
+    default: return (uint8_t)(2u + wave / 2u); // tougher every two waves
   }
 }
 
@@ -352,7 +355,7 @@ uint8_t sim::_eff_dmg(uint8_t base, uint8_t lvl) {
   return eff < 1 ? 1 : eff;
 }
 
-uint32_t sim::_kill_reward(actor_kind kind, uint8_t wave) {
+uint32_t sim::_kill_reward(actor_kind kind, uint16_t wave) {
   switch (kind) {
     case actor_kind::runner: return runner_reward + 2u * (uint32_t)wave; // +5 over a normal
     case actor_kind::boss: return 150u + 10u * (uint32_t)wave; // 200 at w5, 250 at w10

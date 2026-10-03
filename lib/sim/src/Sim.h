@@ -92,7 +92,7 @@ class sim {
         bool active;
       };
       player_state players[NUM_PLAYERS];
-      uint8_t wave, kills;
+      uint16_t wave, kills;
       uint32_t points;
       weapon gun;
       uint8_t dmg_lvl; // permanent damage levels, 0..MAX_LVL
@@ -174,13 +174,13 @@ class sim {
     static uint8_t _eff_dmg(uint8_t base, uint8_t lvl); // base*(1+0.25*lvl), half-up, min 1
     static float _spd_mult(uint8_t lvl);                // 1+0.08*lvl
     static float _rpd_mult(uint8_t lvl);                // 1-0.08*lvl, min 0.5
-    static uint8_t _zombie_hp(actor_kind kind, uint8_t wave); // normal 2+w/2, runner 1+w/6, boss 20+w
+    static uint8_t _zombie_hp(actor_kind kind, uint16_t wave); // normal 2+w/2, runner 1+w/6, boss 20+w (capped 255)
     static uint8_t _zombie_dmg(actor_kind kind);        // boss 2, rest 1
     static float _zombie_speed(actor_kind kind);        // 40 / 70 / 30
-    static uint32_t _kill_reward(actor_kind kind, uint8_t wave); // normal 10+2w, runner 15+2w, boss 150+10w
-    static uint8_t _wave_total(uint8_t wave); // min(wave+3, MAX_ZOMBIES)
-    static uint8_t _wave_runners(uint8_t wave, uint8_t total); // 0 on wave 1, else up to half
-    static bool _wave_boss(uint8_t wave);     // every 5th wave steals slot 0
+    static uint32_t _kill_reward(actor_kind kind, uint16_t wave); // normal 10+2w, runner 15+2w, boss 150+10w
+    static uint8_t _wave_total(uint16_t wave); // min(wave+3, MAX_ZOMBIES)
+    static uint8_t _wave_runners(uint16_t wave, uint8_t total); // 0 on wave 1, else up to half
+    static bool _wave_boss(uint16_t wave);     // every 5th wave steals slot 0
     // roulette odds over r = rand % 100: SMG 40, pistol 15, shotgun 30, rifle 15.
     // SMG and shotgun hit more often; the pistol can come back as the booby prize.
     static weapon _roll_weapon(uint8_t r);
