@@ -408,10 +408,10 @@ bool game::_revive_update(uint32_t now) {
   const bool p0_died = _was_down0 && !d0 && v.players[0].hp == 0;
   const bool p1_died = _was_down1 && !d1 && v.players[1].hp == 0;
   if (p0_fell || p1_fell) {
-    snprintf(_hint_buf, sizeof(_hint_buf), p0_fell ? "HOST DOWN" : "CLIENT DOWN");
+    snprintf(_hint_buf, sizeof(_hint_buf), p0_fell ? "P1 DOWN" : "P2 DOWN");
     _hint_until = now + 2000;
   } else if (p0_died || p1_died) {
-    snprintf(_hint_buf, sizeof(_hint_buf), p0_died ? "HOST BLED OUT" : "CLIENT BLED OUT");
+    snprintf(_hint_buf, sizeof(_hint_buf), p0_died ? "P1 BLED OUT" : "P2 BLED OUT");
     _hint_until = now + 2000;
   }
   _was_down0 = d0;
@@ -423,7 +423,7 @@ bool game::_revive_update(uint32_t now) {
     }
     const uint8_t q = (p == 0) ? 1 : 0;
     if (sim::revive(q)) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p == 0 ? "CLIENT REVIVED!" : "HOST REVIVED!");
+      snprintf(_hint_buf, sizeof(_hint_buf), p == 0 ? "P2 REVIVED!" : "P1 REVIVED!");
       _hint_until = now + 1500;
       if (p == 1) {
         _p2_interact = false; // consumed: no accidental buy next frame
@@ -865,15 +865,15 @@ void game::_update_playing_client() {
     const bool p2_died = _cli_was_down1 && !c2_down && cv.players[1].hp == 0;
     const uint32_t now_rx = millis();
     if (p2_rose || p1_rose) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p2_rose ? "CLIENT REVIVED!" : "HOST REVIVED!");
+      snprintf(_hint_buf, sizeof(_hint_buf), p2_rose ? "P2 REVIVED!" : "P1 REVIVED!");
       _hint_until = now_rx + 1500;
       edge_hint = true; // skip proximity below: _shop_prompt reuses _hint_buf as scratch
     } else if (p2_fell || p1_fell) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p2_fell ? "CLIENT DOWN" : "HOST DOWN");
+      snprintf(_hint_buf, sizeof(_hint_buf), p2_fell ? "P2 DOWN" : "P1 DOWN");
       _hint_until = now_rx + 2000;
       edge_hint = true;
     } else if (p2_died || p1_died) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p2_died ? "CLIENT BLED OUT" : "HOST BLED OUT");
+      snprintf(_hint_buf, sizeof(_hint_buf), p2_died ? "P2 BLED OUT" : "P1 BLED OUT");
       _hint_until = now_rx + 2000;
       edge_hint = true;
     }
@@ -966,7 +966,7 @@ void game::_draw_hud() {
   display::fill_rect(120, 0, 84, 8, colour::black);
   display::text(gun, gx < 0 ? 0 : gx, 1, colour::white, 1);
 
-  const char* badge = !_net_multi ? "SOLO" : (_handler.role() == ROLE_HOST ? "HOST" : "CLIENT");
+  const char* badge = !_net_multi ? "SOLO" : (_handler.role() == ROLE_HOST ? "P1" : "P2");
   uint8_t blen = 0;
   while (badge[blen] != '\0') {
     ++blen;
