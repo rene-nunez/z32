@@ -172,6 +172,11 @@ void sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt,
                          const uint16_t f[tilemap::ROWS][tilemap::COLS]) {
   const float zcx = _s.zombies[z].x + ZOMBIE_SIZE / 2.0f;
   const float zcy = _s.zombies[z].y + ZOMBIE_SIZE / 2.0f;
+  const float sdx = pcx - zcx;
+  const float sdy = pcy - zcy;
+  if (sdx * sdx + sdy * sdy <= contact_dist * contact_dist) {
+    return; // standoff ring: contact hits land anyway, no need to pile onto the centre
+  }
   int16_t ztx = (int16_t)(zcx / tilemap::TILE);
   int16_t zty = (int16_t)(zcy / tilemap::TILE);
 
@@ -189,8 +194,8 @@ void sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt,
   const uint16_t here = f[zty][ztx];
 
   if (here == 0) {
-    // on the player's tile: close in on them directly. Stopping here freezes the
-    // zombie at the tile edge (up to ~22px off), a safe spot until the player moves.
+    // on the player's tile: close in directly. The standoff guard above stops
+    // the walk at contact range, so hits land without piling onto the centre.
     _step_zombie(z, pcx - zcx, pcy - zcy, dt);
     return;
   }
