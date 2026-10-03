@@ -114,6 +114,7 @@ bool game::begin(uint8_t role) {
   _last_frame_ms = _intro_ms0;
 
   screens::paint(_scr, _sel);
+  buzz::play(buzz::jingle::intro); // fanfare over the logo screen
 
   Serial.println("[game] ready");
   return true;
@@ -620,6 +621,7 @@ void game::_update_logo() {
     _scr = screens::id::team; // timed or skippable, then the team screen
     _sel = 0;
     _intro_ms0 = millis();
+    buzz::play(buzz::jingle::intro); // re-fire: a skip still hears it from the top
   }
   screens::paint(_scr, _sel);
 }

@@ -8,7 +8,7 @@
 // every frame. sim never touches this: it only emits the events.
 class buzz {
   public:
-    enum class jingle : uint8_t { menu, shoot, buy, roulette, hurt, wave, over, denied };
+    enum class jingle : uint8_t { menu, shoot, buy, roulette, hurt, wave, over, denied, intro };
 
     struct note {
       uint16_t freq; // Hz, 0 = rest

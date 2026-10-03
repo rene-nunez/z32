@@ -12,6 +12,12 @@ namespace {
   const buzz::note _j_wave[] = {{392, 90}, {523, 90}, {659, 140}};
   const buzz::note _j_over[] = {{400, 120}, {300, 120}, {200, 120}, {150, 200}};
   const buzz::note _j_denied[] = {{200, 90}, {0, 40}, {200, 120}};
+  // intro lament: stepwise D-minor song rising D-E-F, sinking to the modal C
+  // and resolving from low A, ~2.15s so it fills one 2.5s intro screen.
+  // Fired on logo entry and re-fired on team entry.
+  const buzz::note _j_intro[] = {{294, 150}, {330, 150}, {349, 150}, {330, 150},
+                                 {294, 200}, {262, 200}, {294, 450}, {0, 150},
+                                 {220, 200}, {294, 350}};
 
   struct _entry {
     const buzz::note* seq;
@@ -22,8 +28,9 @@ namespace {
   const _entry _seqs[] = {
       {_j_menu, 1}, {_j_shoot, 1}, {_j_buy, 2}, {_j_roulette, 4},
       {_j_hurt, 1}, {_j_wave, 3}, {_j_over, 4}, {_j_denied, 3},
+      {_j_intro, 10},
   };
-  static_assert(sizeof(_seqs) / sizeof(_seqs[0]) == 8, "one row per buzz::jingle");
+  static_assert(sizeof(_seqs) / sizeof(_seqs[0]) == 9, "one row per buzz::jingle");
 } // namespace
 
 const buzz::note* buzz::_seq = nullptr;
