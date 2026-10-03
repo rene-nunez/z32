@@ -7,7 +7,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 ## Características
 
 - Supervivencia por oleadas infinitas (4 zombis en ronda 1 hasta 8 simultáneos).
-- 4 armas: pistola inicial + SMG, escopeta (3 perdigones) y rifle por ruleta.
+- 6 armas: pistola inicial + SMG, escopeta (3 perdigones), rifle, M16 (ráfaga de 3) y sniper (daño 6, más alcance) por ruleta (la pistola puede volver como premio tonto).
 - 3 máquinas expendedoras con niveles permanentes + ruleta de armas.
 - Puntos como cartera: ganas por matar, gastas en tienda; al morir se guardan puntos, ronda y bajas.
 - Minimapa en vivo con posición, zombis y encuadre de cámara.
@@ -27,10 +27,12 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
   - **S azul — Velocidad 120**: +8% de velocidad por nivel, máximo 5.
   - Cada nivel cuesta más: `base + 200·nivel` (p. ej. daño: 150/350/550/750/950). Niveles
     permanentes, se ven como barras en el panel. Sin puntos o al máximo, avisa (`NEED`, `MAX`).
-- **Ruleta 100**: arma aleatoria entre SMG (rápida), escopeta (abanico de 3) y rifle (daño 4).
-  La pistola nunca vuelve: es solo el arma inicial.
-- **Disparo**: auto-apuntado al zombi más cercano (alcance 160px). Cada arma tiene su cadencia:
-  pistola 0.5s, SMG 0.18s, escopeta 0.9s, rifle 0.8s.
+- **Ruleta 100**: arma aleatoria entre SMG (rápida), escopeta (abanico de 3), rifle
+  (daño 4), M16 (ráfaga de 3) y sniper (daño 6, alcance 220px). La pistola puede
+  volver como premio tonto.
+- **Disparo**: auto-apuntado al zombi más cercano (alcance 160px, 220px el sniper).
+  Cada arma tiene su cadencia: pistola 0.5s, SMG 0.18s, escopeta 0.9s, rifle 0.65s,
+  M16 ráfagas de 3 cada 0.6s, sniper 1.4s.
 
 ## Controles
 

@@ -24,7 +24,7 @@ class sim {
     static constexpr uint8_t BLEED_SECS = 15;   // bleed-out window before death
     static constexpr uint8_t MAX_LVL = 5;       // damage and speed cap here, pips per level
 
-    enum class weapon : uint8_t { pistol, smg, shotgun, rifle };
+    enum class weapon : uint8_t { pistol, smg, shotgun, rifle, m16, sniper };
     enum class actor_kind : uint8_t { normal, runner, boss };
     enum class event : uint8_t {
       none,
@@ -138,6 +138,9 @@ class sim {
     static constexpr uint16_t spawn_min_d2 = 100 * 100; // keep spawns >= 100px away
     static constexpr float bullet_speed = 320.0f;
     static constexpr float fire_range = 160.0f;
+    static constexpr float sniper_range = 220.0f;
+    static constexpr uint8_t burst_shots = 3; // M16: one press fires 3 rounds
+    static constexpr uint32_t burst_gap_ms = 100; // spacing between burst rounds
     static constexpr float hit_dist = 5.0f;
     static constexpr float contact_dist = 9.0f;
     static constexpr float declump_dist = 7.0f; // zombie-zombie push-out: core 6px + 1px air
@@ -152,6 +155,8 @@ class sim {
     // damage cooldowns and the tiles the BFS fields were last built for are not peer state
     static state _s;
     static uint32_t _last_ms, _last_damage[NUM_PLAYERS], _last_shot[NUM_PLAYERS];
+    static uint8_t _burst_left[NUM_PLAYERS]; // M16 rounds still owed this burst
+    static uint32_t _burst_next[NUM_PLAYERS]; // millis() when the next burst round fires
     static uint32_t _last_aim[NUM_PLAYERS]; // last fire time: aim holds facing briefly
     static constexpr uint32_t AIM_HOLD_MS = 500;
     static uint8_t _face_want[NUM_PLAYERS], _face_cnt[NUM_PLAYERS]; // player debounce
@@ -169,8 +174,10 @@ class sim {
     static void _spawn_wave();
     static void _respawn(uint8_t p);
     static void _do_fire(uint32_t now, uint8_t p);
+    static bool _fire_single(uint32_t now, uint8_t p); // aim + spawn one round, true if it left
     static uint32_t _fire_cd(weapon w);
     static uint8_t _base_dmg(weapon w);
+    static float _fire_range(weapon w); // auto-aim reach: sniper sees further
     static uint8_t _eff_dmg(uint8_t base, uint8_t lvl); // base*(1+0.25*lvl), half-up, min 1
     static float _spd_mult(uint8_t lvl);                // 1+0.08*lvl
     static float _rpd_mult(uint8_t lvl);                // 1-0.08*lvl, min 0.5
@@ -181,8 +188,8 @@ class sim {
     static uint8_t _wave_total(uint16_t wave); // min(wave+3, MAX_ZOMBIES)
     static uint8_t _wave_runners(uint16_t wave, uint8_t total); // 0 on wave 1, else up to half
     static bool _wave_boss(uint16_t wave);     // every 5th wave steals slot 0
-    // roulette odds over r = rand % 100: SMG 40, pistol 15, shotgun 30, rifle 15.
-    // SMG and shotgun hit more often; the pistol can come back as the booby prize.
+    // roulette odds over r = rand % 100: SMG 30, pistol 10, shotgun 25, rifle 12,
+    // M16 13, sniper 10. SMG and shotgun hit more often; the pistol stays the booby prize.
     static weapon _roll_weapon(uint8_t r);
     static uint8_t _fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p);
 };

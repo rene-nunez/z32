@@ -9,6 +9,8 @@
 sim::state sim::_s;
 uint32_t sim::_last_ms = 0;
 uint32_t sim::_last_shot[sim::NUM_PLAYERS] = {0, 0};
+uint8_t sim::_burst_left[sim::NUM_PLAYERS] = {0, 0};
+uint32_t sim::_burst_next[sim::NUM_PLAYERS] = {0, 0};
 uint32_t sim::_last_damage[sim::NUM_PLAYERS] = {0, 0};
 uint32_t sim::_bleed_acc[sim::NUM_PLAYERS] = {0, 0};
 int16_t sim::_path_tx[sim::NUM_PLAYERS] = {-1, -1};
@@ -37,6 +39,8 @@ void sim::reset() {
   _s.rpd_lvl = 0;
   _s.last_event = event::none;
   _last_shot[0] = _last_shot[1] = 0;
+  _burst_left[0] = _burst_left[1] = 0;
+  _burst_next[0] = _burst_next[1] = 0;
   _last_aim[0] = _last_aim[1] = 0;
   _face_want[0] = _face_want[1] = 2;
   _face_cnt[0] = _face_cnt[1] = 0;
@@ -376,7 +380,9 @@ uint32_t sim::_fire_cd(weapon w) {
   switch (w) {
     case weapon::smg: return 180;
     case weapon::shotgun: return 900;
-    case weapon::rifle: return 800;
+    case weapon::rifle: return 650; // brisk mid punch, clearly above the sniper
+    case weapon::m16: return 600;   // gap between bursts, rounds tick at burst_gap_ms
+    case weapon::sniper: return 1400;
     default: return 500; // pistol
   }
 }
@@ -384,8 +390,13 @@ uint32_t sim::_fire_cd(weapon w) {
 uint8_t sim::_base_dmg(weapon w) {
   switch (w) {
     case weapon::rifle: return 4; // anti-boss punch
-    default: return 1; // pistol, smg and each shotgun pellet
+    case weapon::sniper: return 6; // one heavy round, worth the wait
+    default: return 1; // pistol, smg, m16 and each shotgun pellet
   }
+}
+
+float sim::_fire_range(weapon w) {
+  return (w == weapon::sniper) ? sniper_range : fire_range;
 }
 
 uint8_t sim::_fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p) {
@@ -413,11 +424,18 @@ void sim::_do_fire(uint32_t now, uint8_t p) {
   if (now - _last_shot[p] < (cd < 50 ? 50 : cd)) {
     return;
   }
+  if (_fire_single(now, p) && _s.gun == weapon::m16) {
+    _burst_left[p] = (uint8_t)(burst_shots - 1u); // first round out, the rest tick in step()
+    _burst_next[p] = now + burst_gap_ms;
+  }
+}
 
+bool sim::_fire_single(uint32_t now, uint8_t p) {
+  const float range = _fire_range(_s.gun);
   const float ox = _s.players[p].x;
   const float oy = _s.players[p].y;
   int16_t best = -1;
-  float best_d = fire_range * fire_range;
+  float best_d = range * range;
   for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {
     if (!_s.zombies[i].active) {
       continue;
@@ -431,7 +449,7 @@ void sim::_do_fire(uint32_t now, uint8_t p) {
     }
   }
   if (best < 0) {
-    return;
+    return false; // nothing in reach: no round leaves, no burst is armed
   }
 
   const float bx = ox + PLAYER_SIZE / 2.0f;
@@ -459,6 +477,7 @@ void sim::_do_fire(uint32_t now, uint8_t p) {
   if (fired > 0) {
     _s.last_event = event::shoot;
   }
+  return fired > 0;
 }
 
 bool sim::step(uint32_t now) {
@@ -493,6 +512,18 @@ bool sim::step(uint32_t now) {
 
     if ((p == 0) ? input::fire_pressed() : _p2ctl.fire) {
       _do_fire(now, p);
+    }
+    if (_burst_left[p] > 0) {
+      if (_s.gun != weapon::m16) {
+        _burst_left[p] = 0; // swapped mid-burst: cancel the rest
+      } else if (now >= _burst_next[p]) {
+        if (_fire_single(now, p)) {
+          --_burst_left[p];
+          _burst_next[p] = now + burst_gap_ms;
+        } else {
+          _burst_next[p] = now + 50; // rack full or no target: retry shortly
+        }
+      }
     }
   }
 
@@ -757,16 +788,22 @@ bool sim::roll_roulette(uint32_t now, uint8_t p) {
 }
 
 sim::weapon sim::_roll_weapon(uint8_t r) {
-  if (r < 40) {
+  if (r < 30) {
     return weapon::smg;
   }
-  if (r < 55) {
+  if (r < 40) {
     return weapon::pistol;
   }
-  if (r < 85) {
+  if (r < 65) {
     return weapon::shotgun;
   }
-  return weapon::rifle;
+  if (r < 77) {
+    return weapon::rifle;
+  }
+  if (r < 90) {
+    return weapon::m16;
+  }
+  return weapon::sniper;
 }
 
 const char* sim::gun_name(weapon w) {
@@ -774,6 +811,8 @@ const char* sim::gun_name(weapon w) {
     case weapon::smg: return "SMG";
     case weapon::shotgun: return "SHOTGUN";
     case weapon::rifle: return "RIFLE";
+    case weapon::m16: return "M16";
+    case weapon::sniper: return "SNIPER";
     default: return "PISTOL";
   }
 }
