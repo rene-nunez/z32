@@ -460,7 +460,8 @@ void game::_shop_update(uint32_t now) {
         } else {
           ok = sim::buy_damage(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "DMG LV%u!", sim::view().dmg_lvl[0]);
+            snprintf(_hint_buf, sizeof(_hint_buf), "DMG +%u%%!",
+                     sim::dmg_bonus(sim::view().dmg_lvl[0]));
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu",
                      (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl[0]));
@@ -473,7 +474,8 @@ void game::_shop_update(uint32_t now) {
         } else {
           ok = sim::buy_speed(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "SPD LV%u!", sim::view().spd_lvl[0]);
+            snprintf(_hint_buf, sizeof(_hint_buf), "SPD +%u%%!",
+                     sim::spd_bonus(sim::view().spd_lvl[0]));
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu",
                      (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[0]));
@@ -486,7 +488,8 @@ void game::_shop_update(uint32_t now) {
         } else {
           ok = sim::buy_rapid(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "ROF LV%u!", sim::view().rpd_lvl[0]);
+            snprintf(_hint_buf, sizeof(_hint_buf), "ROF -%u%%!",
+                     sim::rpd_cut(sim::view().rpd_lvl[0]));
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu",
                      (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[0]));
@@ -552,7 +555,8 @@ void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
       if (v.dmg_lvl[p] >= sim::MAX_LVL) {
         render::prompt("DMG MAX");
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: DMG LV%u", who, (unsigned)v.dmg_lvl[p] + 1u);
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: DMG +%u%%", who,
+                 sim::dmg_bonus((uint8_t)(v.dmg_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
       break;
@@ -560,7 +564,8 @@ void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
       if (v.spd_lvl[p] >= sim::MAX_LVL) {
         render::prompt("SPD MAX");
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: SPD LV%u", who, (unsigned)v.spd_lvl[p] + 1u);
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: SPD +%u%%", who,
+                 sim::spd_bonus((uint8_t)(v.spd_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
       break;
@@ -572,7 +577,8 @@ void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
       if (v.rpd_lvl[p] >= sim::MAX_LVL) {
         render::prompt("ROF MAX");
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: ROF LV%u", who, (unsigned)v.rpd_lvl[p] + 1u);
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: ROF -%u%%", who,
+                 sim::rpd_cut((uint8_t)(v.rpd_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
       break;

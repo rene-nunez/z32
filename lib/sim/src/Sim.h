@@ -19,10 +19,10 @@ class sim {
     static constexpr uint8_t MAX_ZOMBIES = 8;
     static constexpr uint8_t MAX_BULLETS = 8;
     static constexpr uint8_t NUM_PLAYERS = 2;
-    static constexpr uint8_t PLAYER_HP_MAX = 5; // the panel draws one pip per point
+    static constexpr uint8_t PLAYER_HP_MAX = 10; // the panel draws one pip per point
     static constexpr uint8_t REVIVE_HP = 1;     // back on your feet at 1 HP, heal up after
     static constexpr uint8_t BLEED_SECS = 15;   // bleed-out window before death
-    static constexpr uint8_t MAX_LVL = 5;       // damage and speed cap here, pips per level
+    static constexpr uint8_t MAX_LVL = 10;      // damage and speed cap here, pips per level
 
     enum class weapon : uint8_t { pistol, smg, shotgun, rifle, m16, sniper };
     enum class actor_kind : uint8_t { normal, runner, boss };
@@ -136,6 +136,11 @@ class sim {
 
     static uint32_t price_for(uint32_t base, uint8_t lvl); // base + STEP*lvl
     static uint8_t mag_size(weapon w) { return _mag_size(w); } // rounds per mag, for the HUD
+    // display bonuses for the panel/prompts: DMG +25/lvl, SPD +8/lvl, ROF the real
+    // accumulated cooldown cut in % (multiplicative, L10 = 46)
+    static uint8_t dmg_bonus(uint8_t lvl);
+    static uint8_t spd_bonus(uint8_t lvl);
+    static uint8_t rpd_cut(uint8_t lvl);
     static const char* gun_name_p(uint8_t p = 0); // that player's gun
     static const char* gun_name(weapon w);
   private:
@@ -191,7 +196,7 @@ class sim {
     static float _fire_range(weapon w); // auto-aim reach: sniper sees further
     static uint8_t _eff_dmg(uint8_t base, uint8_t lvl); // base*(1+0.25*lvl), half-up, min 1
     static float _spd_mult(uint8_t lvl);                // 1+0.08*lvl
-    static float _rpd_mult(uint8_t lvl);                // 1-0.08*lvl, min 0.5
+    static float _rpd_mult(uint8_t lvl);                // 0.94^lvl, 0.54 at max
     static uint8_t _zombie_hp(actor_kind kind, uint16_t wave); // normal 2+w/2, runner 1+w/6, boss 20+w (capped 255)
     static uint8_t _zombie_dmg(actor_kind kind);        // boss 2, rest 1
     static float _zombie_speed(actor_kind kind);        // 40 / 70 / 30

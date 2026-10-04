@@ -379,12 +379,29 @@ uint32_t sim::_kill_reward(actor_kind kind, uint16_t wave) {
 }
 
 float sim::_spd_mult(uint8_t lvl) {
-  return 1.0f + 0.08f * (float)lvl; // +8%/level, +40% at max like the old buff
+  return 1.0f + 0.08f * (float)lvl; // +8%/level, +80% at max (balance pass owns the curve)
 }
 
 float sim::_rpd_mult(uint8_t lvl) {
-  const float m = 1.0f - 0.08f * (float)lvl; // -8%/level, -40% at max
-  return m < 0.5f ? 0.5f : m;
+  // multiplicative: ~-6%/level compounding, 0.54 at max, no dead levels past a floor
+  float m = 1.0f;
+  for (uint8_t i = 0; i < lvl; ++i) {
+    m *= 0.94f;
+  }
+  return m;
+}
+
+uint8_t sim::dmg_bonus(uint8_t lvl) {
+  return (uint8_t)(25u * lvl); // +25%/level, +250% at max
+}
+
+uint8_t sim::spd_bonus(uint8_t lvl) {
+  return (uint8_t)(8u * lvl); // +8%/level, +80% at max
+}
+
+uint8_t sim::rpd_cut(uint8_t lvl) {
+  // the real accumulated cooldown cut in %: L1 6, L5 27, L10 46
+  return (uint8_t)((1.0f - _rpd_mult(lvl)) * 100.0f + 0.5f);
 }
 
 uint32_t sim::_fire_cd(weapon w) {

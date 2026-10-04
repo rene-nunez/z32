@@ -113,7 +113,8 @@ void panel::draw() {
       display::text(buf, 28, y, colour::yellow, 1); // seconds shrink, cleared above
       return;
     }
-    const uint16_t col = (v.players[p].hp <= 2) ? colour::red : ok_col; // low hp reads red
+    const uint16_t col = (v.players[p].hp * 5 <= sim::PLAYER_HP_MAX * 2) ? colour::red
+                                                                                   : ok_col; // low hp reads red
     _pip_row(y, label, v.players[p].hp, sim::PLAYER_HP_MAX, col);
   };
   hp_row(0, hp_y, p2 ? "HP1" : "HP", colour::green); // P1 suit reads green already
@@ -124,10 +125,16 @@ void panel::draw() {
   }
   display::fill_rect(0, tail_y, mx, 8, colour::black);
   _pip_row(tail_y, "DMG", v.dmg_lvl[f], sim::MAX_LVL, colour::red);
+  snprintf(buf, sizeof(buf), "+%u%%", sim::dmg_bonus(v.dmg_lvl[f]));
+  display::text(buf, 132, tail_y, colour::white, 1); // pips end at 126, minimap at 196
   display::fill_rect(0, tail_y + pitch, mx, 8, colour::black);
   _pip_row(tail_y + pitch, "SPD", v.spd_lvl[f], sim::MAX_LVL, display::rgb565(60, 130, 230));
+  snprintf(buf, sizeof(buf), "+%u%%", sim::spd_bonus(v.spd_lvl[f]));
+  display::text(buf, 132, tail_y + pitch, colour::white, 1);
   display::fill_rect(0, tail_y + 2 * pitch, mx, 8, colour::black);
   _pip_row(tail_y + 2 * pitch, "ROF", v.rpd_lvl[f], sim::MAX_LVL, colour::orange);
+  snprintf(buf, sizeof(buf), "-%u%%", sim::rpd_cut(v.rpd_lvl[f]));
+  display::text(buf, 132, tail_y + 2 * pitch, colour::white, 1);
 }
 
 void panel::_mm_restore_row(int16_t tx0, int16_t tx1, int16_t ty) {
