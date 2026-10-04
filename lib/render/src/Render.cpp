@@ -460,7 +460,8 @@ void render::_shop_labels(bool erase) {
   }
   const uint8_t want[4] = {tilemap::VENDING, tilemap::V_DMG, tilemap::V_SPD, tilemap::V_RPD};
   const char* text[4] = {"HEAL 100", dmg_buf, spd_buf, rpd_buf};
-  const uint16_t col[4] = {colour::green, colour::red, colour::cyan, colour::orange};
+  const uint16_t col[4] = {colour::green, colour::red, display::rgb565(60, 130, 230),
+                           colour::orange};
   if (!_tag_anchors_done) {
     _tag_anchors_done = true;
     for (uint8_t i = 0; i < 4 + TAG_PADS; ++i) {
