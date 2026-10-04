@@ -65,7 +65,7 @@ class game {
     static uint8_t _roulette_active_at(uint16_t w, uint8_t n); // active pad at wave w
     static bool _roulette_moved(); // the pad really relocated this wave (banner gate)
     static bool _near_inactive_roulette(uint8_t p); // standing on a dead pad
-    static char _hint_buf[28];         // transient result text ("NEED 100", "GUN: SMG")
+    static char _hint_buf[28];         // transient result text ("NEED 100", "GUN: MP9")
     static uint32_t _hint_until;       // result visible while millis() < this
     static bool _was_down0, _was_down1; // downed flags last host frame, for fall/death edges
     static bool _p2_interact;          // player 2 INTERACT edge, set from net, consumed in shop

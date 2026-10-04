@@ -956,7 +956,7 @@ void game::_draw_hud() {
   snprintf(buf, sizeof(buf), "WAVES %u KILLS %u", v.wave, v.kills);
   display::text(buf, 4, 1, colour::white, 1);
 
-  char gun[16]; // "GUN GLOCK 17" is 12 chars: 11 + NUL truncated the 7
+  char gun[16]; // "GUN GLOCK-19" is 12 chars: fits with NUL
   snprintf(gun, sizeof(gun), "GUN %s", sim::gun_name());
   uint8_t glen = 0;
   while (gun[glen] != '\0') {

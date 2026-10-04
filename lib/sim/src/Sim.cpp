@@ -808,12 +808,12 @@ sim::weapon sim::_roll_weapon(uint8_t r) {
 
 const char* sim::gun_name(weapon w) {
   switch (w) {
-    case weapon::smg: return "MP5";
+    case weapon::smg: return "MP9";
     case weapon::shotgun: return "SPAS-12";
-    case weapon::rifle: return "M4";
-    case weapon::m16: return "M16A1";
+    case weapon::rifle: return "AR-15";
+    case weapon::m16: return "FAMAS";
     case weapon::sniper: return "M82A1";
-    default: return "GLOCK 17";
+    default: return "GLOCK-19";
   }
 }
 

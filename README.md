@@ -7,7 +7,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 ## Características
 
 - Supervivencia por oleadas infinitas (4 zombis en ronda 1 hasta 8 simultáneos).
-- 6 armas: Glock 17 inicial + MP5, SPAS-12 (3 perdigones), M4, M16A1 (ráfaga de 3) y M82A1 (daño 6, más alcance) por ruleta (la Glock puede volver como premio tonto).
+- 6 armas: Glock-19 inicial + MP9, SPAS-12 (3 perdigones), AR-15, FAMAS (ráfaga de 3) y M82A1 (daño 6, más alcance) por ruleta (la Glock puede volver como premio tonto).
 - 3 máquinas expendedoras con niveles permanentes + ruleta de armas.
 - Puntos como cartera: ganas por matar, gastas en tienda; al morir se guardan puntos, ronda y bajas.
 - Minimapa en vivo con posición, zombis y encuadre de cámara.
@@ -27,12 +27,12 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
   - **S azul — Velocidad 120**: +8% de velocidad por nivel, máximo 5.
   - Cada nivel cuesta más: `base + 200·nivel` (p. ej. daño: 150/350/550/750/950). Niveles
     permanentes, se ven como barras en el panel. Sin puntos o al máximo, avisa (`NEED`, `MAX`).
-- **Ruleta 100**: arma aleatoria entre MP5 (rápido), SPAS-12 (abanico de 3), M4
-  (daño 4), M16A1 (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
+- **Ruleta 100**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3), AR-15
+  (daño 4), FAMAS (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
   volver como premio tonto.
 - **Disparo**: auto-apuntado al zombi más cercano (alcance 160px, 220px el M82A1).
-  Cada arma tiene su cadencia: Glock 0.5s, MP5 0.18s, SPAS-12 0.9s, M4 0.55s,
-  M16A1 ráfagas de 3 cada 0.6s, M82A1 1.4s.
+  Cada arma tiene su cadencia: Glock 0.5s, MP9 0.18s, SPAS-12 0.9s, AR-15 0.55s,
+  FAMAS ráfagas de 3 cada 0.6s, M82A1 1.4s.
 
 ## Controles
 
@@ -48,7 +48,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 
 - **Arriba**: arena de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
   franja central inferior con el prompt de compra (`E: DMG LV3 - 650`, `HEALED +2HP`…).
-- **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN SMG`), pips de
+- **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de
   `HP` (5, en rojo si quedan ≤2), `DMG` y `SPD` (5 niveles) + minimapa con tu punto
   blanco, zombis rojos y marco amarillo de cámara.
 
