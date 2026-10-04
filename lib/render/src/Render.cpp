@@ -166,6 +166,11 @@ int16_t render::_cam_y = 0;
 uint8_t render::_focus = 0;
 int16_t render::_paint_y = render::ARENA_H;
 const char* render::_prompt = nullptr;
+// conditional strip erase: text the strip was last erased for ("" = clean terrain)
+// plus the camera of that erase. Steady text + steady camera skips the 320x10
+// terrain repaint every frame (that cost used to stretch frames and tear sprites).
+static char _prompt_erased[28] = "";
+static int16_t _prompt_ex = -1, _prompt_ey = -1;
 
 void render::prompt(const char* msg) {
   _prompt = msg;
@@ -407,10 +412,20 @@ void render::clear() {
   // erase the prompt strip at the old camera: it is screen-fixed, so its world
   // rect moves with the camera and a camera cut would strand it otherwise.
   // conditional: _prompt still holds last frame's text here (game sets the new one
-  // after the step), so no prompt + no repaint pending = nothing to clean.
-  if ((_prompt != nullptr && _prompt[0] != '\0') || _paint_y < ARENA_H) {
+  // after the step). Steady text + steady camera = nothing to clean, so the
+  // 320x10 terrain repaint (3200 color_at/frame) runs only on text change,
+  // camera move or progressive repaint. draw() repaints the text every frame
+  // with an opaque bg, so it self-covers; the erase is always full-width, so
+  // shrinking text never strands pixels.
+  const char* cur_prompt = (_prompt != nullptr) ? _prompt : "";
+  if ((cur_prompt[0] != '\0' || _prompt_erased[0] != '\0') &&
+      (strcmp(cur_prompt, _prompt_erased) != 0 || _cam_x != _prompt_ex ||
+       _cam_y != _prompt_ey || _paint_y < ARENA_H)) {
     _erase_world_area(_cam_x, _cam_y + ARENA_H - _prompt_h, (int16_t)display::width(),
                       _prompt_h);
+    snprintf(_prompt_erased, sizeof(_prompt_erased), "%s", cur_prompt);
+    _prompt_ex = _cam_x;
+    _prompt_ey = _cam_y;
   }
 }
 
