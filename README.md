@@ -28,7 +28,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
   - **S azul — Velocidad 120**: +8% de velocidad por nivel, máximo 10.
   - **C naranja — Cadencia 150**: −6% de cooldown por nivel aprox. (multiplicativo), máximo 10.
   - Cada nivel cuesta más: `base + 200·nivel` (p. ej. daño: 150/350/550…). Niveles
-    permanentes por jugador (cada uno arma su build, panel con pips + `%` real),
+     permanentes por jugador (cada uno arma su build, panel con pips de HP + `%` real),
     cartera compartida. Sin puntos o al máximo, avisa (`NEED`, `MAX`).
 - **Ruleta 100**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3), SKS
   (daño 3), FAMAS (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
@@ -58,7 +58,8 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
   franja central inferior con el prompt de compra (`INT: DMG +75%`, `HEALED +2HP`…,
   `OUT OF AMMO!` cuando toca).
 - **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de
-  `HP` (10, en rojo si quedan ≤4), `DMG`, `SPD` y `ROF` (10 niveles + `%`) + minimapa con tu punto
+  `HP` (10 chunky, en rojo si quedan ≤4), `DMG`, `SPD` y `ROF` como `%` en bold
+  (uno en solo, P1/P2 en coop) + minimapa con tu punto
   blanco, zombis rojos y marco amarillo de cámara.
 
 ## Hardware (ESP32)
