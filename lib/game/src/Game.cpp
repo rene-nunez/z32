@@ -69,6 +69,7 @@ uint16_t game::_hud_wave = 0xFFFF, game::_hud_kills = 0xFFFF;
 uint8_t game::_hud_role = 0xFF;
 sim::weapon game::_hud_gun = (sim::weapon)0xFF;
 uint8_t game::_hud_ammo = 0xFF;
+uint8_t game::_hud_shown = 0xFF;
 bool game::_hud_first = true;
 
 bool game::begin(uint8_t role) {
@@ -954,15 +955,23 @@ void game::_draw_hud() {
   const sim::state& v = sim::view();
   const uint8_t role = !_net_multi ? 0 : (_handler.role() == ROLE_HOST ? 1 : 2);
   const uint8_t f = render::focus(); // this board's gun: solo/host P1, client P2
-  if (!_hud_first && v.wave == _hud_wave && v.kills == _hud_kills && v.guns[f] == _hud_gun &&
-      v.ammo[f] == _hud_ammo && role == _hud_role) {
+  // spectator: bled-out (dead till the wave, not downed) watches the living
+  // partner's gun till the respawn; downed keeps its own (it rises with it)
+  const uint8_t q = (uint8_t)(1 - f);
+  const bool f_dead = v.players[f].active && v.players[f].hp == 0 && !v.players[f].downed;
+  const bool q_alive =
+      v.players[q].active && (v.players[q].hp > 0 || v.players[q].downed);
+  const uint8_t s = (f_dead && q_alive) ? q : f;
+  if (!_hud_first && v.wave == _hud_wave && v.kills == _hud_kills && v.guns[s] == _hud_gun &&
+      v.ammo[s] == _hud_ammo && role == _hud_role && s == _hud_shown) {
     return;
   }
   _hud_wave = v.wave;
   _hud_kills = v.kills;
-  _hud_gun = v.guns[f];
-  _hud_ammo = v.ammo[f];
+  _hud_gun = v.guns[s];
+  _hud_ammo = v.ammo[s];
   _hud_role = role;
+  _hud_shown = s;
   const int16_t sw = (int16_t)display::width();
   if (_hud_first) {
     _hud_first = false;
@@ -975,7 +984,7 @@ void game::_draw_hud() {
   display::text(buf, 4, 1, colour::white, 1);
 
   char gun[16]; // "GUN GLOCK-19 15" is 15 chars: longest name (8) + current mag
-  snprintf(gun, sizeof(gun), "GUN %s %u", sim::gun_name_p(f), v.ammo[f]);
+  snprintf(gun, sizeof(gun), "GUN %s %u", sim::gun_name_p(s), v.ammo[s]);
   uint8_t glen = 0;
   while (gun[glen] != '\0') {
     ++glen;

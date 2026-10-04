@@ -59,7 +59,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
   `OUT OF AMMO!` cuando toca).
 - **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de
   `HP` (10 chunky, en rojo si quedan ≤4), `DMG`, `SPD` y `ROF` como `%` en bold
-  (uno en solo, P1/P2 en coop) + minimapa con tu punto
+  (tu build) + minimapa con tu punto
   blanco, zombis rojos y marco amarillo de cámara.
 
 ## Hardware (ESP32)

@@ -106,6 +106,7 @@ class game {
     static uint8_t _hud_role; // role badge cache (stays one byte)
     static sim::weapon _hud_gun;
     static uint8_t _hud_ammo; // mag count cache (repaints on every shot)
+    static uint8_t _hud_shown; // displayed player: focus, or the partner while spectating
     static bool _hud_first; // force full wipe+repaint (menu chrome covered the strip)
     static bool _boss_alive();   // any active boss in the sim view (both boards mirror it)
     static void _update_pause();
