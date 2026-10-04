@@ -15,7 +15,8 @@ int16_t panel::_mm_cty = -1;
 // stats cache: draw() only repaints when a value changes, blips() stays per-frame
 static uint32_t _cache_points = 0xFFFFFFFF;
 static uint8_t _cache_hp0 = 0xFF, _cache_hp1 = 0xFF, _cache_bleed0 = 0xFF, _cache_bleed1 = 0xFF;
-static uint8_t _cache_dmg = 0xFF, _cache_spd = 0xFF, _cache_rpd = 0xFF;
+static uint8_t _cache_dmg0 = 0xFF, _cache_dmg1 = 0xFF, _cache_spd0 = 0xFF, _cache_spd1 = 0xFF;
+static uint8_t _cache_rpd0 = 0xFF, _cache_rpd1 = 0xFF;
 static uint8_t _cache_p2 = 0xFF, _cache_down0 = 0xFF, _cache_down1 = 0xFF;
 
 int16_t panel::_mm_x() {
@@ -28,7 +29,8 @@ void panel::init() {
   _mm_n = 0;
   _cache_points = 0xFFFFFFFF; // force the next draw() to repaint every row
   _cache_hp0 = _cache_hp1 = _cache_bleed0 = _cache_bleed1 = 0xFF;
-  _cache_dmg = _cache_spd = _cache_rpd = _cache_p2 = _cache_down0 = _cache_down1 = 0xFF;
+  _cache_dmg0 = _cache_dmg1 = _cache_spd0 = _cache_spd1 = _cache_rpd0 = _cache_rpd1 = 0xFF;
+  _cache_p2 = _cache_down0 = _cache_down1 = 0xFF;
   display::fill_rect(0, render::ARENA_BOTTOM, (int16_t)display::width(), _panel_h, colour::black);
 
   for (uint8_t r = 0; r < tilemap::ROWS; ++r) { // minimap terrain, same-colour runs
@@ -57,7 +59,7 @@ void panel::_pip_row(int16_t y, const char* label, uint8_t lvl, uint8_t max, uin
   display::text(label, 4, y, colour::white, 1);
   const uint16_t spent = display::rgb565(40, 40, 40);
   for (uint8_t i = 0; i < max; ++i) {
-    display::fill_rect(28 + (int16_t)i * 10, y, 8, 8, (i < lvl) ? col : spent);
+    display::fill_rect(30 + (int16_t)i * 9, y, 8, 8, (i < lvl) ? col : spent);
   }
 }
 
@@ -65,18 +67,19 @@ void panel::draw() {
   // stats live left of the minimap; wave/kills and the gun moved to the 10px HUD, so this
   // keeps POINTS big plus the pip rows with room to breathe. Every row is cleared first:
   // numbers shrink and overpainting alone would leave ghost digits behind.
-  // cached: POINTS/HP/DMG/SPD only change on kills/buys/hits, so most frames skip here
+  // cached: POINTS/HP/buffs only change on kills/buys/hits, so most frames skip here
   // entirely (blips() still runs per frame). init() invalidates the cache.
   const sim::state& v = sim::view();
   const uint8_t p2 = v.players[1].active ? 1 : 0;
-  const uint8_t f = render::focus(); // this board's build: host/solo P1, client P2
   const uint8_t down0 = v.players[0].downed ? 1 : 0;
   const uint8_t down1 = v.players[1].downed ? 1 : 0;
   if (v.points == _cache_points && v.players[0].hp == _cache_hp0 &&
       v.players[1].hp == _cache_hp1 && v.players[0].bleed == _cache_bleed0 &&
-      v.players[1].bleed == _cache_bleed1 && v.dmg_lvl[f] == _cache_dmg &&
-      v.spd_lvl[f] == _cache_spd && v.rpd_lvl[f] == _cache_rpd && p2 == _cache_p2 &&
-      down0 == _cache_down0 && down1 == _cache_down1) {
+      v.players[1].bleed == _cache_bleed1 && v.dmg_lvl[0] == _cache_dmg0 &&
+      v.dmg_lvl[1] == _cache_dmg1 && v.spd_lvl[0] == _cache_spd0 &&
+      v.spd_lvl[1] == _cache_spd1 && v.rpd_lvl[0] == _cache_rpd0 &&
+      v.rpd_lvl[1] == _cache_rpd1 && p2 == _cache_p2 && down0 == _cache_down0 &&
+      down1 == _cache_down1) {
     return;
   }
   _cache_points = v.points;
@@ -84,9 +87,12 @@ void panel::draw() {
   _cache_hp1 = v.players[1].hp;
   _cache_bleed0 = v.players[0].bleed;
   _cache_bleed1 = v.players[1].bleed;
-  _cache_dmg = v.dmg_lvl[f];
-  _cache_spd = v.spd_lvl[f];
-  _cache_rpd = v.rpd_lvl[f];
+  _cache_dmg0 = v.dmg_lvl[0];
+  _cache_dmg1 = v.dmg_lvl[1];
+  _cache_spd0 = v.spd_lvl[0];
+  _cache_spd1 = v.spd_lvl[1];
+  _cache_rpd0 = v.rpd_lvl[0];
+  _cache_rpd1 = v.rpd_lvl[1];
   _cache_p2 = p2;
   _cache_down0 = down0;
   _cache_down1 = down1;
@@ -107,7 +113,7 @@ void panel::draw() {
   auto hp_row = [&](uint8_t p, int16_t y, const char* label, uint16_t ok_col) {
     display::fill_rect(0, y, mx, 8, colour::black);
     if (v.players[p].downed) {
-      // countdown starts where the pips (and DMG/SPD levels) start: same column, same row
+      // countdown starts where the pips start: same column, same row
       display::text(label, 4, y, colour::white, 1);
       snprintf(buf, sizeof(buf), "DOWN %u", v.players[p].bleed);
       display::text(buf, 28, y, colour::yellow, 1); // seconds shrink, cleared above
@@ -123,18 +129,38 @@ void panel::draw() {
     constexpr uint16_t hp2_col = 0x54DA; // rgb565(80,152,208)
     hp_row(1, hp_y + pitch, "HP2", hp2_col);
   }
-  display::fill_rect(0, tail_y, mx, 8, colour::black);
-  _pip_row(tail_y, "DMG", v.dmg_lvl[f], sim::MAX_LVL, colour::red);
-  snprintf(buf, sizeof(buf), "+%u%%", sim::dmg_bonus(v.dmg_lvl[f]));
-  display::text(buf, 132, tail_y, colour::white, 1); // pips end at 126, minimap at 196
-  display::fill_rect(0, tail_y + pitch, mx, 8, colour::black);
-  _pip_row(tail_y + pitch, "SPD", v.spd_lvl[f], sim::MAX_LVL, display::rgb565(60, 130, 230));
-  snprintf(buf, sizeof(buf), "+%u%%", sim::spd_bonus(v.spd_lvl[f]));
-  display::text(buf, 132, tail_y + pitch, colour::white, 1);
-  display::fill_rect(0, tail_y + 2 * pitch, mx, 8, colour::black);
-  _pip_row(tail_y + 2 * pitch, "ROF", v.rpd_lvl[f], sim::MAX_LVL, colour::orange);
-  snprintf(buf, sizeof(buf), "-%u%%", sim::rpd_cut(v.rpd_lvl[f]));
-  display::text(buf, 132, tail_y + 2 * pitch, colour::white, 1);
+  // buffs are % text only (no pips): solo shows one value in the buff colour, coop
+  // shows P1 green / P2 steel-blue (same convention as the HP rows). Everything is
+  // left-aligned at x=28, hugging the label: solo draws there, coop packs v0 + "/"
+  // + v1 back to back. Bold via a double draw; every row is cleared first so
+  // shrinking text leaves no ghosts.
+  constexpr uint16_t p2_pct_col = 0x54DA; // matches the HP2 row
+  auto buff_row = [&](int16_t y, const char* label, uint8_t b0, uint8_t b1, char sign,
+                      uint16_t solo_col) {
+    display::fill_rect(0, y, mx, 8, colour::black);
+    display::text(label, 4, y, colour::white, 1);
+    if (!p2) {
+      snprintf(buf, sizeof(buf), "%c%u%%", sign, b0);
+      display::text(buf, 28, y, solo_col, 1);
+      display::text(buf, 29, y, solo_col, 1);
+      return;
+    }
+    char v0[16], v1[16];
+    const int l0 = snprintf(v0, sizeof(v0), "%c%u%%", sign, b0);
+    snprintf(v1, sizeof(v1), "%c%u%%", sign, b1);
+    display::text(v0, 28, y, colour::green, 1);
+    display::text(v0, 29, y, colour::green, 1);
+    const int16_t sx = (int16_t)(28 + l0 * 6);
+    display::text("/", sx, y, colour::white, 1);
+    display::text(v1, sx + 6, y, p2_pct_col, 1);
+    display::text(v1, sx + 7, y, p2_pct_col, 1);
+  };
+  buff_row(tail_y, "DMG", sim::dmg_bonus(v.dmg_lvl[0]), sim::dmg_bonus(v.dmg_lvl[1]), '+',
+           colour::red);
+  buff_row(tail_y + pitch, "SPD", sim::spd_bonus(v.spd_lvl[0]), sim::spd_bonus(v.spd_lvl[1]),
+           '+', display::rgb565(60, 130, 230));
+  buff_row(tail_y + 2 * pitch, "ROF", sim::rpd_cut(v.rpd_lvl[0]), sim::rpd_cut(v.rpd_lvl[1]),
+           '-', colour::orange);
 }
 
 void panel::_mm_restore_row(int16_t tx0, int16_t tx1, int16_t ty) {

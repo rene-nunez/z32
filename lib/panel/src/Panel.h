@@ -11,7 +11,7 @@
 class panel {
   public:
     static void init();  // once per run: black panel + minimap terrain
-    static void draw();  // per frame: points, wave/kills, gun, HP/DMG/SPD pips
+    static void draw();  // per frame: points, HP pips, DMG/SPD/ROF % (both in coop)
     static void blips(); // per frame: camera cell frame and the entity dots
 
   private:
