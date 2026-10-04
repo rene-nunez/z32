@@ -527,12 +527,8 @@ void game::_shop_update(uint32_t now) {
     render::prompt("INT: REVIVE"); // standing close, lift with INTERACT
     return;
   }
-  if (sim::reloading(0)) {
-    render::prompt("RELOADING"); // hands busy: the mag count in the HUD is the progress
-    return;
-  }
-  if (v.ammo[0] == 0) {
-    render::prompt("EMPTY: RELOAD"); // manual only: no auto-rescue
+  if (v.ammo[0] == 0 && !sim::reloading(0)) {
+    render::prompt("OUT OF AMMO!"); // manual only: no auto-rescue
     return;
   }
   if (shop == 0) {
@@ -900,10 +896,8 @@ void game::_update_playing_client() {
     render::prompt(_hint_buf); // edge news wins over proximity
   } else if (_revive_near(1)) {
     render::prompt("INT: REVIVE"); // standing close, lift with INTERACT
-  } else if (sim::reloading(1)) {
-    render::prompt("RELOADING"); // snapshot flag: the host owns the timer
-  } else if (cv.ammo[1] == 0) {
-    render::prompt("EMPTY: RELOAD"); // manual only: no auto-rescue
+  } else if (cv.ammo[1] == 0 && !sim::reloading(1)) {
+    render::prompt("OUT OF AMMO!"); // manual only: no auto-rescue
   } else {
     const uint8_t cshop = _shop_at(1);
     if (cshop == 0 && _near_inactive_roulette(1)) {

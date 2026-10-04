@@ -54,7 +54,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 - **Arriba**: HUD con ronda/bajas (`W3 K12`), arma y balas (`GUN MP9 18/30`); arena
   de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
   franja central inferior con el prompt de compra (`E: DMG LV3 - 650`, `HEALED +2HP`…,
-  `RELOADING` / `EMPTY: RELOAD` cuando toca).
+  `OUT OF AMMO!` cuando toca).
 - **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de
   `HP` (5, en rojo si quedan ≤2), `DMG` y `SPD` (5 niveles) + minimapa con tu punto
   blanco, zombis rojos y marco amarillo de cámara.
