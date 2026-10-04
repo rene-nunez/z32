@@ -8,11 +8,12 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 
 - Supervivencia por oleadas infinitas (4 zombis en ronda 1 hasta 8 simultáneos).
 - 6 armas: Glock-19 inicial + MP9, SPAS-12 (3 perdigones), SKS, FAMAS (ráfaga de 3) y M82A1 (daño 6, más alcance) por ruleta (la Glock puede volver como premio tonto).
-- 3 máquinas expendedoras con niveles permanentes + ruleta de armas.
+- 4 máquinas expendedoras con niveles permanentes + ruleta de armas.
 - Puntos como cartera: ganas por matar, gastas en tienda; al morir se guardan puntos, ronda y bajas.
 - Minimapa en vivo con posición, zombis y encuadre de cámara.
-- Últimas 4 partidas (puntos, ronda y bajas) guardadas entre partidas (memoria RTC, sobreviven al sueño profundo).
+- Últimas 4 partidas (puntos, ronda y bajas) guardadas entre partidas (memoria RTC + `/z32.json` en microSD).
 - Menús: inicio, modo de juego, puntos, pausa y game over. Botón de apagado con sueño profundo.
+- Coop ESP-NOW a 2 placas: host autoritario (~30Hz, `game_state` 134B + `player_input` 5B), Solo silencioso en ambas, Multi vía `waiting` (timeout 10s / FIRE-solo). P2 entra con pistola fresh, comparte cartera, revive con INTERACT a 1 HP, pausa y game-over espejados.
 
 ## Mecánicas
 
@@ -64,12 +65,10 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 
 - TFT ST7789 SPI: CS 5, RST 4, DC 2, MOSI 23, SCLK 18, MISO 19, BL 21.
 - Joystick analógico: X 32, Y 33. Botones: FIRE 13, RELOAD 14, INTERACT 15, PAUSE 27.
-- Buzzer pasivo GPIO 26 y microSD (CS 22, comparte SPI) previstos.
+- Buzzer pasivo GPIO 26 con jingles (disparos, compras, oleadas…).
+- microSD (CS 22, comparte SPI) con historial en `/z32.json`.
 - Compilar: `pio run -e host` | `pio run -e client`.
 
 ## En camino
 
-- Más enemigos: *runner* rápido y *boss* cada 5 rondas.
-- Sonido del buzzer (disparos, compras, oleadas…).
-- Intro, pantallas de logo/equipo y guardado en microSD.
-- Multijugador ESP-NOW (un ESP32 hace de host autoritario).
+- Pulido final y balance en hardware.

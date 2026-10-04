@@ -127,6 +127,6 @@ namespace net {
   }
 } // namespace net
 
-static_assert(sizeof(net::game_state_msg) == net::STATE_LEN, "game_state must stay ~120B");
+static_assert(sizeof(net::game_state_msg) == net::STATE_LEN, "game_state must stay 134B");
 static_assert(sizeof(net::player_input_msg) == net::INPUT_LEN, "player_input must stay 5B");
 static_assert(net::STATE_LEN <= net::MAX_MSG, "game_state exceeds the 250B cap");

@@ -9,7 +9,7 @@
 // state and never touches the screen, the menus or the network, so the renderer, the panel
 // and the menus can only read it through view().
 //
-// F6 co-op: two players share one wallet, gun and buff levels. Player 0 is local (host),
+// F6 co-op: two players share one wallet; gun and buff levels are per player. Player 0 is local (host),
 // player 1 is the net peer (inactive in Solo). Zombies chase their nearest alive player.
 class sim {
   public:
@@ -49,15 +49,15 @@ class sim {
     static constexpr uint32_t PRICE_HEAL = 100; // +2 HP
     static constexpr uint32_t PRICE_DMG = 150;  // damage +25%/level, base price
     static constexpr uint32_t PRICE_SPD = 120;  // speed +8%/level, base price
-    static constexpr uint32_t PRICE_RPD = 150;  // rapid -8% cooldown/level, base price
+    static constexpr uint32_t PRICE_RPD = 150;  // rapid -6% cooldown/level, base price
     static constexpr uint32_t PRICE_ROLL = 100; // roulette: random weapon
     static constexpr uint32_t LVL_PRICE_STEP = 200; // extra cost per level owned
 
     // facing: 8-wind sector from dir_of(), 0=E 1=SE 2=S 3=SW 4=W 5=NW 6=N 7=NE
     // (+y is south on the glass). Render folds it onto the stored art + hflip.
     static uint8_t dir_of(float dx, float dy);
-    // facing debounce: a new sector must repeat 3 frames (~100ms) to
-    // apply, so 1-2 frame border jitter never shows (noise never sticks,
+    // facing debounce: a new sector must repeat 2 frames (~66ms) to
+    // apply, so border jitter never shows (noise never sticks,
     // real turns apply with no perceptible lag, held diagonals show)
     static void _face_toward(uint8_t& facing, uint8_t& want, uint8_t& cnt, float dx,
                              float dy);
@@ -117,7 +117,7 @@ class sim {
     static void set_p2_active(bool active); // Multi start on the host
     static void set_p2(const ctl& c);       // fresh peer input, every host frame
     static bool step(uint32_t now); // false once nobody is left standing
-    static bool revive(uint8_t p);  // partner lift: downed back to 3 HP
+    static bool revive(uint8_t p);  // partner lift: downed back to 1 HP
 
     // net sync: host fills n (game stamps type+seq), client applies it wholesale.
     static void snapshot(net::game_state_msg& n);
