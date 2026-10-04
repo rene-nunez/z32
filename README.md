@@ -51,7 +51,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 
 ## Pantalla (UI)
 
-- **Arriba**: HUD con ronda/bajas (`W3 K12`), arma y balas (`GUN MP9 18/30`); arena
+- **Arriba**: HUD con ronda/bajas (`WAVES 3 KILLS 12`), arma y balas (`GUN MP9 18`); arena
   de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
   franja central inferior con el prompt de compra (`E: DMG LV3 - 650`, `HEALED +2HP`…,
   `OUT OF AMMO!` cuando toca).
