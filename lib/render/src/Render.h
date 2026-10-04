@@ -20,6 +20,7 @@ class render {
     static void repaint_step(); // paint up to PAINT_CHUNK pending arena rows
     static void update_camera();
     static void set_focus(uint8_t p); // co-op: each board frames its own player
+    static uint8_t focus(); // that player: panel/HUD/tags show its build
     static void clear();       // erase the entities through the tilemap colours
     static void draw();        // terrain, entities, tags and the prompt
     static void prompt(const char* msg); // transient shop prompt, painted centred by draw()

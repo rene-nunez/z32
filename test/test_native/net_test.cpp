@@ -16,8 +16,8 @@ static void check(bool ok, const char* what) {
 }
 
 int main() {
-  check(sizeof(net::game_state_msg) == 128, "state len 128");
-  check(net::STATE_LEN == 128, "STATE_LEN 128");
+  check(sizeof(net::game_state_msg) == 132, "state len 132");
+  check(net::STATE_LEN == 132, "STATE_LEN 132");
   check(sizeof(net::player_input_msg) == 5, "input len 5");
   check(sizeof(net::game_state_msg) <= 250, "state under cap");
 
@@ -32,6 +32,17 @@ int main() {
   s.wave = 300;
   check(s.kills == 300, "kills hold 300");
   check(s.wave == 300, "wave holds 300");
+
+  // per-player builds: guns + levels ride arrays, wallet stays shared
+  s.guns[0] = 3;
+  s.guns[1] = 5;
+  s.dmg_lvl[0] = 2;
+  s.dmg_lvl[1] = 5;
+  s.spd_lvl[0] = 1;
+  s.rpd_lvl[1] = 4;
+  check(s.guns[0] == 3 && s.guns[1] == 5, "guns per player");
+  check(s.dmg_lvl[0] == 2 && s.dmg_lvl[1] == 5, "dmg per player");
+  check(s.spd_lvl[0] == 1 && s.rpd_lvl[1] == 4, "spd/rpd per player");
 
   // positions: world 0..960 x 0..480, error under one quantum (0.25px)
   const float pxs[] = {0.0f, 1.3f, 159.9f, 480.0f, 959.75f};

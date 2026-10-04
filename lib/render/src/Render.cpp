@@ -230,6 +230,10 @@ void render::set_focus(uint8_t p) {
   _cam_y = -1;
 }
 
+uint8_t render::focus() {
+  return _focus;
+}
+
 void render::update_camera() {
   const int16_t aw = (int16_t)display::width();
   const sim::state& v = sim::view();
@@ -340,14 +344,16 @@ bool render::_tags_stale() {
   }
   // before the first scan rn reads 0: fall back to comparing the wave itself
   const uint16_t roll = (rn > 0) ? _roll_active(rn) : v.wave;
+  // tags price the focus build: each board sees its own next-level cost
+  const uint8_t f = (_focus < sim::NUM_PLAYERS) ? _focus : 0;
   if (_paint_y < ARENA_H || _cam_x != _tags_cx || _cam_y != _tags_cy ||
-      v.dmg_lvl != _tags_dmg || v.spd_lvl != _tags_spd || v.rpd_lvl != _tags_rpd ||
+      v.dmg_lvl[f] != _tags_dmg || v.spd_lvl[f] != _tags_spd || v.rpd_lvl[f] != _tags_rpd ||
       roll != _tags_roll) {
     _tags_cx = _cam_x;
     _tags_cy = _cam_y;
-    _tags_dmg = v.dmg_lvl;
-    _tags_spd = v.spd_lvl;
-    _tags_rpd = v.rpd_lvl;
+    _tags_dmg = v.dmg_lvl[f];
+    _tags_spd = v.spd_lvl[f];
+    _tags_rpd = v.rpd_lvl[f];
     _tags_roll = roll;
     return true;
   }
@@ -418,23 +424,24 @@ void render::clear() {
 void render::_shop_labels(bool erase) {
   char dmg_buf[12], spd_buf[12], rpd_buf[12];
   const sim::state& v = sim::view();
-  if (v.dmg_lvl >= sim::MAX_LVL) {
+  const uint8_t f = (_focus < sim::NUM_PLAYERS) ? _focus : 0;
+  if (v.dmg_lvl[f] >= sim::MAX_LVL) {
     snprintf(dmg_buf, sizeof(dmg_buf), "DMG MAX");
   } else {
     snprintf(dmg_buf, sizeof(dmg_buf), "DMG %lu",
-             (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl));
+             (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl[f]));
   }
-  if (v.spd_lvl >= sim::MAX_LVL) {
+  if (v.spd_lvl[f] >= sim::MAX_LVL) {
     snprintf(spd_buf, sizeof(spd_buf), "SPD MAX");
   } else {
     snprintf(spd_buf, sizeof(spd_buf), "SPD %lu",
-             (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl));
+             (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[f]));
   }
-  if (v.rpd_lvl >= sim::MAX_LVL) {
+  if (v.rpd_lvl[f] >= sim::MAX_LVL) {
     snprintf(rpd_buf, sizeof(rpd_buf), "RPD MAX");
   } else {
     snprintf(rpd_buf, sizeof(rpd_buf), "RPD %lu",
-             (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl));
+             (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[f]));
   }
   const uint8_t want[4] = {tilemap::VENDING, tilemap::V_DMG, tilemap::V_SPD, tilemap::V_RPD};
   const char* text[4] = {"HEAL 100", dmg_buf, spd_buf, rpd_buf};

@@ -69,12 +69,13 @@ void panel::draw() {
   // entirely (blips() still runs per frame). init() invalidates the cache.
   const sim::state& v = sim::view();
   const uint8_t p2 = v.players[1].active ? 1 : 0;
+  const uint8_t f = render::focus(); // this board's build: host/solo P1, client P2
   const uint8_t down0 = v.players[0].downed ? 1 : 0;
   const uint8_t down1 = v.players[1].downed ? 1 : 0;
   if (v.points == _cache_points && v.players[0].hp == _cache_hp0 &&
       v.players[1].hp == _cache_hp1 && v.players[0].bleed == _cache_bleed0 &&
-      v.players[1].bleed == _cache_bleed1 && v.dmg_lvl == _cache_dmg &&
-      v.spd_lvl == _cache_spd && v.rpd_lvl == _cache_rpd && p2 == _cache_p2 &&
+      v.players[1].bleed == _cache_bleed1 && v.dmg_lvl[f] == _cache_dmg &&
+      v.spd_lvl[f] == _cache_spd && v.rpd_lvl[f] == _cache_rpd && p2 == _cache_p2 &&
       down0 == _cache_down0 && down1 == _cache_down1) {
     return;
   }
@@ -83,9 +84,9 @@ void panel::draw() {
   _cache_hp1 = v.players[1].hp;
   _cache_bleed0 = v.players[0].bleed;
   _cache_bleed1 = v.players[1].bleed;
-  _cache_dmg = v.dmg_lvl;
-  _cache_spd = v.spd_lvl;
-  _cache_rpd = v.rpd_lvl;
+  _cache_dmg = v.dmg_lvl[f];
+  _cache_spd = v.spd_lvl[f];
+  _cache_rpd = v.rpd_lvl[f];
   _cache_p2 = p2;
   _cache_down0 = down0;
   _cache_down1 = down1;
@@ -122,11 +123,11 @@ void panel::draw() {
     hp_row(1, hp_y + pitch, "HP2", hp2_col);
   }
   display::fill_rect(0, tail_y, mx, 8, colour::black);
-  _pip_row(tail_y, "DMG", v.dmg_lvl, sim::MAX_LVL, colour::red);
+  _pip_row(tail_y, "DMG", v.dmg_lvl[f], sim::MAX_LVL, colour::red);
   display::fill_rect(0, tail_y + pitch, mx, 8, colour::black);
-  _pip_row(tail_y + pitch, "SPD", v.spd_lvl, sim::MAX_LVL, display::rgb565(60, 130, 230));
+  _pip_row(tail_y + pitch, "SPD", v.spd_lvl[f], sim::MAX_LVL, display::rgb565(60, 130, 230));
   display::fill_rect(0, tail_y + 2 * pitch, mx, 8, colour::black);
-  _pip_row(tail_y + 2 * pitch, "RPD", v.rpd_lvl, sim::MAX_LVL, colour::orange);
+  _pip_row(tail_y + 2 * pitch, "RPD", v.rpd_lvl[f], sim::MAX_LVL, colour::orange);
 }
 
 void panel::_mm_restore_row(int16_t tx0, int16_t tx1, int16_t ty) {

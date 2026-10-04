@@ -93,11 +93,11 @@ class sim {
       };
       player_state players[NUM_PLAYERS];
       uint16_t wave, kills;
-      uint32_t points;
-      weapon gun;
-      uint8_t dmg_lvl; // permanent damage levels, 0..MAX_LVL
-      uint8_t spd_lvl; // permanent speed levels, 0..MAX_LVL
-      uint8_t rpd_lvl; // permanent rapid levels, 0..MAX_LVL
+      uint32_t points; // shared wallet: both players spend from it
+      weapon guns[NUM_PLAYERS]; // per-player loadout, P2 joins fresh (pistol/0)
+      uint8_t dmg_lvl[NUM_PLAYERS]; // permanent damage levels, 0..MAX_LVL
+      uint8_t spd_lvl[NUM_PLAYERS]; // permanent speed levels, 0..MAX_LVL
+      uint8_t rpd_lvl[NUM_PLAYERS]; // permanent rapid levels, 0..MAX_LVL
       event last_event; // set by step() and by the buy calls below, read by game
       actor zombies[MAX_ZOMBIES];
       shot bullets[MAX_BULLETS];
@@ -119,7 +119,7 @@ class sim {
 
     // shop, called by game on an INTERACT edge near a machine. Exact points pay:
     // points >= price succeeds. On denial last_event is denied. Heal lands on
-    // player p, the shared levels/gun benefit both.
+    // player p, and p's own gun/levels benefit only p; the wallet is shared.
     static bool buy_heal(uint32_t now, uint8_t p = 0);
     static bool buy_damage(uint32_t now, uint8_t p = 0);
     static bool buy_speed(uint32_t now, uint8_t p = 0);
@@ -127,7 +127,7 @@ class sim {
     static bool roll_roulette(uint32_t now, uint8_t p = 0);
 
     static uint32_t price_for(uint32_t base, uint8_t lvl); // base + STEP*lvl
-    static const char* gun_name();
+    static const char* gun_name_p(uint8_t p = 0); // that player's gun
     static const char* gun_name(weapon w);
   private:
     static constexpr float player_speed = 110.0f;

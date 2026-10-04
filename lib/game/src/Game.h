@@ -87,7 +87,7 @@ class game {
 
     static void _scan_shops();       // cache the 2x2 machine centres, once per run
     static uint8_t _shop_at(uint8_t p); // nearest machine to player p (0 = none)
-    static void _shop_prompt(uint8_t shop, const char* who); // prompt strip text only
+    static void _shop_prompt(uint8_t shop, const char* who, uint8_t p); // prompt strip text only
     static bool _revive_near(uint8_t p); // downed partner within lift reach of p
     static bool _revive_update(uint32_t now); // INTERACT lifts, true = edge consumed
     static void _shop_update(uint32_t now); // INTERACT buys + panel prompt, after sim::step

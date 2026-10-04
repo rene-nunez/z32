@@ -26,7 +26,8 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
   - **D roja — Daño 150**: +25% de daño por nivel, máximo 5 (pistola pega 2 desde nv2).
   - **S azul — Velocidad 120**: +8% de velocidad por nivel, máximo 5.
   - Cada nivel cuesta más: `base + 200·nivel` (p. ej. daño: 150/350/550/750/950). Niveles
-    permanentes, se ven como barras en el panel. Sin puntos o al máximo, avisa (`NEED`, `MAX`).
+    permanentes por jugador (cada uno arma su build), cartera compartida. Sin puntos
+    o al máximo, avisa (`NEED`, `MAX`).
 - **Ruleta 100**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3), AR-15
   (daño 4), FAMAS (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
   volver como premio tonto.

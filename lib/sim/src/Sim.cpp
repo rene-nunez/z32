@@ -33,10 +33,12 @@ void sim::reset() {
   _s.kills = 0;
   _s.wave = 0;
   _s.points = 0;
-  _s.gun = weapon::pistol;
-  _s.dmg_lvl = 0;
-  _s.spd_lvl = 0;
-  _s.rpd_lvl = 0;
+  for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
+    _s.guns[p] = weapon::pistol;
+    _s.dmg_lvl[p] = 0;
+    _s.spd_lvl[p] = 0;
+    _s.rpd_lvl[p] = 0;
+  }
   _s.last_event = event::none;
   _last_shot[0] = _last_shot[1] = 0;
   _burst_left[0] = _burst_left[1] = 0;
@@ -95,6 +97,11 @@ void sim::set_p2_active(bool active) {
   _s.players[1].active = active;
   if (active) {
     _respawn(1);
+    _s.guns[1] = weapon::pistol; // fresh join: own loadout from scratch
+    _s.dmg_lvl[1] = 0;
+    _s.spd_lvl[1] = 0;
+    _s.rpd_lvl[1] = 0;
+    _burst_left[1] = 0;
   } else {
     _s.players[1].hp = 0;
   }
@@ -420,18 +427,18 @@ uint8_t sim::_fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p)
 }
 
 void sim::_do_fire(uint32_t now, uint8_t p) {
-  const uint32_t cd = (uint32_t)((float)_fire_cd(_s.gun) * _rpd_mult(_s.rpd_lvl));
+  const uint32_t cd = (uint32_t)((float)_fire_cd(_s.guns[p]) * _rpd_mult(_s.rpd_lvl[p]));
   if (now - _last_shot[p] < (cd < 50 ? 50 : cd)) {
     return;
   }
-  if (_fire_single(now, p) && _s.gun == weapon::m16) {
+  if (_fire_single(now, p) && _s.guns[p] == weapon::m16) {
     _burst_left[p] = (uint8_t)(burst_shots - 1u); // first round out, the rest tick in step()
     _burst_next[p] = now + burst_gap_ms;
   }
 }
 
 bool sim::_fire_single(uint32_t now, uint8_t p) {
-  const float range = _fire_range(_s.gun);
+  const float range = _fire_range(_s.guns[p]);
   const float ox = _s.players[p].x;
   const float oy = _s.players[p].y;
   int16_t best = -1;
@@ -462,9 +469,9 @@ bool sim::_fire_single(uint32_t now, uint8_t p) {
   _s.players[p].facing = dir_of(dx, dy); // aim wins over the move dir
   _last_aim[p] = now;
 
-  const uint8_t dmg = _eff_dmg(_base_dmg(_s.gun), _s.dmg_lvl);
+  const uint8_t dmg = _eff_dmg(_base_dmg(_s.guns[p]), _s.dmg_lvl[p]);
   uint8_t fired = 0;
-  if (_s.gun == weapon::shotgun) {
+  if (_s.guns[p] == weapon::shotgun) {
     // 3 pellets fanned around the aim: straight, -0.15rad, +0.15rad
     constexpr float c = 0.988771f; // cos(0.15)
     constexpr float s = 0.149438f; // sin(0.15)
@@ -507,14 +514,14 @@ bool sim::step(uint32_t now) {
       _face_toward(_s.players[p].facing, _face_want[p], _face_cnt[p], dx, dy);
     }
 
-    const float spd = player_speed * _spd_mult(_s.spd_lvl);
+    const float spd = player_speed * _spd_mult(_s.spd_lvl[p]);
     _move_entity(_s.players[p].x, _s.players[p].y, dx * spd * dt, dy * spd * dt, PLAYER_SIZE);
 
     if ((p == 0) ? input::fire_pressed() : _p2ctl.fire) {
       _do_fire(now, p);
     }
     if (_burst_left[p] > 0) {
-      if (_s.gun != weapon::m16) {
+      if (_s.guns[p] != weapon::m16) {
         _burst_left[p] = 0; // swapped mid-burst: cancel the rest
       } else if (now >= _burst_next[p]) {
         if (_fire_single(now, p)) {
@@ -722,67 +729,79 @@ bool sim::buy_heal(uint32_t now, uint8_t p) {
 
 bool sim::buy_damage(uint32_t now, uint8_t p) {
   (void)now;
-  (void)p; // levels are shared, either player may buy
-  if (_s.dmg_lvl >= MAX_LVL) {
+  if (p >= NUM_PLAYERS) {
+    _s.last_event = event::denied;
+    return false;
+  }
+  if (_s.dmg_lvl[p] >= MAX_LVL) {
     _s.last_event = event::denied; // capped, like a full HP bar
     return false;
   }
-  const uint32_t price = price_for(PRICE_DMG, _s.dmg_lvl);
+  const uint32_t price = price_for(PRICE_DMG, _s.dmg_lvl[p]);
   if (_s.points < price) {
     _s.last_event = event::denied;
     return false;
   }
   _s.points -= price;
-  ++_s.dmg_lvl; // permanent, part of the character
+  ++_s.dmg_lvl[p]; // permanent, part of that player's build
   _s.last_event = event::buy_dmg;
   return true;
 }
 
 bool sim::buy_speed(uint32_t now, uint8_t p) {
   (void)now;
-  (void)p; // levels are shared, either player may buy
-  if (_s.spd_lvl >= MAX_LVL) {
+  if (p >= NUM_PLAYERS) {
+    _s.last_event = event::denied;
+    return false;
+  }
+  if (_s.spd_lvl[p] >= MAX_LVL) {
     _s.last_event = event::denied; // capped, like a full HP bar
     return false;
   }
-  const uint32_t price = price_for(PRICE_SPD, _s.spd_lvl);
+  const uint32_t price = price_for(PRICE_SPD, _s.spd_lvl[p]);
   if (_s.points < price) {
     _s.last_event = event::denied;
     return false;
   }
   _s.points -= price;
-  ++_s.spd_lvl; // permanent, part of the character
+  ++_s.spd_lvl[p]; // permanent, part of that player's build
   _s.last_event = event::buy_spd;
   return true;
 }
 
 bool sim::buy_rapid(uint32_t now, uint8_t p) {
   (void)now;
-  (void)p; // levels are shared, either player may buy
-  if (_s.rpd_lvl >= MAX_LVL) {
+  if (p >= NUM_PLAYERS) {
+    _s.last_event = event::denied;
+    return false;
+  }
+  if (_s.rpd_lvl[p] >= MAX_LVL) {
     _s.last_event = event::denied; // capped, like a full HP bar
     return false;
   }
-  const uint32_t price = price_for(PRICE_RPD, _s.rpd_lvl);
+  const uint32_t price = price_for(PRICE_RPD, _s.rpd_lvl[p]);
   if (_s.points < price) {
     _s.last_event = event::denied;
     return false;
   }
   _s.points -= price;
-  ++_s.rpd_lvl; // permanent, part of the character
+  ++_s.rpd_lvl[p]; // permanent, part of that player's build
   _s.last_event = event::buy_rpd;
   return true;
 }
 
 bool sim::roll_roulette(uint32_t now, uint8_t p) {
   (void)now;
-  (void)p; // the gun is shared, either player may roll
+  if (p >= NUM_PLAYERS) {
+    _s.last_event = event::denied;
+    return false;
+  }
   if (_s.points < PRICE_ROLL) {
     _s.last_event = event::denied;
     return false;
   }
   _s.points -= PRICE_ROLL;
-  _s.gun = _roll_weapon((uint8_t)(esp_random() % 100u));
+  _s.guns[p] = _roll_weapon((uint8_t)(esp_random() % 100u));
   _s.last_event = event::roulette;
   return true;
 }
@@ -817,8 +836,8 @@ const char* sim::gun_name(weapon w) {
   }
 }
 
-const char* sim::gun_name() {
-  return gun_name(_s.gun);
+const char* sim::gun_name_p(uint8_t p) {
+  return gun_name(_s.guns[p < NUM_PLAYERS ? p : 0]);
 }
 
 void sim::snapshot(net::game_state_msg& n) {
@@ -834,10 +853,12 @@ void sim::snapshot(net::game_state_msg& n) {
   n.wave = _s.wave;
   n.kills = _s.kills;
   n.points = _s.points;
-  n.gun = (uint8_t)_s.gun;
-  n.dmg_lvl = _s.dmg_lvl;
-  n.spd_lvl = _s.spd_lvl;
-  n.rpd_lvl = _s.rpd_lvl;
+  for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
+    n.guns[p] = (uint8_t)_s.guns[p];
+    n.dmg_lvl[p] = _s.dmg_lvl[p];
+    n.spd_lvl[p] = _s.spd_lvl[p];
+    n.rpd_lvl[p] = _s.rpd_lvl[p];
+  }
   n.event = (uint8_t)_s.last_event;
   for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {
     n.zombies[i].x = net::qpos(_s.zombies[i].x);
@@ -869,10 +890,12 @@ void sim::apply_snapshot(const net::game_state_msg& n) {
   _s.wave = n.wave;
   _s.kills = n.kills;
   _s.points = n.points;
-  _s.gun = (weapon)n.gun;
-  _s.dmg_lvl = n.dmg_lvl;
-  _s.spd_lvl = n.spd_lvl;
-  _s.rpd_lvl = n.rpd_lvl;
+  for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
+    _s.guns[p] = (weapon)n.guns[p];
+    _s.dmg_lvl[p] = n.dmg_lvl[p];
+    _s.spd_lvl[p] = n.spd_lvl[p];
+    _s.rpd_lvl[p] = n.rpd_lvl[p];
+  }
   _s.last_event = (event)n.event;
   for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {
     _s.zombies[i].x = net::uqpos(n.zombies[i].x);

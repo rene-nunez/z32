@@ -454,48 +454,48 @@ void game::_shop_update(uint32_t now) {
         }
         break;
       case 2:
-        if (v.dmg_lvl >= sim::MAX_LVL) {
+        if (v.dmg_lvl[0] >= sim::MAX_LVL) {
           snprintf(_hint_buf, sizeof(_hint_buf), "DMG MAX");
         } else {
           ok = sim::buy_damage(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "DMG LV%u!", sim::view().dmg_lvl);
+            snprintf(_hint_buf, sizeof(_hint_buf), "DMG LV%u!", sim::view().dmg_lvl[0]);
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu",
-                     (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl));
+                     (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl[0]));
           }
         }
         break;
       case 3:
-        if (v.spd_lvl >= sim::MAX_LVL) {
+        if (v.spd_lvl[0] >= sim::MAX_LVL) {
           snprintf(_hint_buf, sizeof(_hint_buf), "SPD MAX");
         } else {
           ok = sim::buy_speed(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "SPD LV%u!", sim::view().spd_lvl);
+            snprintf(_hint_buf, sizeof(_hint_buf), "SPD LV%u!", sim::view().spd_lvl[0]);
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu",
-                     (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl));
+                     (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[0]));
           }
         }
         break;
       case 5:
-        if (v.rpd_lvl >= sim::MAX_LVL) {
+        if (v.rpd_lvl[0] >= sim::MAX_LVL) {
           snprintf(_hint_buf, sizeof(_hint_buf), "RPD MAX");
         } else {
           ok = sim::buy_rapid(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "RPD LV%u!", sim::view().rpd_lvl);
+            snprintf(_hint_buf, sizeof(_hint_buf), "RPD LV%u!", sim::view().rpd_lvl[0]);
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu",
-                     (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl));
+                     (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[0]));
           }
         }
         break;
       default:
         ok = sim::roll_roulette(now);
         if (ok) {
-          snprintf(_hint_buf, sizeof(_hint_buf), "GUN: %s", sim::gun_name());
+          snprintf(_hint_buf, sizeof(_hint_buf), "GUN: %s", sim::gun_name_p(0));
         } else {
           snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu", (unsigned long)sim::PRICE_ROLL);
         }
@@ -533,10 +533,10 @@ void game::_shop_update(uint32_t now) {
       return;
     }
   }
-  _shop_prompt(shop, "");
+  _shop_prompt(shop, "", 0);
 }
 
-void game::_shop_prompt(uint8_t shop, const char* who) {
+void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
   const sim::state& v = sim::view();
   switch (shop) {
     case 1:
@@ -544,18 +544,18 @@ void game::_shop_prompt(uint8_t shop, const char* who) {
       render::prompt(_hint_buf);
       break;
     case 2:
-      if (v.dmg_lvl >= sim::MAX_LVL) {
+      if (v.dmg_lvl[p] >= sim::MAX_LVL) {
         render::prompt("DMG MAX");
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: DMG LV%u", who, (unsigned)v.dmg_lvl + 1u);
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: DMG LV%u", who, (unsigned)v.dmg_lvl[p] + 1u);
         render::prompt(_hint_buf);
       }
       break;
     case 3:
-      if (v.spd_lvl >= sim::MAX_LVL) {
+      if (v.spd_lvl[p] >= sim::MAX_LVL) {
         render::prompt("SPD MAX");
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: SPD LV%u", who, (unsigned)v.spd_lvl + 1u);
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: SPD LV%u", who, (unsigned)v.spd_lvl[p] + 1u);
         render::prompt(_hint_buf);
       }
       break;
@@ -564,10 +564,10 @@ void game::_shop_prompt(uint8_t shop, const char* who) {
       render::prompt(_hint_buf);
       break;
     case 5:
-      if (v.rpd_lvl >= sim::MAX_LVL) {
+      if (v.rpd_lvl[p] >= sim::MAX_LVL) {
         render::prompt("RPD MAX");
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: RPD LV%u", who, (unsigned)v.rpd_lvl + 1u);
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: RPD LV%u", who, (unsigned)v.rpd_lvl[p] + 1u);
         render::prompt(_hint_buf);
       }
       break;
@@ -893,7 +893,7 @@ void game::_update_playing_client() {
     if (cshop == 0 && _near_inactive_roulette(1)) {
       render::prompt("UNAVAILABLE");
     } else {
-      _shop_prompt(cshop, "");
+      _shop_prompt(cshop, "", 1);
     }
   }
   const uint32_t cli_now = millis();
@@ -937,13 +937,14 @@ void game::_draw_hud() {
   // cuts never dirty the cache).
   const sim::state& v = sim::view();
   const uint8_t role = !_net_multi ? 0 : (_handler.role() == ROLE_HOST ? 1 : 2);
-  if (!_hud_first && v.wave == _hud_wave && v.kills == _hud_kills && v.gun == _hud_gun &&
+  const uint8_t f = render::focus(); // this board's gun: solo/host P1, client P2
+  if (!_hud_first && v.wave == _hud_wave && v.kills == _hud_kills && v.guns[f] == _hud_gun &&
       role == _hud_role) {
     return;
   }
   _hud_wave = v.wave;
   _hud_kills = v.kills;
-  _hud_gun = v.gun;
+  _hud_gun = v.guns[f];
   _hud_role = role;
   const int16_t sw = (int16_t)display::width();
   if (_hud_first) {
@@ -957,7 +958,7 @@ void game::_draw_hud() {
   display::text(buf, 4, 1, colour::white, 1);
 
   char gun[16]; // "GUN GLOCK-19" is 12 chars: fits with NUL
-  snprintf(gun, sizeof(gun), "GUN %s", sim::gun_name());
+  snprintf(gun, sizeof(gun), "GUN %s", sim::gun_name_p(f));
   uint8_t glen = 0;
   while (gun[glen] != '\0') {
     ++glen;
