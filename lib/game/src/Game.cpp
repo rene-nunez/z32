@@ -68,6 +68,7 @@ int8_t game::_nav_dir = 0;
 uint16_t game::_hud_wave = 0xFFFF, game::_hud_kills = 0xFFFF;
 uint8_t game::_hud_role = 0xFF;
 sim::weapon game::_hud_gun = (sim::weapon)0xFF;
+uint8_t game::_hud_ammo = 0xFF;
 bool game::_hud_first = true;
 
 bool game::begin(uint8_t role) {
@@ -526,6 +527,14 @@ void game::_shop_update(uint32_t now) {
     render::prompt("INT: REVIVE"); // standing close, lift with INTERACT
     return;
   }
+  if (sim::reloading(0)) {
+    render::prompt("RELOADING"); // hands busy: the mag count in the HUD is the progress
+    return;
+  }
+  if (v.ammo[0] == 0) {
+    render::prompt("EMPTY: RELOAD"); // manual only: no auto-rescue
+    return;
+  }
   if (shop == 0) {
     // standing on a dead wheel reads as off, not as silence (P1 view only)
     if (_near_inactive_roulette(0)) {
@@ -609,6 +618,8 @@ void game::_fire_buzz() {
     case sim::event::revive: buzz::play(buzz::jingle::buy); break; // a lift, not a purchase
     case sim::event::roulette: buzz::play(buzz::jingle::roulette); break;
     case sim::event::denied: buzz::play(buzz::jingle::denied); break;
+    case sim::event::empty: buzz::play(buzz::jingle::denied); break; // dry mag
+    case sim::event::reload: buzz::play(buzz::jingle::reload); break; // mag swap
     case sim::event::hurt: buzz::play(buzz::jingle::hurt); break;
     case sim::event::wave: buzz::play(buzz::jingle::wave); break;
     case sim::event::over: buzz::play(buzz::jingle::over); break;
@@ -752,6 +763,7 @@ void game::_update_playing_host() {
     c.fire = (_in_buttons & net::fire_bit) && !(_in_prev & net::fire_bit);
     _p2_interact = (_in_buttons & net::interact_bit) && !(_in_prev & net::interact_bit);
     _p2_pause_edge = (_in_buttons & net::pause_bit) && !(_in_prev & net::pause_bit);
+    c.reload = (_in_buttons & net::reload_bit) && !(_in_prev & net::reload_bit);
     _in_prev = _in_buttons;
   } else {
     _in_prev = _in_buttons; // stale: hold levels so the next packet re-edges cleanly
@@ -888,6 +900,10 @@ void game::_update_playing_client() {
     render::prompt(_hint_buf); // edge news wins over proximity
   } else if (_revive_near(1)) {
     render::prompt("INT: REVIVE"); // standing close, lift with INTERACT
+  } else if (sim::reloading(1)) {
+    render::prompt("RELOADING"); // snapshot flag: the host owns the timer
+  } else if (cv.ammo[1] == 0) {
+    render::prompt("EMPTY: RELOAD"); // manual only: no auto-rescue
   } else {
     const uint8_t cshop = _shop_at(1);
     if (cshop == 0 && _near_inactive_roulette(1)) {
@@ -929,9 +945,9 @@ bool game::_boss_alive() {
 
 void game::_draw_hud() {
   // the 10px strip is net+sim state, not renderer state, so game paints it: wave/kills
-  // left, gun centred, role badge right. Every field is cleared first (K12 -> K9 and
-  // SHOTGUN -> SMG shrink, overpainting alone would leave ghost digits behind).
-  // cached: wave/kills/gun/role barely change, so most frames skip all three
+  // left, gun+mag centred, role badge right. Every field is cleared first (K12 -> K9 and
+  // MP9 30/30 -> MP9 9/30 shrink, overpainting alone would leave ghost digits behind).
+  // cached: wave/kills/gun/ammo/role barely change, so most frames skip all three
   // fill+text pairs (~2.6ms). _hud_first forces a full-strip wipe + repaint after
   // menu chrome covered the strip (render::repaint no longer wipes it, so camera
   // cuts never dirty the cache).
@@ -939,12 +955,13 @@ void game::_draw_hud() {
   const uint8_t role = !_net_multi ? 0 : (_handler.role() == ROLE_HOST ? 1 : 2);
   const uint8_t f = render::focus(); // this board's gun: solo/host P1, client P2
   if (!_hud_first && v.wave == _hud_wave && v.kills == _hud_kills && v.guns[f] == _hud_gun &&
-      role == _hud_role) {
+      v.ammo[f] == _hud_ammo && role == _hud_role) {
     return;
   }
   _hud_wave = v.wave;
   _hud_kills = v.kills;
   _hud_gun = v.guns[f];
+  _hud_ammo = v.ammo[f];
   _hud_role = role;
   const int16_t sw = (int16_t)display::width();
   if (_hud_first) {
@@ -953,18 +970,20 @@ void game::_draw_hud() {
   }
   char buf[24];
 
-  display::fill_rect(0, 0, 124, 8, colour::black);
-  snprintf(buf, sizeof(buf), "WAVES %u KILLS %u", v.wave, v.kills);
+  // short W/K: the long form ate the room the mag count needs
+  display::fill_rect(0, 0, 64, 8, colour::black);
+  snprintf(buf, sizeof(buf), "W%u K%u", v.wave, v.kills);
   display::text(buf, 4, 1, colour::white, 1);
 
-  char gun[16]; // "GUN GLOCK-19" is 12 chars: fits with NUL
-  snprintf(gun, sizeof(gun), "GUN %s", sim::gun_name_p(f));
+  char gun[20]; // "GUN GLOCK-19 15/15" is 18 chars: longest mag readout
+  snprintf(gun, sizeof(gun), "GUN %s %u/%u", sim::gun_name_p(f), v.ammo[f],
+           sim::mag_size(v.guns[f]));
   uint8_t glen = 0;
   while (gun[glen] != '\0') {
     ++glen;
   }
   const int16_t gx = (sw - (int16_t)glen * 6) / 2;
-  display::fill_rect(120, 0, 84, 8, colour::black);
+  display::fill_rect(60, 0, 200, 8, colour::black);
   display::text(gun, gx < 0 ? 0 : gx, 1, colour::white, 1);
 
   const char* badge = !_net_multi ? "SOLO" : (_handler.role() == ROLE_HOST ? "P1" : "P2");

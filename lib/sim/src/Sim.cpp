@@ -38,6 +38,8 @@ void sim::reset() {
     _s.dmg_lvl[p] = 0;
     _s.spd_lvl[p] = 0;
     _s.rpd_lvl[p] = 0;
+    _s.ammo[p] = _mag_size(weapon::pistol);
+    _s.reload_end[p] = 0;
   }
   _s.last_event = event::none;
   _last_shot[0] = _last_shot[1] = 0;
@@ -101,6 +103,8 @@ void sim::set_p2_active(bool active) {
     _s.dmg_lvl[1] = 0;
     _s.spd_lvl[1] = 0;
     _s.rpd_lvl[1] = 0;
+    _s.ammo[1] = _mag_size(weapon::pistol);
+    _s.reload_end[1] = 0;
     _burst_left[1] = 0;
   } else {
     _s.players[1].hp = 0;
@@ -426,7 +430,48 @@ uint8_t sim::_fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p)
   return 0; // rack is full: keep the cooldown so the next press retries
 }
 
+uint8_t sim::_mag_size(weapon w) {
+  switch (w) {
+    case weapon::smg: return 30;
+    case weapon::shotgun: return 8;
+    case weapon::rifle: return 30;
+    case weapon::m16: return 30;
+    case weapon::sniper: return 10;
+    default: return 15; // pistol
+  }
+}
+
+uint32_t sim::_reload_ms(weapon w) {
+  switch (w) {
+    case weapon::sniper: return 2000; // heavy mag, worth the wait
+    case weapon::shotgun: return 1500; // shells, one by one
+    default: return 1000;
+  }
+}
+
+bool sim::reloading(uint8_t p) {
+  return p < NUM_PLAYERS && _s.reload_end[p] != 0;
+}
+
+bool sim::start_reload(uint32_t now, uint8_t p) {
+  if (p >= NUM_PLAYERS || !_alive(p) || reloading(p) ||
+      _s.ammo[p] >= _mag_size(_s.guns[p])) {
+    return false; // no such player, busy, or nothing to top up
+  }
+  _s.reload_end[p] = now + _reload_ms(_s.guns[p]);
+  _burst_left[p] = 0; // the swap interrupts a burst mid-flight
+  _s.last_event = event::reload;
+  return true;
+}
+
 void sim::_do_fire(uint32_t now, uint8_t p) {
+  if (reloading(p)) {
+    return; // hands busy with the mag
+  }
+  if (_s.ammo[p] == 0) {
+    _s.last_event = event::empty; // dry click: RELOAD, no auto-rescue
+    return;
+  }
   const uint32_t cd = (uint32_t)((float)_fire_cd(_s.guns[p]) * _rpd_mult(_s.rpd_lvl[p]));
   if (now - _last_shot[p] < (cd < 50 ? 50 : cd)) {
     return;
@@ -458,6 +503,10 @@ bool sim::_fire_single(uint32_t now, uint8_t p) {
   if (best < 0) {
     return false; // nothing in reach: no round leaves, no burst is armed
   }
+  if (_s.ammo[p] == 0) {
+    _s.last_event = event::empty; // burst tick ran dry mid-flight
+    return false;
+  }
 
   const float bx = ox + PLAYER_SIZE / 2.0f;
   const float by = oy + PLAYER_SIZE / 2.0f;
@@ -482,6 +531,7 @@ bool sim::_fire_single(uint32_t now, uint8_t p) {
     fired = _fire_one(now, dx, dy, dmg, p);
   }
   if (fired > 0) {
+    --_s.ammo[p]; // one trigger pull, one round (pellets ride the same shell)
     _s.last_event = event::shoot;
   }
   return fired > 0;
@@ -520,9 +570,19 @@ bool sim::step(uint32_t now) {
     if ((p == 0) ? input::fire_pressed() : _p2ctl.fire) {
       _do_fire(now, p);
     }
+    if ((p == 0) ? input::reload_pressed() : _p2ctl.reload) {
+      start_reload(now, p); // manual only: no auto-rescue on empty
+    }
+    if (_s.reload_end[p] != 0 && now >= _s.reload_end[p]) {
+      _s.reload_end[p] = 0;
+      _s.ammo[p] = _mag_size(_s.guns[p]);
+      _s.last_event = event::reloaded;
+    }
     if (_burst_left[p] > 0) {
       if (_s.guns[p] != weapon::m16) {
         _burst_left[p] = 0; // swapped mid-burst: cancel the rest
+      } else if (_s.ammo[p] == 0) {
+        _burst_left[p] = 0; // ran dry mid-burst: RELOAD, don't spin retrying
       } else if (now >= _burst_next[p]) {
         if (_fire_single(now, p)) {
           --_burst_left[p];
@@ -802,6 +862,9 @@ bool sim::roll_roulette(uint32_t now, uint8_t p) {
   }
   _s.points -= PRICE_ROLL;
   _s.guns[p] = _roll_weapon((uint8_t)(esp_random() % 100u));
+  _s.ammo[p] = _mag_size(_s.guns[p]); // fresh gun, full mag
+  _s.reload_end[p] = 0; // the swap interrupts a reload, like a burst
+  _burst_left[p] = 0;
   _s.last_event = event::roulette;
   return true;
 }
@@ -847,6 +910,7 @@ void sim::snapshot(net::game_state_msg& n) {
     n.players[p].hp = _s.players[p].hp;
     n.players[p].flags = (_s.players[p].active ? net::PF_ACTIVE : 0) |
                          (_s.players[p].downed ? net::PF_DOWNED : 0) |
+                         ((_s.reload_end[p] != 0) ? net::PF_RELOADING : 0) |
                          (uint8_t)((_s.players[p].facing & net::PF_DIR_MASK) << net::PF_DIR_SHIFT);
     n.players[p].bleed = _s.players[p].bleed;
   }
@@ -858,6 +922,7 @@ void sim::snapshot(net::game_state_msg& n) {
     n.dmg_lvl[p] = _s.dmg_lvl[p];
     n.spd_lvl[p] = _s.spd_lvl[p];
     n.rpd_lvl[p] = _s.rpd_lvl[p];
+    n.ammo[p] = _s.ammo[p];
   }
   n.event = (uint8_t)_s.last_event;
   for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {
@@ -886,6 +951,8 @@ void sim::apply_snapshot(const net::game_state_msg& n) {
     _s.players[p].downed = (n.players[p].flags & net::PF_DOWNED) != 0;
     _s.players[p].facing = (uint8_t)((n.players[p].flags >> net::PF_DIR_SHIFT) & net::PF_DIR_MASK);
     _s.players[p].bleed = n.players[p].bleed;
+    // client mirror only: nonzero paints RELOADING, the host owns the real timestamp
+    _s.reload_end[p] = (n.players[p].flags & net::PF_RELOADING) ? 1 : 0;
   }
   _s.wave = n.wave;
   _s.kills = n.kills;
@@ -895,6 +962,7 @@ void sim::apply_snapshot(const net::game_state_msg& n) {
     _s.dmg_lvl[p] = n.dmg_lvl[p];
     _s.spd_lvl[p] = n.spd_lvl[p];
     _s.rpd_lvl[p] = n.rpd_lvl[p];
+    _s.ammo[p] = n.ammo[p];
   }
   _s.last_event = (event)n.event;
   for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {

@@ -38,7 +38,10 @@ class sim {
       wave,
       over,
       revive,
-      buy_rpd // appended last: earlier wire values never shift
+      buy_rpd, // appended last: earlier wire values never shift
+      reload,  // mag swap started (manual RELOAD)
+      reloaded, // mag full again, back in the fight
+      empty // dry trigger pull on an empty mag
     };
 
     // shop: points are the spendable wallet. Heal is flat; damage and speed are
@@ -70,12 +73,13 @@ class sim {
     };
 
     // remote control for player 1, fed by game from the net each frame. Edges, not
-    // levels: game derives fire/interact/pause edges from the peer's button bitmask.
+    // levels: game derives fire/interact/pause/reload edges from the peer's button bitmask.
     struct ctl {
       float jx, jy;
       bool fire;
       bool interact;
       bool pause;
+      bool reload;
     };
 
     struct state {
@@ -98,6 +102,8 @@ class sim {
       uint8_t dmg_lvl[NUM_PLAYERS]; // permanent damage levels, 0..MAX_LVL
       uint8_t spd_lvl[NUM_PLAYERS]; // permanent speed levels, 0..MAX_LVL
       uint8_t rpd_lvl[NUM_PLAYERS]; // permanent rapid levels, 0..MAX_LVL
+      uint8_t ammo[NUM_PLAYERS]; // rounds left in the mag, refilled by reloads
+      uint32_t reload_end[NUM_PLAYERS]; // millis() when the swap finishes, 0 = ready
       event last_event; // set by step() and by the buy calls below, read by game
       actor zombies[MAX_ZOMBIES];
       shot bullets[MAX_BULLETS];
@@ -125,8 +131,11 @@ class sim {
     static bool buy_speed(uint32_t now, uint8_t p = 0);
     static bool buy_rapid(uint32_t now, uint8_t p = 0);
     static bool roll_roulette(uint32_t now, uint8_t p = 0);
+    static bool start_reload(uint32_t now, uint8_t p = 0); // manual mag swap, false if full/busy
+    static bool reloading(uint8_t p); // a swap is still running for p
 
     static uint32_t price_for(uint32_t base, uint8_t lvl); // base + STEP*lvl
+    static uint8_t mag_size(weapon w) { return _mag_size(w); } // rounds per mag, for the HUD
     static const char* gun_name_p(uint8_t p = 0); // that player's gun
     static const char* gun_name(weapon w);
   private:
@@ -176,6 +185,8 @@ class sim {
     static void _do_fire(uint32_t now, uint8_t p);
     static bool _fire_single(uint32_t now, uint8_t p); // aim + spawn one round, true if it left
     static uint32_t _fire_cd(weapon w);
+    static uint8_t _mag_size(weapon w); // rounds per mag: 15 / 30 / 8 / 30 / 30 / 10
+    static uint32_t _reload_ms(weapon w); // swap time: 1s, sniper 2s, shotgun 1.5s
     static uint8_t _base_dmg(weapon w);
     static float _fire_range(weapon w); // auto-aim reach: sniper sees further
     static uint8_t _eff_dmg(uint8_t base, uint8_t lvl); // base*(1+0.25*lvl), half-up, min 1

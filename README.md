@@ -34,6 +34,10 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 - **Disparo**: auto-apuntado al zombi más cercano (alcance 160px, 220px el M82A1).
   Cada arma tiene su cadencia: Glock 0.5s, MP9 0.18s, SPAS-12 0.9s, AR-15 0.35s,
   FAMAS ráfagas de 3 cada 0.6s, M82A1 1.4s.
+- **Cargadores**: cada arma tiene su mag (Glock 15, MP9 30, SPAS-12 8, AR-15 30,
+  FAMAS 30, M82A1 10). La recarga es manual con RELOAD (~1s, M82A1 2s, SPAS-12
+  1.5s; moverse es libre, disparar no) y el gatillo en vacío suena a click sin
+  auto-rescate. Arma nueva de ruleta llega cargada.
 
 ## Controles
 
@@ -42,13 +46,15 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 | Joystick  | Moverse (también navega por los menús)              |
 | FIRE      | Disparar / confirmar en menús                       |
 | INTERACT  | Comprar en tiendas y ruleta                         |
-| RELOAD    | Reservado (sin uso)                                 |
+| RELOAD    | Recargar el cargador (manual, reserva infinita)    |
 | PAUSE     | Pausa (Continuar / Reiniciar / Salir); salir = menú |
 
 ## Pantalla (UI)
 
-- **Arriba**: arena de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
-  franja central inferior con el prompt de compra (`E: DMG LV3 - 650`, `HEALED +2HP`…).
+- **Arriba**: HUD con ronda/bajas (`W3 K12`), arma y balas (`GUN MP9 18/30`); arena
+  de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
+  franja central inferior con el prompt de compra (`E: DMG LV3 - 650`, `HEALED +2HP`…,
+  `RELOADING` / `EMPTY: RELOAD` cuando toca).
 - **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de
   `HP` (5, en rojo si quedan ≤2), `DMG` y `SPD` (5 niveles) + minimapa con tu punto
   blanco, zombis rojos y marco amarillo de cámara.

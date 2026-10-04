@@ -16,8 +16,8 @@ static void check(bool ok, const char* what) {
 }
 
 int main() {
-  check(sizeof(net::game_state_msg) == 132, "state len 132");
-  check(net::STATE_LEN == 132, "STATE_LEN 132");
+  check(sizeof(net::game_state_msg) == 134, "state len 134");
+  check(net::STATE_LEN == 134, "STATE_LEN 134");
   check(sizeof(net::player_input_msg) == 5, "input len 5");
   check(sizeof(net::game_state_msg) <= 250, "state under cap");
 
@@ -43,6 +43,14 @@ int main() {
   check(s.guns[0] == 3 && s.guns[1] == 5, "guns per player");
   check(s.dmg_lvl[0] == 2 && s.dmg_lvl[1] == 5, "dmg per player");
   check(s.spd_lvl[0] == 1 && s.rpd_lvl[1] == 4, "spd/rpd per player");
+
+  // mags ride u8 per player, reload flag packs into the player flags
+  s.ammo[0] = 15;
+  s.ammo[1] = 0;
+  check(s.ammo[0] == 15 && s.ammo[1] == 0, "ammo per player");
+  const uint8_t pf = net::PF_ACTIVE | net::PF_RELOADING;
+  check((pf & net::PF_RELOADING) != 0, "reloading bit");
+  check((uint8_t)((pf >> net::PF_DIR_SHIFT) & net::PF_DIR_MASK) == 0, "dir bits survive reload bit");
 
   // positions: world 0..960 x 0..480, error under one quantum (0.25px)
   const float pxs[] = {0.0f, 1.3f, 159.9f, 480.0f, 959.75f};
