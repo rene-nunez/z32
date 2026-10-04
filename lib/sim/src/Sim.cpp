@@ -387,7 +387,7 @@ uint32_t sim::_fire_cd(weapon w) {
   switch (w) {
     case weapon::smg: return 180;
     case weapon::shotgun: return 900;
-    case weapon::rifle: return 550; // brisk mid punch, clearly above the sniper
+    case weapon::rifle: return 350; // laser: fast mid punch, still below the MP9 hose
     case weapon::m16: return 600;   // gap between bursts, rounds tick at burst_gap_ms
     case weapon::sniper: return 1400;
     default: return 500; // pistol
@@ -396,7 +396,7 @@ uint32_t sim::_fire_cd(weapon w) {
 
 uint8_t sim::_base_dmg(weapon w) {
   switch (w) {
-    case weapon::rifle: return 4; // anti-boss punch
+    case weapon::rifle: return 3; // steady mid punch, one-shots early waves
     case weapon::sniper: return 6; // one heavy round, worth the wait
     default: return 1; // pistol, smg, m16 and each shotgun pellet
   }

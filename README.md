@@ -29,10 +29,10 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
     permanentes por jugador (cada uno arma su build), cartera compartida. Sin puntos
     o al máximo, avisa (`NEED`, `MAX`).
 - **Ruleta 100**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3), AR-15
-  (daño 4), FAMAS (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
+  (daño 3), FAMAS (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
   volver como premio tonto.
 - **Disparo**: auto-apuntado al zombi más cercano (alcance 160px, 220px el M82A1).
-  Cada arma tiene su cadencia: Glock 0.5s, MP9 0.18s, SPAS-12 0.9s, AR-15 0.55s,
+  Cada arma tiene su cadencia: Glock 0.5s, MP9 0.18s, SPAS-12 0.9s, AR-15 0.35s,
   FAMAS ráfagas de 3 cada 0.6s, M82A1 1.4s.
 
 ## Controles
