@@ -59,7 +59,7 @@ void panel::_pip_row(int16_t y, const char* label, uint8_t lvl, uint8_t max, uin
   display::text(label, 4, y, colour::white, 1);
   const uint16_t spent = display::rgb565(40, 40, 40);
   for (uint8_t i = 0; i < max; ++i) {
-    display::fill_rect(30 + (int16_t)i * 9, y, 8, 8, (i < lvl) ? col : spent);
+    display::fill_rect(28 + (int16_t)i * 9, y, 8, 8, (i < lvl) ? col : spent);
   }
 }
 
