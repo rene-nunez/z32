@@ -66,7 +66,17 @@ class game {
     static bool _roulette_moved(); // the pad really relocated this wave (banner gate)
     static bool _near_inactive_roulette(uint8_t p); // standing on a dead pad
     static char _hint_buf[28];         // transient result text ("NEED 100", "GUN: MP9")
+    static uint16_t _hint_col;       // its strip colour (green buys, red denied...)
     static uint32_t _hint_until;       // result visible while millis() < this
+    static char _chat_buf[28];       // last remote COME text ("P2: COME!")
+    static uint16_t _chat_col;       // speaker colour (P1 green / P2 steel-blue)
+    static uint32_t _chat_until;     // COME visible while millis() < this (2s)
+    static uint8_t _chat_seq;        // COME edge counter
+    static bool _chat_pip;           // COME rx flag, buzzed from the frame loop
+    static char _mate_buf[28];       // partner AMMO FYI text ("P1: OUT OF AMMO!")
+    static uint32_t _mate_until;     // AMMO FYI visible while millis() < this
+    static uint8_t _ammo_prev[2];    // mag count last frame, per player (AMMO edge)
+    static uint32_t _ammo_nag[2];    // next partner-AMMO re-nag per player (6s)
     static bool _was_down0, _was_down1; // downed flags last host frame, for fall/death edges
     static bool _p2_interact;          // player 2 INTERACT edge, set from net, consumed in shop
     static bool _p2_pause_edge;        // player 2 PAUSE edge, set from net, consumed in game
@@ -74,6 +84,10 @@ class game {
     static void _on_heartbeat(const uint8_t* data, size_t len);
     static void _on_state(const uint8_t* data, size_t len); // snapshot rx (client)
     static void _on_input(const uint8_t* data, size_t len); // input rx (host)
+    static void _on_chat(const uint8_t* data, size_t len); // COME rx (both)
+    static void _send_chat(uint8_t from); // COME tx, edge only (multi only)
+    static bool _urgent_callout(uint8_t me); // remote COME / partner HELP, above OOA
+    static bool _mate_ammo(uint32_t now, uint8_t me); // partner empty-mag FYI, below OOA
 
     static int8_t _nav_edge();
     static void _nav_step(); // nav edge + wrap, using the screen's own item count
