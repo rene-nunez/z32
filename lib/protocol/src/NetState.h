@@ -15,6 +15,7 @@
 namespace net {
   constexpr uint8_t TYPE_STATE = 0x02; // == msg_type::game_state, asserted in Protocol.h
   constexpr uint8_t TYPE_INPUT = 0x10; // == msg_type::player_input, asserted in Protocol.h
+  constexpr uint8_t TYPE_CHAT = 0x20; // == msg_type::chat, asserted in Protocol.h
 
   constexpr size_t STATE_LEN = 134;
   constexpr size_t INPUT_LEN = 5;
@@ -92,6 +93,18 @@ namespace net {
     uint8_t seq = 0;
   };
 
+  // co-op callouts (HELP/COME/THANKS/AMMO): 4B edge-triggered shouts, one code
+  // path both directions. HELP/THANKS/AMMO derive locally from the shared sim
+  // state (zero bytes); only the voluntary COME travels. Solo never sends.
+  enum class chat_id : uint8_t { help, come, thanks, ammo };
+
+  struct __attribute__((packed)) chat_msg {
+    uint8_t type = TYPE_CHAT;
+    uint8_t from = 0; // player index 0/1 (P1/P2)
+    uint8_t id = 0;   // chat_id as u8
+    uint8_t seq = 0;
+  };
+
   // --- quantizers (shared by firmware + native test) ---
   inline uint16_t qpos(float p) {
     return (uint16_t)(p * 4.0f + 0.5f);
@@ -130,3 +143,5 @@ namespace net {
 static_assert(sizeof(net::game_state_msg) == net::STATE_LEN, "game_state must stay 134B");
 static_assert(sizeof(net::player_input_msg) == net::INPUT_LEN, "player_input must stay 5B");
 static_assert(net::STATE_LEN <= net::MAX_MSG, "game_state exceeds the 250B cap");
+static_assert(sizeof(net::chat_msg) == 4, "chat must stay 4B");
+static_assert(sizeof(net::chat_msg) <= net::MAX_MSG, "chat exceeds the 250B cap");

@@ -104,6 +104,15 @@ int main() {
     check((uint8_t)((f >> net::BF_DMG_SHIFT) & 0x1F) == d, "bullet dmg bits");
   }
 
+  // chat callouts: 4B edge shouts, type first, ids 0..3, under the cap
+  net::chat_msg c;
+  check(sizeof(net::chat_msg) == 4, "chat len 4");
+  check(((const uint8_t*)&c)[0] == 0x20, "chat type byte");
+  check(sizeof(net::chat_msg) <= 250, "chat under cap");
+  check((uint8_t)net::chat_id::help == 0 && (uint8_t)net::chat_id::come == 1 &&
+            (uint8_t)net::chat_id::thanks == 2 && (uint8_t)net::chat_id::ammo == 3,
+        "chat ids help/come/thanks/ammo");
+
   if (fails == 0) {
     printf("all net checks passed\n");
   }

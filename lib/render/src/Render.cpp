@@ -166,14 +166,16 @@ int16_t render::_cam_y = 0;
 uint8_t render::_focus = 0;
 int16_t render::_paint_y = render::ARENA_H;
 const char* render::_prompt = nullptr;
+uint16_t render::_prompt_col = colour::yellow;
 // conditional strip erase: text the strip was last erased for ("" = clean terrain)
 // plus the camera of that erase. Steady text + steady camera skips the 320x10
 // terrain repaint every frame (that cost used to stretch frames and tear sprites).
 static char _prompt_erased[28] = "";
 static int16_t _prompt_ex = -1, _prompt_ey = -1;
 
-void render::prompt(const char* msg) {
+void render::prompt(const char* msg, uint16_t color) {
   _prompt = msg;
+  _prompt_col = color;
 }
 
 int16_t render::cam_x() {
@@ -731,6 +733,6 @@ void render::draw() {
     const int16_t tw = (int16_t)len * 6; // size-1 glyphs are 6px wide
     const int16_t sw = (int16_t)display::width();
     const int16_t sx = (sw - tw) / 2; // centred; the strip is always fully on screen
-    display::text(_prompt, sx < 0 ? 0 : sx, ARENA_BOTTOM - _prompt_h + 1, colour::yellow, 1);
+    display::text(_prompt, sx < 0 ? 0 : sx, ARENA_BOTTOM - _prompt_h + 1, _prompt_col, 1);
   }
 }

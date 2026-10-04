@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <Display.h>
 #include <Sim.h>
 
 // The arena view: camera, the incremental terrain repaint and the entity boxes. It reads the
@@ -23,7 +24,7 @@ class render {
     static uint8_t focus(); // that player: panel/HUD/tags show its build
     static void clear();       // erase the entities through the tilemap colours
     static void draw();        // terrain, entities, tags and the prompt
-    static void prompt(const char* msg); // transient shop prompt, painted centred by draw()
+    static void prompt(const char* msg, uint16_t color = colour::yellow); // transient strip text
 
     static int16_t cam_x();
     static int16_t cam_y();
@@ -36,7 +37,8 @@ class render {
     static int16_t _cam_x, _cam_y;
     static uint8_t _focus; // player the camera follows (host/solo 0, client 1)
     static int16_t _paint_y; // next arena row to repaint, ARENA_H when idle
-    static const char* _prompt; // shop prompt for this frame, null = none (set by game)
+    static const char* _prompt; // strip text for this frame, null = none (set by game)
+    static uint16_t _prompt_col; // its colour (default yellow, buys green, denied red...)
 
     static int16_t _cell_cam(int16_t p, int16_t step, int16_t max_cam);
     static int16_t _sprite_tl(int16_t e, uint8_t hitbox, uint8_t art); // art centred on hitbox
