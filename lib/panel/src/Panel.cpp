@@ -98,11 +98,11 @@ void panel::draw() {
   display::text(buf, 4, render::ARENA_BOTTOM + 4, colour::yellow, 2);
 
   // co-op spreads the rows (10px pitch, 2px gutters) to fit HP2 + the 3 buff
-  // lines: HP1 192, HP2 202, DMG 212, SPD 222, RPD 232..240 (panel edge, exact);
+  // lines: HP1 192, HP2 202, DMG 212, SPD 222, ROF 232..240 (panel edge, exact);
   // solo keeps 12px
   const int16_t hp_y = render::ARENA_BOTTOM + (p2 ? 22 : 24);
   const int16_t pitch = p2 ? 10 : 12;
-  const int16_t tail_y = hp_y + (p2 ? 20 : 12); // DMG row (HP1, [+HP2,] then DMG/SPD/RPD)
+  const int16_t tail_y = hp_y + (p2 ? 20 : 12); // DMG row (HP1, [+HP2,] then DMG/SPD/ROF)
 
   auto hp_row = [&](uint8_t p, int16_t y, const char* label, uint16_t ok_col) {
     display::fill_rect(0, y, mx, 8, colour::black);
@@ -127,7 +127,7 @@ void panel::draw() {
   display::fill_rect(0, tail_y + pitch, mx, 8, colour::black);
   _pip_row(tail_y + pitch, "SPD", v.spd_lvl[f], sim::MAX_LVL, display::rgb565(60, 130, 230));
   display::fill_rect(0, tail_y + 2 * pitch, mx, 8, colour::black);
-  _pip_row(tail_y + 2 * pitch, "RPD", v.rpd_lvl[f], sim::MAX_LVL, colour::orange);
+  _pip_row(tail_y + 2 * pitch, "ROF", v.rpd_lvl[f], sim::MAX_LVL, colour::orange);
 }
 
 void panel::_mm_restore_row(int16_t tx0, int16_t tx1, int16_t ty) {

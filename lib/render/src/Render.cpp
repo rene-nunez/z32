@@ -438,9 +438,9 @@ void render::_shop_labels(bool erase) {
              (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[f]));
   }
   if (v.rpd_lvl[f] >= sim::MAX_LVL) {
-    snprintf(rpd_buf, sizeof(rpd_buf), "RPD MAX");
+    snprintf(rpd_buf, sizeof(rpd_buf), "ROF MAX");
   } else {
-    snprintf(rpd_buf, sizeof(rpd_buf), "RPD %lu",
+    snprintf(rpd_buf, sizeof(rpd_buf), "ROF %lu",
              (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[f]));
   }
   const uint8_t want[4] = {tilemap::VENDING, tilemap::V_DMG, tilemap::V_SPD, tilemap::V_RPD};
