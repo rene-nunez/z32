@@ -60,7 +60,6 @@ uint16_t game::_chat_col = colour::yellow;
 uint32_t game::_chat_until = 0;
 uint8_t game::_chat_seq = 0;
 bool game::_chat_pip = false;
-char game::_mate_buf[28] = {0};
 bool game::_was_down0 = false;
 bool game::_was_down1 = false;
 bool game::_p2_interact = false;
@@ -207,15 +206,15 @@ void game::_on_chat(const uint8_t* data, size_t len) {
   net::chat_msg m;
   memcpy(&m, data, sizeof(m));
   if (m.from > 1 || m.id != (uint8_t)net::chat_id::come) {
-    return; // PICK ME UP rides the come wire id; THX derives locally, nothing else travels
+    return; // SAVE ME rides the come wire id; THX derives locally, nothing else travels
   }
-  snprintf(_chat_buf, sizeof(_chat_buf), "P%u: PICK ME UP!", (unsigned)(m.from + 1u));
+  snprintf(_chat_buf, sizeof(_chat_buf), "P%u: SAVE ME!", (unsigned)(m.from + 1u));
   _chat_col = (m.from == 0) ? colour::green : _mate_p2col;
   _chat_until = millis() + 2000;
   _chat_pip = true; // buzzed from the frame loop, never from the rx task
 }
 
-// downed INTERACT shout: still the come wire id (no protocol change), now reads PICK ME UP
+// downed INTERACT shout: still the come wire id (no protocol change), now reads SAVE ME
 void game::_send_chat(uint8_t from) {
   if (!_net_multi) {
     return; // solo: no peer, and send() with no peer sprays delivery-failed
@@ -229,24 +228,15 @@ void game::_send_chat(uint8_t from) {
   _handler.send(&m, sizeof(m));
 }
 
-// urgent slot (above reloading): voluntary PICK ME UP while fresh, else the auto
-// shout while the partner is downed. Both boards derive the auto one locally from
-// shared state (zero bytes); only the voluntary shout travels. Downed callers keep
-// shouting with INTERACT.
-bool game::_urgent_callout(uint8_t me) {
-  const uint32_t now = millis();
-  if (_net_multi && now < _chat_until && _chat_buf[0] != '\0') {
-    render::prompt(_chat_buf, _chat_col); // freshest intent first
+// urgent slot (above reloading): the voluntary SAVE ME! shout while fresh.
+// Downed callers mash INTERACT to scream (2s + buzz on the peer); silence
+// otherwise, the panel DOWN countdown + yellow dot cover the state.
+bool game::_urgent_callout(uint8_t /*me*/) {
+  if (_net_multi && millis() < _chat_until && _chat_buf[0] != '\0') {
+    render::prompt(_chat_buf, _chat_col); // freshest shout first
     return true;
   }
-  const sim::state& v = sim::view();
-  const uint8_t q = (uint8_t)(1 - me);
-  if (!_net_multi || !v.players[q].active || !v.players[q].downed) {
-    return false;
-  }
-  snprintf(_mate_buf, sizeof(_mate_buf), "P%u: PICK ME UP!", (unsigned)(q + 1u));
-  render::prompt(_mate_buf, (q == 0) ? colour::green : _mate_p2col);
-  return true;
+  return false;
 }
 
 // reload slot (below the urgent shout, above shop): own mag swap FYI, white info.
@@ -255,12 +245,7 @@ bool game::_reload_prompt(uint8_t me) {
   if (!sim::reloading(me)) {
     return false;
   }
-  if (_net_multi) {
-    snprintf(_mate_buf, sizeof(_mate_buf), "P%u: RELOADING...", (unsigned)(me + 1u));
-  } else {
-    snprintf(_mate_buf, sizeof(_mate_buf), "RELOADING..."); // solo: no partner, no prefix
-  }
-  render::prompt(_mate_buf, colour::white);
+  render::prompt("RELOADING...", colour::white); // bare in solo and multi: only own shows
   return true;
 }
 
@@ -296,7 +281,6 @@ void game::_start_game(bool multi) {
   _chat_until = 0;
   _chat_buf[0] = '\0';
   _chat_pip = false;
-  _mate_buf[0] = '\0';
   panel::init(); // static panel + minimap terrain, then blips on top
   _hud_first = true; // the menu chrome covered the HUD strip: wipe+repaint it fully
   render::update_camera();
@@ -504,8 +488,8 @@ bool game::_revive_update(uint32_t now) {
   const bool p0_died = _was_down0 && !d0 && v.players[0].hp == 0;
   const bool p1_died = _was_down1 && !d1 && v.players[1].hp == 0;
   if (p0_died || p1_died) {
-    snprintf(_hint_buf, sizeof(_hint_buf), p0_died ? "P1 BLED OUT" : "P2 BLED OUT");
-    _hint_col = colour::red;
+    snprintf(_hint_buf, sizeof(_hint_buf), p0_died ? "P1: I'M COOKED!" : "P2: I'M COOKED!");
+    _hint_col = p0_died ? colour::green : _mate_p2col; // the dead one's colour
     _hint_until = now + 2000;
   }
   _was_down0 = d0;
@@ -518,7 +502,7 @@ bool game::_revive_update(uint32_t now) {
     const uint8_t q = (p == 0) ? 1 : 0;
     if (sim::revive(q)) {
       snprintf(_hint_buf, sizeof(_hint_buf), p == 0 ? "P2: THX!" : "P1: THX!");
-      _hint_col = colour::green;
+      _hint_col = (p == 0) ? _mate_p2col : colour::green; // the risen one's colour
       _hint_until = now + 1500;
       if (p == 1) {
         _p2_interact = false; // consumed: no accidental buy next frame
@@ -547,7 +531,7 @@ void game::_shop_update(uint32_t now) {
           snprintf(_hint_buf, sizeof(_hint_buf),
                    v.players[0].hp >= sim::PLAYER_HP_MAX ? "HP FULL" : "NEED %lu PTS",
                    (unsigned long)sim::PRICE_HEAL);
-          _hint_col = colour::white; // info, not danger: red is for BLED OUT only
+          _hint_col = colour::white; // info, not danger: red never shows in the strip
         }
         break;
       case 2:
@@ -629,7 +613,7 @@ void game::_shop_update(uint32_t now) {
   }
   _p2_interact = false; // consumed every frame, edge semantics
 
-  // downed P1 mashing INTERACT with nothing actionable nearby shouts PICK ME UP
+  // downed P1 mashing INTERACT with nothing actionable nearby screams SAVE ME
   // (near a machine the buy below still wins, like a standing player)
   if (v.players[0].downed && v.players[1].hp > 0 && input::interact_pressed() &&
       !_revive_near(1) && shop == 0) {
@@ -641,11 +625,11 @@ void game::_shop_update(uint32_t now) {
     return;
   }
   if (_revive_near(0)) {
-    render::prompt("PRESS INT TO REVIVE"); // standing close, lift with INTERACT
+    render::prompt("PRESS INT TO REVIVE"); // INT verb stays yellow
     return;
   }
   if (_urgent_callout(0)) {
-    return; // voluntary/auto PICK ME UP over the reload nag
+    return; // voluntary SAVE ME over the reload nag
   }
   if (_reload_prompt(0)) {
     return; // own mag swap under the shout
@@ -746,7 +730,7 @@ void game::_fire_buzz() {
   if (_chat_pip) {
     _chat_pip = false;
     if (sim::view().last_event == sim::event::none) {
-      buzz::play(buzz::jingle::hurt); // remote PICK ME UP, only over silence
+      buzz::play(buzz::jingle::hurt); // remote SAVE ME, only over silence
     }
   }
 }
@@ -1003,12 +987,12 @@ void game::_update_playing_client() {
     const uint32_t now_rx = millis();
     if (p2_rose || p1_rose) {
       snprintf(_hint_buf, sizeof(_hint_buf), p2_rose ? "P2: THX!" : "P1: THX!");
-      _hint_col = colour::green;
+      _hint_col = p2_rose ? _mate_p2col : colour::green; // the risen one's colour
       _hint_until = now_rx + 1500;
       edge_hint = true; // skip proximity below: _shop_prompt reuses _hint_buf as scratch
     } else if (p2_died || p1_died) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p2_died ? "P2 BLED OUT" : "P1 BLED OUT");
-      _hint_col = colour::red;
+      snprintf(_hint_buf, sizeof(_hint_buf), p2_died ? "P2: I'M COOKED!" : "P1: I'M COOKED!");
+      _hint_col = p2_died ? _mate_p2col : colour::green; // the dead one's colour
       _hint_until = now_rx + 2000;
       edge_hint = true;
     }
@@ -1019,7 +1003,7 @@ void game::_update_playing_client() {
     _cli_was_down1 = c2_down;
   }
   _cli_wave = cv.wave;
-  // downed P2 mashing INTERACT with nothing actionable nearby shouts PICK ME UP
+  // downed P2 mashing INTERACT with nothing actionable nearby screams SAVE ME
   // (near a machine the host-side buy still wins, like a standing player)
   const uint8_t cshop = _shop_at(1);
   if (cv.players[1].downed && cv.players[0].hp > 0 && input::interact_pressed() &&
@@ -1029,9 +1013,9 @@ void game::_update_playing_client() {
   if (edge_hint) {
     render::prompt(_hint_buf, _hint_col); // edge news wins over proximity
   } else if (_revive_near(1)) {
-    render::prompt("PRESS INT TO REVIVE"); // standing close, lift with INTERACT
+    render::prompt("PRESS INT TO REVIVE"); // INT verb stays yellow
   } else if (_urgent_callout(1)) {
-    ; // voluntary/auto PICK ME UP over the reload nag
+    ; // voluntary SAVE ME over the reload nag
   } else if (_reload_prompt(1)) {
     ; // own mag swap under the shout
   } else {

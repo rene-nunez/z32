@@ -93,10 +93,10 @@ namespace net {
     uint8_t seq = 0;
   };
 
-  // co-op callouts (PICK ME UP / THX): 4B edge-triggered shouts, one code
-  // path both directions. THX and the auto PICK ME UP derive locally from the
-  // shared sim state (zero bytes); only the voluntary PICK ME UP travels
-  // (still the come wire id, no protocol change). Solo never sends.
+  // co-op callouts (SAVE ME / THX): 4B edge-triggered shouts, one code
+  // path both directions. THX derives locally from the shared sim state
+  // (zero bytes); only the voluntary SAVE ME travels (still the come wire
+  // id, no protocol change). Solo never sends.
   enum class chat_id : uint8_t { help, come, thanks, ammo };
 
   struct __attribute__((packed)) chat_msg {

@@ -230,6 +230,9 @@ void panel::_mm_frame() {
   _mm_cty = cty;
 }
 
+// P2 steel blue, brightened to read at 2px (same as the HP2 row and P2 prompts)
+static constexpr uint16_t _p2_blue = 0x54DA; // rgb565(80,152,208)
+
 void panel::blips() {
   for (uint8_t i = 0; i < _mm_n; ++i) { // restore the terrain under last frame's dots
     const int16_t tx = _mm_px[i] / tilemap::TILE;
@@ -246,10 +249,10 @@ void panel::blips() {
   }
   if (_roll_tx >= 0 && _roll_ty >= 0 && _roll_tx + 1 < tilemap::COLS &&
       _roll_ty + 1 < tilemap::ROWS) {
-    // active roulette pad: solid green 2x2 under the dots (green is free on the
-    // minimap: players white/cyan/yellow, zombies red/orange/purple)
+    // active roulette pad: solid lime 2x2 under the dots (lime is free on the
+    // minimap: players green/steel-blue/yellow, zombies red/orange/purple)
     display::fill_rect(_mm_x() + _roll_tx * _mm_scale, _mm_y + _roll_ty * _mm_scale,
-                       (int16_t)(2 * _mm_scale), (int16_t)(2 * _mm_scale), colour::green);
+                       (int16_t)(2 * _mm_scale), (int16_t)(2 * _mm_scale), colour::lime);
     _roll_dx = _roll_tx;
     _roll_dy = _roll_ty;
   }
@@ -261,9 +264,13 @@ void panel::blips() {
     if (!v.players[p].active || (v.players[p].hp == 0 && !v.players[p].downed)) {
       continue; // inactive, or bled out (dead till the wave): no dot. Downed keeps
     }           // its yellow dot (hp reads 0 there too, so the downed check matters).
-    uint16_t col = (p == 0) ? colour::white : colour::cyan;
+    // dots wear the HP colours (P1 green, P2 steel blue), red at critical HP
+    // like the pips (hp<=4 of 10); downed stays yellow, bled-out has no dot
+    uint16_t col = (p == 0) ? colour::green : _p2_blue;
     if (v.players[p].downed) {
       col = colour::yellow; // body to rescue
+    } else if (v.players[p].hp * 5 <= sim::PLAYER_HP_MAX * 2) {
+      col = colour::red; // critical, same gate as the pip rows
     }
     _mm_dot((int16_t)v.players[p].x, (int16_t)v.players[p].y, col);
   }
