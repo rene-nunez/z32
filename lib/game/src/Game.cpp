@@ -36,6 +36,10 @@ volatile bool game::_rx_ready = false;
 bool game::_cli_mirror = false;
 bool game::_cli_was_down0 = false;
 bool game::_cli_was_down1 = false;
+bool game::_cli_was_dead0 = false;
+bool game::_cli_was_dead1 = false;
+bool game::_cli_shouted0 = false;
+bool game::_cli_shouted1 = false;
 uint16_t game::_cli_wave = 0;
 net::game_state_msg game::_rx_state;
 net::game_state_msg game::_tx_state;
@@ -62,6 +66,10 @@ uint8_t game::_chat_seq = 0;
 bool game::_chat_pip = false;
 bool game::_was_down0 = false;
 bool game::_was_down1 = false;
+bool game::_was_dead0 = false;
+bool game::_was_dead1 = false;
+bool game::_shouted0 = false;
+bool game::_shouted1 = false;
 bool game::_p2_interact = false;
 bool game::_p2_pause_edge = false;
 
@@ -214,7 +222,9 @@ void game::_on_chat(const uint8_t* data, size_t len) {
   _chat_pip = true; // buzzed from the frame loop, never from the rx task
 }
 
-// downed INTERACT shout: still the come wire id (no protocol change), now reads SAVE ME
+// downed INTERACT shout: still the come wire id (no protocol change), now reads SAVE ME.
+// The sender also sees its own shout as a local echo (visual only, never buzzed);
+// only the peer's rx path sets _chat_pip, so the hurt pip stays remote.
 void game::_send_chat(uint8_t from) {
   if (!_net_multi) {
     return; // solo: no peer, and send() with no peer sprays delivery-failed
@@ -226,17 +236,61 @@ void game::_send_chat(uint8_t from) {
   _handler.send(&m, sizeof(m)); // triple: 4B each, one usually lands
   _handler.send(&m, sizeof(m));
   _handler.send(&m, sizeof(m));
+  snprintf(_chat_buf, sizeof(_chat_buf), "P%u: SAVE ME!", (unsigned)(from + 1u));
+  _chat_col = (from == 0) ? colour::green : _mate_p2col;
+  _chat_until = millis() + 2000;
+  // first shout this down: the HELP hint below retires (each board reads its own
+  // pair, so set both; the unread one is harmless).
+  if (from == 0) {
+    _shouted0 = true;
+    _cli_shouted0 = true;
+  } else {
+    _shouted1 = true;
+    _cli_shouted1 = true;
+  }
 }
 
 // urgent slot (above reloading): the voluntary SAVE ME! shout while fresh.
-// Downed callers mash INTERACT to scream (2s + buzz on the peer); silence
-// otherwise, the panel DOWN countdown + yellow dot cover the state.
+// Both boards see it now (local echo on send + rx on the peer); only the peer
+// buzzes (rx sets _chat_pip, the echo never does). Silence otherwise, the panel
+// DOWN countdown + yellow dot cover the state.
 bool game::_urgent_callout(uint8_t /*me*/) {
   if (_net_multi && millis() < _chat_until && _chat_buf[0] != '\0') {
     render::prompt(_chat_buf, _chat_col); // freshest shout first
     return true;
   }
   return false;
+}
+
+// idle downed hint (below the shout, above reloading): PRESS INT FOR HELP stays up
+// until the first shout of this down, so a player at 20m with no audio always knows
+// how to call. Multi-only with a living partner (same gate as the shout) and only
+// where INT really shouts: near a machine INT buys (shop prompts keep priority
+// there), so the hint stays off. Yellow like the shop prompts. The fresh shout
+// above wins while live, so the first mash swaps to SAVE ME! for 2s.
+bool game::_help_hint(uint8_t me) {
+  if (!_net_multi || me > 1) {
+    return false;
+  }
+  const sim::state& v = sim::view();
+  if (!v.players[me].active || !v.players[me].downed) {
+    return false;
+  }
+  const uint8_t q = (me == 0) ? 1 : 0;
+  if (!v.players[q].active || v.players[q].hp == 0) {
+    return false; // nobody out there to help
+  }
+  const bool cli = (_handler.role() == ROLE_CLIENT);
+  const bool shouted = (me == 0) ? (cli ? _cli_shouted0 : _shouted0)
+                                 : (cli ? _cli_shouted1 : _shouted1);
+  if (shouted) {
+    return false; // already called once: the echo above covers further mashes
+  }
+  if (_shop_at(me) != 0) {
+    return false; // INT buys here, it does not shout
+  }
+  render::prompt("PRESS INT FOR HELP"); // default yellow, like GET.../ROLL/REVIVE
+  return true;
 }
 
 // reload slot (below the urgent shout, above shop): own mag swap FYI, white info.
@@ -266,7 +320,11 @@ void game::_start_game(bool multi) {
   _rx_ready = false;
   _cli_mirror = false; // a fresh run owns the arena again, never the pause chrome
   _cli_was_down0 = _cli_was_down1 = false; // no rise edge on the join frame
+  _cli_was_dead0 = _cli_was_dead1 = false; // no BACK edge on the join frame
+  _cli_shouted0 = _cli_shouted1 = false; // HELP shows on the next down
   _was_down0 = _was_down1 = false; // no fall/death edge on the join frame
+  _was_dead0 = _was_dead1 = false; // no BACK edge on the join frame
+  _shouted0 = _shouted1 = false; // HELP shows on the next down
   _cli_wave = 0;
   _cli_last_rx = millis(); // grace window so a fresh client is not instantly "quiet"
   _p2_interact = _p2_pause_edge = false;
@@ -488,9 +546,19 @@ bool game::_revive_update(uint32_t now) {
   const bool p0_died = _was_down0 && !d0 && v.players[0].hp == 0;
   const bool p1_died = _was_down1 && !d1 && v.players[1].hp == 0;
   if (p0_died || p1_died) {
-    snprintf(_hint_buf, sizeof(_hint_buf), p0_died ? "P1: I'M COOKED!" : "P2: I'M COOKED!");
+    snprintf(_hint_buf, sizeof(_hint_buf), p0_died ? "P1: I'M OUT!" : "P2: I'M OUT!");
     _hint_col = p0_died ? colour::green : _mate_p2col; // the dead one's colour
     _hint_until = now + 2000;
+  }
+  // bled-out wave rejoins are announced in the wave-banner block below (BACK is
+  // the least important of the three wave messages); downed players that held on
+  // till the break rise silently (they never bled out). _was_dead advances after
+  // the banners so they still see the previous frame.
+  if (!_was_down0 && d0) {
+    _shouted0 = false; // fall edge: HELP shows again until the first shout
+  }
+  if (!_was_down1 && d1) {
+    _shouted1 = false;
   }
   _was_down0 = d0;
   _was_down1 = d1;
@@ -630,6 +698,9 @@ void game::_shop_update(uint32_t now) {
   }
   if (_urgent_callout(0)) {
     return; // voluntary SAVE ME over the reload nag
+  }
+  if (_help_hint(0)) {
+    return; // PRESS INT FOR HELP until the first shout
   }
   if (_reload_prompt(0)) {
     return; // own mag swap under the shout
@@ -915,7 +986,28 @@ void game::_update_playing_host() {
       _hint_col = colour::yellow; // explicit: _shop_update repaints the buf with this
       _hint_until = now + 2000;
       render::prompt(_hint_buf);
+    } else if (now >= _hint_until) {
+      // bled-out wave rejoin, least important of the three: only when the strip is
+      // free (fresher hints already won above). Downed players that held on till
+      // the break rise silently (they never bled out).
+      const sim::state& wv = sim::view();
+      const bool p0_back = _was_dead0 && wv.players[0].hp > 0;
+      const bool p1_back = _was_dead1 && wv.players[1].hp > 0;
+      if (p0_back || p1_back) {
+        snprintf(_hint_buf, sizeof(_hint_buf), p0_back ? "P1: I'M BACK!" : "P2: I'M BACK!");
+        _hint_col = p0_back ? colour::green : _mate_p2col; // the returner's colour
+        _hint_until = now + 1500;
+        render::prompt(_hint_buf, _hint_col);
+      }
     }
+  }
+  {
+    // _was_dead advances after the banners so they still see the previous frame
+    const sim::state& wv = sim::view();
+    const bool d0 = wv.players[0].active && wv.players[0].downed;
+    const bool d1 = _net_multi && wv.players[1].active && wv.players[1].downed;
+    _was_dead0 = wv.players[0].active && wv.players[0].hp == 0 && !d0;
+    _was_dead1 = _net_multi && wv.players[1].active && wv.players[1].hp == 0 && !d1;
   }
   _fire_buzz(); // jingle for the frame's event (revive/buys already overwrote shots)
   _push_roll_marker(); // active pad to the minimap, moves on epoch change
@@ -969,10 +1061,17 @@ void game::_update_playing_client() {
   const bool c2_down = cv.players[1].active && cv.players[1].downed;
   // edge news: the hint text never travels in the snapshot, so the client
   // derives lift/death edges itself. A wave respawn also moves bodies, but
-  // that frame always carries the wave event (banner wins below), and a host
+  // that frame always carries the wave event (BACK/banner wins below), and a host
   // restart drops the wave, so only lone edges land here. Priority per frame:
-  // lift result, then the bleed-out; ties name the local body. Falls stay silent.
+  // lift result, then the bleed-out; ties name the local body. Falls stay silent
+  // (except arming HELP below, which shows until the first shout).
   bool edge_hint = false;
+  if (!_cli_was_down0 && c1_down) {
+    _cli_shouted0 = false; // fall edge: HELP shows again until the first shout
+  }
+  if (!_cli_was_down1 && c2_down) {
+    _cli_shouted1 = false;
+  }
   if (cv.wave < _cli_wave) {
     _cli_was_down0 = c1_down; // host restarted: resync, no announcement
     _cli_was_down1 = c2_down;
@@ -991,13 +1090,14 @@ void game::_update_playing_client() {
       _hint_until = now_rx + 1500;
       edge_hint = true; // skip proximity below: _shop_prompt reuses _hint_buf as scratch
     } else if (p2_died || p1_died) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p2_died ? "P2: I'M COOKED!" : "P1: I'M COOKED!");
+      snprintf(_hint_buf, sizeof(_hint_buf), p2_died ? "P2: I'M OUT!" : "P1: I'M OUT!");
       _hint_col = p2_died ? _mate_p2col : colour::green; // the dead one's colour
       _hint_until = now_rx + 2000;
       edge_hint = true;
     }
     _cli_was_down0 = c1_down;
     _cli_was_down1 = c2_down;
+    // _cli_was_dead advances after the banners below, like the host pair
   } else {
     _cli_was_down0 = c1_down;
     _cli_was_down1 = c2_down;
@@ -1016,6 +1116,8 @@ void game::_update_playing_client() {
     render::prompt("PRESS INT TO REVIVE"); // INT verb stays yellow
   } else if (_urgent_callout(1)) {
     ; // voluntary SAVE ME over the reload nag
+  } else if (_help_hint(1)) {
+    ; // PRESS INT FOR HELP until the first shout
   } else if (_reload_prompt(1)) {
     ; // own mag swap under the shout
   } else {
@@ -1035,10 +1137,29 @@ void game::_update_playing_client() {
       snprintf(_hint_buf, sizeof(_hint_buf), "ROLL RELOCATED!");
       _hint_col = colour::yellow; // explicit: painted below with this, no stale boss purple
       _hint_until = cli_now + 2000;
+    } else if (cli_now >= _hint_until) {
+      // bled-out wave rejoin, least important of the three: only when the strip
+      // is free. Mirrors the host banner; downed-held-on rises stay silent.
+      const sim::state& wv = sim::view();
+      const bool p1_back = _cli_was_dead0 && wv.players[0].hp > 0;
+      const bool p2_back = _cli_was_dead1 && wv.players[1].hp > 0;
+      if (p1_back || p2_back) {
+        snprintf(_hint_buf, sizeof(_hint_buf), p2_back ? "P2: I'M BACK!" : "P1: I'M BACK!");
+        _hint_col = p2_back ? _mate_p2col : colour::green; // the returner's colour
+        _hint_until = cli_now + 1500;
+      }
     }
   }
+  {
+    // _cli_was_dead advances after the banners so they still see the previous frame
+    const sim::state& wv = sim::view();
+    const bool d0 = wv.players[0].active && wv.players[0].downed;
+    const bool d1 = wv.players[1].active && wv.players[1].downed;
+    _cli_was_dead0 = wv.players[0].active && wv.players[0].hp == 0 && !d0;
+    _cli_was_dead1 = wv.players[1].active && wv.players[1].hp == 0 && !d1;
+  }
   if (cli_now < _hint_until && _hint_buf[0] != '\0') {
-    render::prompt(_hint_buf, _hint_col); // recent boss/roll wave wins over the proximity prompt
+    render::prompt(_hint_buf, _hint_col); // recent boss/roll/BACK wave wins over the proximity prompt
   }
   _fire_buzz(); // the snapshot carries the event, so both buzzers sing
   _push_roll_marker(); // active pad to the minimap, same epoch math as the host

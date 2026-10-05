@@ -49,6 +49,8 @@ class game {
     static volatile bool _rx_ready; // snapshot waiting to apply (client)
     static bool _cli_mirror; // client is painting the host-owned pause (arena chrome is covered)
     static bool _cli_was_down0, _cli_was_down1; // downed flags last client frame, for the rise edge
+    static bool _cli_was_dead0, _cli_was_dead1; // hp==0 && !downed last client frame, BACK edge
+    static bool _cli_shouted0, _cli_shouted1; // SAVE ME sent this down (client), HELP hides after
     static uint16_t _cli_wave; // wave last client frame, restarts resync silently
     static net::game_state_msg _rx_state; // snapshot buffer (client)
     static net::game_state_msg _tx_state; // snapshot scratch (host)
@@ -69,12 +71,14 @@ class game {
     static char _hint_buf[28];         // transient result text ("NEED 100 PTS", "NEW GUN: MP9")
     static uint16_t _hint_col;       // its strip colour (green buys, white info...)
     static uint32_t _hint_until;       // result visible while millis() < this
-    static char _chat_buf[28];       // last remote SAVE ME text ("P2: SAVE ME!")
+    static char _chat_buf[28];       // last SAVE ME text (rx + local echo, "P2: SAVE ME!")
     static uint16_t _chat_col;       // speaker colour (P1 green / P2 steel-blue)
     static uint32_t _chat_until;     // SAVE ME visible while millis() < this (2s)
     static uint8_t _chat_seq;        // SAVE ME edge counter
     static bool _chat_pip;           // SAVE ME rx flag, buzzed from the frame loop
     static bool _was_down0, _was_down1; // downed flags last host frame, for the bleed-out edge
+    static bool _was_dead0, _was_dead1; // hp==0 && !downed last host frame, for the BACK edge
+    static bool _shouted0, _shouted1; // SAVE ME sent this down (host), HELP hides after
     static bool _p2_interact;          // player 2 INTERACT edge, set from net, consumed in shop
     static bool _p2_pause_edge;        // player 2 PAUSE edge, set from net, consumed in game
 
@@ -84,6 +88,7 @@ class game {
     static void _on_chat(const uint8_t* data, size_t len); // SAVE ME rx (both)
     static void _send_chat(uint8_t from); // SAVE ME tx, edge only (multi only)
     static bool _urgent_callout(uint8_t me); // voluntary SAVE ME shout, above reloading
+    static bool _help_hint(uint8_t me); // PRESS INT FOR HELP until first shout, above reloading
     static bool _reload_prompt(uint8_t me); // own mag swap FYI ("RELOADING..."), above shop
 
     static int8_t _nav_edge();
