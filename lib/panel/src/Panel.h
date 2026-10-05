@@ -13,6 +13,9 @@ class panel {
     static void init();  // once per run: black panel + minimap terrain
     static void draw();  // per frame: points, HP pips, DMG/SPD/ROF % (focus build)
     static void blips(); // per frame: camera cell frame and the entity dots
+    // active roulette pad marker (top-left tile, -1 = none): game pushes it from
+    // its shop scan + wave epoch, blips() paints it green under the dots
+    static void set_roll(int16_t tx, int16_t ty);
 
   private:
     // minimap: 2px per tile, drawn once, then only blips change
@@ -28,6 +31,8 @@ class panel {
     static uint8_t _mm_n;
     static int16_t _mm_ctx; // camera cell tile whose frame is on the minimap, -1 = none yet
     static int16_t _mm_cty;
+    static int16_t _roll_tx, _roll_ty; // active roulette pad, top-left tile (-1 = none)
+    static int16_t _roll_dx, _roll_dy; // pad tiles painted last frame (restored in blips)
 
     static int16_t _mm_x();
     static void _pip_row(int16_t y, const char* label, uint8_t lvl, uint8_t max, uint16_t col);

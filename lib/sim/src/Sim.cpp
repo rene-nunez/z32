@@ -486,7 +486,7 @@ void sim::_do_fire(uint32_t now, uint8_t p) {
     return; // hands busy with the mag
   }
   if (_s.ammo[p] == 0) {
-    _s.last_event = event::empty; // dry click: RELOAD, no auto-rescue
+    start_reload(now, p); // auto on empty: the swap starts itself, no dry click
     return;
   }
   const uint32_t cd = (uint32_t)((float)_fire_cd(_s.guns[p]) * _rpd_mult(_s.rpd_lvl[p]));
@@ -521,7 +521,7 @@ bool sim::_fire_single(uint32_t now, uint8_t p) {
     return false; // nothing in reach: no round leaves, no burst is armed
   }
   if (_s.ammo[p] == 0) {
-    _s.last_event = event::empty; // burst tick ran dry mid-flight
+    start_reload(now, p); // burst tick ran dry mid-flight: swap, don't spin retrying
     return false;
   }
 
@@ -550,6 +550,9 @@ bool sim::_fire_single(uint32_t now, uint8_t p) {
   if (fired > 0) {
     --_s.ammo[p]; // one trigger pull, one round (pellets ride the same shell)
     _s.last_event = event::shoot;
+    if (_s.ammo[p] == 0) {
+      start_reload(now, p); // last round out: swap starts at once (reload wins the jingle)
+    }
   }
   return fired > 0;
 }
@@ -588,7 +591,7 @@ bool sim::step(uint32_t now) {
       _do_fire(now, p);
     }
     if ((p == 0) ? input::reload_pressed() : _p2ctl.reload) {
-      start_reload(now, p); // manual only: no auto-rescue on empty
+      start_reload(now, p); // manual top-up while partially spent (auto covers empty)
     }
     if (_s.reload_end[p] != 0 && now >= _s.reload_end[p]) {
       _s.reload_end[p] = 0;
@@ -599,7 +602,8 @@ bool sim::step(uint32_t now) {
       if (_s.guns[p] != weapon::m16) {
         _burst_left[p] = 0; // swapped mid-burst: cancel the rest
       } else if (_s.ammo[p] == 0) {
-        _burst_left[p] = 0; // ran dry mid-burst: RELOAD, don't spin retrying
+        _burst_left[p] = 0; // ran dry mid-burst: swap at once, don't spin retrying
+        start_reload(now, p);
       } else if (now >= _burst_next[p]) {
         if (_fire_single(now, p)) {
           --_burst_left[p];

@@ -61,9 +61,6 @@ uint32_t game::_chat_until = 0;
 uint8_t game::_chat_seq = 0;
 bool game::_chat_pip = false;
 char game::_mate_buf[28] = {0};
-uint32_t game::_mate_until = 0;
-uint8_t game::_ammo_prev[2] = {0xFF, 0xFF};
-uint32_t game::_ammo_nag[2] = {0, 0};
 bool game::_was_down0 = false;
 bool game::_was_down1 = false;
 bool game::_p2_interact = false;
@@ -210,14 +207,15 @@ void game::_on_chat(const uint8_t* data, size_t len) {
   net::chat_msg m;
   memcpy(&m, data, sizeof(m));
   if (m.from > 1 || m.id != (uint8_t)net::chat_id::come) {
-    return; // HELP/THANKS/AMMO derive locally; only the voluntary COME travels
+    return; // PICK ME UP rides the come wire id; THX derives locally, nothing else travels
   }
-  snprintf(_chat_buf, sizeof(_chat_buf), "P%u: COME!", (unsigned)(m.from + 1u));
+  snprintf(_chat_buf, sizeof(_chat_buf), "P%u: PICK ME UP!", (unsigned)(m.from + 1u));
   _chat_col = (m.from == 0) ? colour::green : _mate_p2col;
   _chat_until = millis() + 2000;
   _chat_pip = true; // buzzed from the frame loop, never from the rx task
 }
 
+// downed INTERACT shout: still the come wire id (no protocol change), now reads PICK ME UP
 void game::_send_chat(uint8_t from) {
   if (!_net_multi) {
     return; // solo: no peer, and send() with no peer sprays delivery-failed
@@ -231,9 +229,10 @@ void game::_send_chat(uint8_t from) {
   _handler.send(&m, sizeof(m));
 }
 
-// urgent slot (above OUT OF AMMO): remote COME while fresh, else partner HELP
-// while downed. Both boards derive HELP locally from shared state (zero bytes);
-// only the voluntary COME travels. Downed callers keep shouting with INTERACT.
+// urgent slot (above reloading): voluntary PICK ME UP while fresh, else the auto
+// shout while the partner is downed. Both boards derive the auto one locally from
+// shared state (zero bytes); only the voluntary shout travels. Downed callers keep
+// shouting with INTERACT.
 bool game::_urgent_callout(uint8_t me) {
   const uint32_t now = millis();
   if (_net_multi && now < _chat_until && _chat_buf[0] != '\0') {
@@ -245,33 +244,23 @@ bool game::_urgent_callout(uint8_t me) {
   if (!_net_multi || !v.players[q].active || !v.players[q].downed) {
     return false;
   }
-  snprintf(_mate_buf, sizeof(_mate_buf), "P%u: HELP!", (unsigned)(q + 1u));
+  snprintf(_mate_buf, sizeof(_mate_buf), "P%u: PICK ME UP!", (unsigned)(q + 1u));
   render::prompt(_mate_buf, (q == 0) ? colour::green : _mate_p2col);
   return true;
 }
 
-// FYI slot (below OUT OF AMMO): partner empty-mag on the edge + 6s re-nags,
-// 2s each. Local rule from shared state, like HELP. Own reload nag stays above.
-bool game::_mate_ammo(uint32_t now, uint8_t me) {
-  if (!_net_multi) {
+// reload slot (below the urgent shout, above shop): own mag swap FYI, white info.
+// Auto starts it the moment the mag hits 0, so this replaces the old OUT OF AMMO nag.
+bool game::_reload_prompt(uint8_t me) {
+  if (!sim::reloading(me)) {
     return false;
   }
-  const sim::state& v = sim::view();
-  const uint8_t q = (uint8_t)(1 - me);
-  if (!v.players[q].active) {
-    return false;
+  if (_net_multi) {
+    snprintf(_mate_buf, sizeof(_mate_buf), "P%u: RELOADING..", (unsigned)(me + 1u));
+  } else {
+    snprintf(_mate_buf, sizeof(_mate_buf), "RELOADING.."); // solo: no partner, no prefix
   }
-  const uint8_t a = v.ammo[q];
-  if (a == 0 && (_ammo_prev[q] != 0 || now >= _ammo_nag[q])) {
-    snprintf(_mate_buf, sizeof(_mate_buf), "P%u: OUT OF AMMO!", (unsigned)(q + 1u));
-    _mate_until = now + 2000;
-    _ammo_nag[q] = now + 6000;
-  }
-  _ammo_prev[q] = a;
-  if (a != 0 || now >= _mate_until) {
-    return false;
-  }
-  render::prompt(_mate_buf, (q == 0) ? colour::green : _mate_p2col);
+  render::prompt(_mate_buf, colour::white);
   return true;
 }
 
@@ -307,10 +296,7 @@ void game::_start_game(bool multi) {
   _chat_until = 0;
   _chat_buf[0] = '\0';
   _chat_pip = false;
-  _mate_until = 0;
   _mate_buf[0] = '\0';
-  _ammo_prev[0] = _ammo_prev[1] = 0xFF;
-  _ammo_nag[0] = _ammo_nag[1] = 0;
   panel::init(); // static panel + minimap terrain, then blips on top
   _hud_first = true; // the menu chrome covered the HUD strip: wipe+repaint it fully
   render::update_camera();
@@ -364,6 +350,21 @@ uint8_t game::_roulette_active_at(uint16_t w, uint8_t n) {
 
 uint8_t game::_roulette_active() {
   return _roulette_active_at(sim::view().wave, _shop_rn);
+}
+
+void game::_push_roll_marker() {
+  if (_shop_rn == 0) {
+    panel::set_roll(-1, -1);
+    return;
+  }
+  const uint8_t act = _roulette_active();
+  if (act >= _shop_rn || _shop_rx[act] < 0 || _shop_ry[act] < 0) {
+    panel::set_roll(-1, -1);
+    return;
+  }
+  // centres are exact tile multiples ((c+1)*TILE), so the top-left tile is one back
+  panel::set_roll((int16_t)(_shop_rx[act] / tilemap::TILE - 1),
+                  (int16_t)(_shop_ry[act] / tilemap::TILE - 1));
 }
 
 bool game::_roulette_moved() {
@@ -497,17 +498,12 @@ bool game::_revive_update(uint32_t now) {
   const sim::state& v = sim::view();
   const bool d0 = v.players[0].active && v.players[0].downed;
   const bool d1 = _net_multi && v.players[1].active && v.players[1].downed;
-  // falls and bleed-outs announce once (2s): the strip frees after, the panel
-  // keeps the DOWN countdown. A lift below overwrites with the risen's THANKS.
-  const bool p0_fell = !_was_down0 && d0;
-  const bool p1_fell = !_was_down1 && d1;
+  // bleed-outs announce once (2s): the strip frees after, the panel keeps the DOWN
+  // countdown. Falls stay silent now: the downed shout below + the panel cover it.
+  // A lift below overwrites with the risen's THX.
   const bool p0_died = _was_down0 && !d0 && v.players[0].hp == 0;
   const bool p1_died = _was_down1 && !d1 && v.players[1].hp == 0;
-  if (p0_fell || p1_fell) {
-    snprintf(_hint_buf, sizeof(_hint_buf), p0_fell ? "P1 DOWN" : "P2 DOWN");
-    _hint_col = colour::red;
-    _hint_until = now + 2000;
-  } else if (p0_died || p1_died) {
+  if (p0_died || p1_died) {
     snprintf(_hint_buf, sizeof(_hint_buf), p0_died ? "P1 BLED OUT" : "P2 BLED OUT");
     _hint_col = colour::red;
     _hint_until = now + 2000;
@@ -521,7 +517,7 @@ bool game::_revive_update(uint32_t now) {
     }
     const uint8_t q = (p == 0) ? 1 : 0;
     if (sim::revive(q)) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p == 0 ? "P2: THANKS!" : "P1: THANKS!");
+      snprintf(_hint_buf, sizeof(_hint_buf), p == 0 ? "P2: THX!" : "P1: THX!");
       _hint_col = colour::green;
       _hint_until = now + 1500;
       if (p == 1) {
@@ -551,13 +547,13 @@ void game::_shop_update(uint32_t now) {
           snprintf(_hint_buf, sizeof(_hint_buf),
                    v.players[0].hp >= sim::PLAYER_HP_MAX ? "HP FULL" : "NEED %lu PTS",
                    (unsigned long)sim::PRICE_HEAL);
-          _hint_col = colour::red;
+          _hint_col = colour::white; // info, not danger: red is for BLED OUT only
         }
         break;
       case 2:
         if (v.dmg_lvl[0] >= sim::MAX_LVL) {
           snprintf(_hint_buf, sizeof(_hint_buf), "DMG MAX");
-          _hint_col = colour::gray;
+          _hint_col = colour::white;
         } else {
           ok = sim::buy_damage(now);
           if (ok) {
@@ -567,14 +563,14 @@ void game::_shop_update(uint32_t now) {
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS",
                      (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl[0]));
-            _hint_col = colour::red;
+            _hint_col = colour::white;
           }
         }
         break;
       case 3:
         if (v.spd_lvl[0] >= sim::MAX_LVL) {
           snprintf(_hint_buf, sizeof(_hint_buf), "SPD MAX");
-          _hint_col = colour::gray;
+          _hint_col = colour::white;
         } else {
           ok = sim::buy_speed(now);
           if (ok) {
@@ -584,14 +580,14 @@ void game::_shop_update(uint32_t now) {
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS",
                      (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[0]));
-            _hint_col = colour::red;
+            _hint_col = colour::white;
           }
         }
         break;
       case 5:
         if (v.rpd_lvl[0] >= sim::MAX_LVL) {
           snprintf(_hint_buf, sizeof(_hint_buf), "ROF MAX");
-          _hint_col = colour::gray;
+          _hint_col = colour::white;
         } else {
           ok = sim::buy_rapid(now);
           if (ok) {
@@ -601,7 +597,7 @@ void game::_shop_update(uint32_t now) {
           } else {
             snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS",
                      (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[0]));
-            _hint_col = colour::red;
+            _hint_col = colour::white;
           }
         }
         break;
@@ -612,7 +608,7 @@ void game::_shop_update(uint32_t now) {
           _hint_col = colour::green;
         } else {
           snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS", (unsigned long)sim::PRICE_ROLL);
-          _hint_col = colour::red;
+          _hint_col = colour::white;
         }
         break;
     }
@@ -633,7 +629,7 @@ void game::_shop_update(uint32_t now) {
   }
   _p2_interact = false; // consumed every frame, edge semantics
 
-  // downed P1 mashing INTERACT with nothing actionable nearby shouts COME
+  // downed P1 mashing INTERACT with nothing actionable nearby shouts PICK ME UP
   // (near a machine the buy below still wins, like a standing player)
   if (v.players[0].downed && v.players[1].hp > 0 && input::interact_pressed() &&
       !_revive_near(1) && shop == 0) {
@@ -645,23 +641,19 @@ void game::_shop_update(uint32_t now) {
     return;
   }
   if (_revive_near(0)) {
-    render::prompt("INT: REVIVE"); // standing close, lift with INTERACT
+    render::prompt("PRESS INT TO REVIVE"); // standing close, lift with INTERACT
     return;
   }
   if (_urgent_callout(0)) {
-    return; // remote COME / partner HELP over the empty-mag nag
+    return; // voluntary/auto PICK ME UP over the reload nag
   }
-  if (v.ammo[0] == 0 && !sim::reloading(0)) {
-    render::prompt("OUT OF AMMO!", colour::red); // manual only: no auto-rescue
-    return;
-  }
-  if (_mate_ammo(now, 0)) {
-    return; // partner dry FYI under our own reload nag
+  if (_reload_prompt(0)) {
+    return; // own mag swap under the shout
   }
   if (shop == 0) {
     // standing on a dead wheel reads as moved, not as silence (P1 view only)
     if (_near_inactive_roulette(0)) {
-      render::prompt("FIND ACTIVE ROLL", colour::gray);
+      render::prompt("NO LUCK HERE", colour::white);
       return;
     }
   }
@@ -672,36 +664,36 @@ void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
   const sim::state& v = sim::view();
   switch (shop) {
     case 1:
-      snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: HEAL +2HP", who);
+      snprintf(_hint_buf, sizeof(_hint_buf), "%sGET HEAL +2HP", who);
       render::prompt(_hint_buf);
       break;
     case 2:
       if (v.dmg_lvl[p] >= sim::MAX_LVL) {
-        render::prompt("DMG MAX", colour::gray);
+        render::prompt("DMG MAX", colour::white);
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: DMG +%u%%", who,
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET DMG +%u%%", who,
                  sim::dmg_bonus((uint8_t)(v.dmg_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
       break;
     case 3:
       if (v.spd_lvl[p] >= sim::MAX_LVL) {
-        render::prompt("SPD MAX", colour::gray);
+        render::prompt("SPD MAX", colour::white);
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: SPD +%u%%", who,
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET SPD +%u%%", who,
                  sim::spd_bonus((uint8_t)(v.spd_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
       break;
     case 4:
-      snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: ROLL 100", who);
+      snprintf(_hint_buf, sizeof(_hint_buf), "%sGET ROLL 100", who);
       render::prompt(_hint_buf);
       break;
     case 5:
       if (v.rpd_lvl[p] >= sim::MAX_LVL) {
-        render::prompt("ROF MAX", colour::gray);
+        render::prompt("ROF MAX", colour::white);
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sINT: ROF -%u%%", who,
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET ROF -%u%%", who,
                  sim::rpd_cut((uint8_t)(v.rpd_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
@@ -744,7 +736,7 @@ void game::_fire_buzz() {
     case sim::event::revive: buzz::play(buzz::jingle::buy); break; // a lift, not a purchase
     case sim::event::roulette: buzz::play(buzz::jingle::roulette); break;
     case sim::event::denied: buzz::play(buzz::jingle::denied); break;
-    case sim::event::empty: buzz::play(buzz::jingle::denied); break; // dry mag
+    case sim::event::empty: buzz::play(buzz::jingle::denied); break; // legacy dry (auto rescues now)
     case sim::event::reload: buzz::play(buzz::jingle::reload); break; // mag swap
     case sim::event::hurt: buzz::play(buzz::jingle::hurt); break;
     case sim::event::wave: buzz::play(buzz::jingle::wave); break;
@@ -754,7 +746,7 @@ void game::_fire_buzz() {
   if (_chat_pip) {
     _chat_pip = false;
     if (sim::view().last_event == sim::event::none) {
-      buzz::play(buzz::jingle::hurt); // remote COME, only over silence
+      buzz::play(buzz::jingle::hurt); // remote PICK ME UP, only over silence
     }
   }
 }
@@ -935,12 +927,13 @@ void game::_update_playing_host() {
       render::prompt(_hint_buf, _hint_col);
     } else if (_roulette_moved() && now >= _hint_until) {
       // the wheel really relocated: announce it over the proximity prompt once
-      snprintf(_hint_buf, sizeof(_hint_buf), "ROLL MOVED!");
+      snprintf(_hint_buf, sizeof(_hint_buf), "ROLL RELOCATED!");
       _hint_until = now + 2000;
       render::prompt(_hint_buf);
     }
   }
   _fire_buzz(); // jingle for the frame's event (revive/buys already overwrote shots)
+  _push_roll_marker(); // active pad to the minimap, moves on epoch change
   render::update_camera();
   render::draw();
   panel::draw();
@@ -990,10 +983,10 @@ void game::_update_playing_client() {
   const bool c1_down = cv.players[0].active && cv.players[0].downed;
   const bool c2_down = cv.players[1].active && cv.players[1].downed;
   // edge news: the hint text never travels in the snapshot, so the client
-  // derives fall/lift/death edges itself. A wave respawn also moves bodies, but
+  // derives lift/death edges itself. A wave respawn also moves bodies, but
   // that frame always carries the wave event (banner wins below), and a host
   // restart drops the wave, so only lone edges land here. Priority per frame:
-  // lift result, then the fall, then the bleed-out; ties name the local body.
+  // lift result, then the bleed-out; ties name the local body. Falls stay silent.
   bool edge_hint = false;
   if (cv.wave < _cli_wave) {
     _cli_was_down0 = c1_down; // host restarted: resync, no announcement
@@ -1001,24 +994,17 @@ void game::_update_playing_client() {
   } else if (cv.last_event != sim::event::wave) {
     // hp gate: bleeding out also clears downed (hp stays 0, dead till the wave),
     // only a real lift comes back with hp. Without it the death reads as a revive.
-    // Falls and bleed-outs announce once (2s); the strip frees after.
+    // Bleed-outs announce once (2s); the strip frees after.
     const bool p1_rose = _cli_was_down0 && !c1_down && cv.players[0].hp > 0;
     const bool p2_rose = _cli_was_down1 && !c2_down && cv.players[1].hp > 0;
-    const bool p1_fell = !_cli_was_down0 && c1_down;
-    const bool p2_fell = !_cli_was_down1 && c2_down;
     const bool p1_died = _cli_was_down0 && !c1_down && cv.players[0].hp == 0;
     const bool p2_died = _cli_was_down1 && !c2_down && cv.players[1].hp == 0;
     const uint32_t now_rx = millis();
     if (p2_rose || p1_rose) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p2_rose ? "P2: THANKS!" : "P1: THANKS!");
+      snprintf(_hint_buf, sizeof(_hint_buf), p2_rose ? "P2: THX!" : "P1: THX!");
       _hint_col = colour::green;
       _hint_until = now_rx + 1500;
       edge_hint = true; // skip proximity below: _shop_prompt reuses _hint_buf as scratch
-    } else if (p2_fell || p1_fell) {
-      snprintf(_hint_buf, sizeof(_hint_buf), p2_fell ? "P2 DOWN" : "P1 DOWN");
-      _hint_col = colour::red;
-      _hint_until = now_rx + 2000;
-      edge_hint = true;
     } else if (p2_died || p1_died) {
       snprintf(_hint_buf, sizeof(_hint_buf), p2_died ? "P2 BLED OUT" : "P1 BLED OUT");
       _hint_col = colour::red;
@@ -1032,7 +1018,7 @@ void game::_update_playing_client() {
     _cli_was_down1 = c2_down;
   }
   _cli_wave = cv.wave;
-  // downed P2 mashing INTERACT with nothing actionable nearby shouts COME
+  // downed P2 mashing INTERACT with nothing actionable nearby shouts PICK ME UP
   // (near a machine the host-side buy still wins, like a standing player)
   const uint8_t cshop = _shop_at(1);
   if (cv.players[1].downed && cv.players[0].hp > 0 && input::interact_pressed() &&
@@ -1042,16 +1028,14 @@ void game::_update_playing_client() {
   if (edge_hint) {
     render::prompt(_hint_buf, _hint_col); // edge news wins over proximity
   } else if (_revive_near(1)) {
-    render::prompt("INT: REVIVE"); // standing close, lift with INTERACT
+    render::prompt("PRESS INT TO REVIVE"); // standing close, lift with INTERACT
   } else if (_urgent_callout(1)) {
-    ; // remote COME / partner HELP over the empty-mag nag
-  } else if (cv.ammo[1] == 0 && !sim::reloading(1)) {
-    render::prompt("OUT OF AMMO!", colour::red); // manual only: no auto-rescue
-  } else if (_mate_ammo(millis(), 1)) {
-    ; // partner dry FYI under our own reload nag
+    ; // voluntary/auto PICK ME UP over the reload nag
+  } else if (_reload_prompt(1)) {
+    ; // own mag swap under the shout
   } else {
     if (cshop == 0 && _near_inactive_roulette(1)) {
-      render::prompt("FIND ACTIVE ROLL", colour::gray);
+      render::prompt("NO LUCK HERE", colour::white);
     } else {
       _shop_prompt(cshop, "", 1);
     }
@@ -1063,7 +1047,7 @@ void game::_update_playing_client() {
       _hint_col = colour::purple;
       _hint_until = cli_now + 2000;
     } else if (_roulette_moved() && cli_now >= _hint_until) {
-      snprintf(_hint_buf, sizeof(_hint_buf), "ROLL MOVED!");
+      snprintf(_hint_buf, sizeof(_hint_buf), "ROLL RELOCATED!");
       _hint_until = cli_now + 2000;
     }
   }
@@ -1071,6 +1055,7 @@ void game::_update_playing_client() {
     render::prompt(_hint_buf, _hint_col); // recent boss/roll wave wins over the proximity prompt
   }
   _fire_buzz(); // the snapshot carries the event, so both buzzers sing
+  _push_roll_marker(); // active pad to the minimap, same epoch math as the host
   render::update_camera();
   render::draw();
   panel::draw();

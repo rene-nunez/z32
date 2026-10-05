@@ -39,9 +39,9 @@ class sim {
       over,
       revive,
       buy_rpd, // appended last: earlier wire values never shift
-      reload,  // mag swap started (manual RELOAD)
+      reload,  // mag swap started (manual top-up or auto on empty)
       reloaded, // mag full again, back in the fight
-      empty // dry trigger pull on an empty mag
+      empty // legacy dry click: auto-reload rescues now, never emitted
     };
 
     // shop: points are the spendable wallet. Heal is flat; damage and speed are
@@ -131,7 +131,7 @@ class sim {
     static bool buy_speed(uint32_t now, uint8_t p = 0);
     static bool buy_rapid(uint32_t now, uint8_t p = 0);
     static bool roll_roulette(uint32_t now, uint8_t p = 0);
-    static bool start_reload(uint32_t now, uint8_t p = 0); // manual mag swap, false if full/busy
+    static bool start_reload(uint32_t now, uint8_t p = 0); // mag swap, false if full/busy (manual + auto)
     static bool reloading(uint8_t p); // a swap is still running for p
 
     static uint32_t price_for(uint32_t base, uint8_t lvl); // base + STEP*lvl

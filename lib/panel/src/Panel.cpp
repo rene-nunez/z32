@@ -12,6 +12,8 @@ int16_t panel::_mm_py[2 + sim::MAX_ZOMBIES] = {0};
 uint8_t panel::_mm_n = 0;
 int16_t panel::_mm_ctx = -1; // camera cell tile whose frame is on the minimap, -1 = none yet
 int16_t panel::_mm_cty = -1;
+int16_t panel::_roll_tx = -1, panel::_roll_ty = -1; // set by game, painted green in blips
+int16_t panel::_roll_dx = -1, panel::_roll_dy = -1; // last painted marker, restored next frame
 // stats cache: draw() only repaints when a value changes, blips() stays per-frame
 static uint32_t _cache_points = 0xFFFFFFFF;
 static uint8_t _cache_hp0 = 0xFF, _cache_hp1 = 0xFF, _cache_bleed0 = 0xFF, _cache_bleed1 = 0xFF;
@@ -26,6 +28,8 @@ int16_t panel::_mm_x() {
 void panel::init() {
   const int16_t mx = _mm_x();
   _mm_ctx = -1; // the base repaint wipes the frame and the blips
+  _roll_tx = _roll_ty = -1; // game re-pushes the active pad on the next playing frame
+  _roll_dx = _roll_dy = -1;
   _mm_n = 0;
   _cache_points = 0xFFFFFFFF; // force the next draw() to repaint every row
   _cache_hp0 = _cache_hp1 = _cache_bleed0 = _cache_bleed1 = 0xFF;
@@ -53,6 +57,11 @@ void panel::init() {
                        _mm_scale, run_col);
   }
   _mm_n = 0;
+}
+
+void panel::set_roll(int16_t tx, int16_t ty) {
+  _roll_tx = tx;
+  _roll_ty = ty;
 }
 
 void panel::_pip_row(int16_t y, const char* label, uint8_t lvl, uint8_t max, uint16_t col) {
@@ -229,6 +238,21 @@ void panel::blips() {
                        tilemap::color(tilemap::tile_at(_mm_px[i], _mm_py[i])));
   }
   _mm_n = 0;
+
+  if (_roll_dx >= 0) { // put the terrain back under last frame's pad marker
+    _mm_restore_row(_roll_dx, _roll_dx + 1, _roll_dy);
+    _mm_restore_row(_roll_dx, _roll_dx + 1, _roll_dy + 1);
+    _roll_dx = _roll_dy = -1;
+  }
+  if (_roll_tx >= 0 && _roll_ty >= 0 && _roll_tx + 1 < tilemap::COLS &&
+      _roll_ty + 1 < tilemap::ROWS) {
+    // active roulette pad: solid green 2x2 under the dots (green is free on the
+    // minimap: players white/cyan/yellow, zombies red/orange/purple)
+    display::fill_rect(_mm_x() + _roll_tx * _mm_scale, _mm_y + _roll_ty * _mm_scale,
+                       (int16_t)(2 * _mm_scale), (int16_t)(2 * _mm_scale), colour::green);
+    _roll_dx = _roll_tx;
+    _roll_dy = _roll_ty;
+  }
 
   _mm_frame();
 

@@ -37,9 +37,9 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
   Cada arma tiene su cadencia: Glock 0.5s, MP9 0.18s, SPAS-12 0.9s, SKS 0.35s,
   FAMAS ráfagas de 3 cada 0.6s, M82A1 1.4s.
 - **Cargadores**: cada arma tiene su mag (Glock 15, MP9 30, SPAS-12 8, SKS 30,
-  FAMAS 30, M82A1 10). La recarga es manual con RELOAD (~1s, M82A1 2s, SPAS-12
-  1.5s; moverse es libre, disparar no) y el gatillo en vacío suena a click sin
-  auto-rescate. Arma nueva de ruleta llega cargada.
+  FAMAS 30, M82A1 10). La recarga es auto al vaciar (~1s, M82A1 2s, SPAS-12
+  1.5s; moverse es libre, disparar no, avisa `RELOADING..` (`P1:` delante en co-op)) y manual con
+  RELOAD para rematar a medias. Arma nueva de ruleta llega cargada.
 
 ## Controles
 
@@ -48,19 +48,19 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 | Joystick  | Moverse (también navega por los menús)              |
 | FIRE      | Disparar / confirmar en menús                       |
 | INTERACT  | Comprar en tiendas y ruleta                         |
-| RELOAD    | Recargar el cargador (manual, reserva infinita)    |
+| RELOAD    | Rematar el cargador a medias (el vacío recarga solo) |
 | PAUSE     | Pausa (Continuar / Reiniciar / Salir); salir = menú |
 
 ## Pantalla (UI)
 
 - **Arriba**: HUD con ronda/bajas (`WAVES 3 KILLS 12`), arma y balas (`GUN MP9 18`); arena
   de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
-  franja central inferior con el prompt de compra (`INT: DMG +75%`, `HEALED +2HP`…,
-  `OUT OF AMMO!` cuando toca).
+  franja central inferior con prompts (`GET DMG +75%`, `HEALED +2HP`,
+  `RELOADING..`, `P2: PICK ME UP!`…).
 - **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de
   `HP` (10 chunky, en rojo si quedan ≤4), `DMG`, `SPD` y `ROF` como `%` en bold
   (tu build) + minimapa con tu punto
-  blanco, zombis rojos y marco amarillo de cámara.
+   blanco, zombis rojos, ruleta activa en verde y marco amarillo de cámara.
 
 ## Hardware (ESP32)
 

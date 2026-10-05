@@ -436,7 +436,7 @@ void render::clear() {
 // Drawn every frame after the terrain, erased via the tilemap like sprites. The
 // erase always covers the widest tag (8 chars): a buy can shrink the text and a
 // tight erase would strand the old pixels for a frame. Only the wave-active
-// roulette pad paints its tag; dead pads stay silent (game prompts ROLL MOVED).
+// roulette pad paints its tag; dead pads stay silent (game prompts NO LUCK HERE).
 // Anchors are defined above (0=H 1=D 2=S 3=C, 4..=roulette pads).
 void render::_shop_labels(bool erase) {
   char dmg_buf[12], spd_buf[12], rpd_buf[12];
