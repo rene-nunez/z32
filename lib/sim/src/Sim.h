@@ -73,7 +73,8 @@ class sim {
     };
 
     // remote control for player 1, fed by game from the net each frame. Fire is a
-    // level (held, sim gates it by gun cooldown); interact/pause/reload are edges.
+    // level for autos (MP9/AR-15) and an edge for the rest; game derives it from
+    // the peer's bitmask accordingly. Interact/pause/reload are always edges.
     struct ctl {
       float jx, jy;
       bool fire;
@@ -135,6 +136,7 @@ class sim {
     static bool reloading(uint8_t p); // a swap is still running for p
 
     static uint32_t price_for(uint32_t base, uint8_t lvl); // base + STEP*lvl
+    static bool auto_fire(weapon w); // hold-to-fire: MP9 + AR-15 only, rest is press-per-shot
     static uint8_t mag_size(weapon w) { return _mag_size(w); } // rounds per mag, for the HUD
     // display bonuses for the panel/prompts: DMG +25/lvl, SPD +8/lvl, ROF the real
     // accumulated cooldown cut in % (multiplicative, L10 = 46)

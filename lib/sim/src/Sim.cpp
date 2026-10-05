@@ -606,8 +606,10 @@ bool sim::step(uint32_t now) {
     const float spd = player_speed * _spd_mult(_s.spd_lvl[p]);
     _move_entity(_s.players[p].x, _s.players[p].y, dx * spd * dt, dy * spd * dt, PLAYER_SIZE);
 
-    if ((p == 0) ? input::fire_down() : _p2ctl.fire) {
-      _do_fire(now, p); // held: the per-gun cooldown gates the rate, not the finger
+    const bool held = (p == 0) ? input::fire_down() : _p2ctl.fire;
+    const bool edge = (p == 0) ? input::fire_pressed() : _p2ctl.fire;
+    if (auto_fire(_s.guns[p]) ? held : edge) {
+      _do_fire(now, p); // autos gate by gun cooldown, semis by the finger
     }
     if ((p == 0) ? input::reload_pressed() : _p2ctl.reload) {
       start_reload(now, p); // manual top-up while partially spent (auto covers empty)
@@ -825,6 +827,10 @@ bool sim::step(uint32_t now) {
 
 uint32_t sim::price_for(uint32_t base, uint8_t lvl) {
   return base + LVL_PRICE_STEP * (uint32_t)lvl;
+}
+
+bool sim::auto_fire(weapon w) {
+  return w == weapon::smg || w == weapon::rifle; // MP9 + AR-15 hold, rest press
 }
 
 bool sim::buy_heal(uint32_t now, uint8_t p) {

@@ -939,7 +939,10 @@ void game::_update_playing_host() {
   if (_net_multi && now - _in_last_ms < _in_stale_ms) {
     c.jx = _in_jx;
     c.jy = _in_jy;
-    c.fire = (_in_buttons & net::fire_bit) != 0; // held: sim gates it by gun cooldown
+    // P2 fire mirrors the local rule: level for autos (MP9/AR-15), edge for the rest
+    const bool p2_lvl = (_in_buttons & net::fire_bit) != 0;
+    c.fire = sim::auto_fire(sim::view().guns[1]) ? p2_lvl
+                                                 : (p2_lvl && !(_in_prev & net::fire_bit));
     _p2_interact = (_in_buttons & net::interact_bit) && !(_in_prev & net::interact_bit);
     _p2_pause_edge = (_in_buttons & net::pause_bit) && !(_in_prev & net::pause_bit);
     c.reload = (_in_buttons & net::reload_bit) && !(_in_prev & net::reload_bit);
