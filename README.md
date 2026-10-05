@@ -13,7 +13,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 - Minimapa en vivo con posición, zombis y encuadre de cámara.
 - Últimas 4 partidas (puntos, ronda y bajas) guardadas entre partidas (memoria RTC + `/z32.json` en microSD).
 - Menús: inicio, modo de juego, puntos, pausa y game over. Botón de apagado con sueño profundo.
-- Coop ESP-NOW a 2 placas: host autoritario (~30Hz, `game_state` 134B + `player_input` 5B), Solo silencioso en ambas, Multi vía `waiting` (timeout 10s / FIRE-solo). P2 entra con pistola fresh, comparte cartera, revive con INTERACT a 1 HP, pausa y game-over espejados.
+- Coop ESP-NOW a 2 placas: host autoritario (~30Hz, `game_state` 134B + `player_input` 5B), Solo silencioso en ambas, Multi vía `waiting` (timeout 10s / FIRE-solo). P2 entra con pistola fresh, comparte cartera, revive con INTERACT a 3 HP, pausa y game-over espejados.
 
 ## Mecánicas
 

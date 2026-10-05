@@ -266,7 +266,7 @@ void sim::_spawn_wave() {
       _bleed_acc[p] = 0;
     } else {
       _respawn(p); // the bled-out rejoin every wave
-      _s.players[p].hp = REVIVE_HP; // ...back at 1 HP, not full
+      _s.players[p].hp = REVIVE_HP; // ...back at 3 HP, not full
     }
   }
   for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {

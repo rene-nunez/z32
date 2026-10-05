@@ -20,7 +20,7 @@ class sim {
     static constexpr uint8_t MAX_BULLETS = 8;
     static constexpr uint8_t NUM_PLAYERS = 2;
     static constexpr uint8_t PLAYER_HP_MAX = 10; // the panel draws one pip per point
-    static constexpr uint8_t REVIVE_HP = 1;     // back on your feet at 1 HP, heal up after
+    static constexpr uint8_t REVIVE_HP = 3;     // back on your feet at 3 HP, heal up after
     static constexpr uint8_t BLEED_SECS = 15;   // bleed-out window before death
     static constexpr uint8_t MAX_LVL = 10;      // damage and speed cap here, pips per level
 
@@ -117,7 +117,7 @@ class sim {
     static void set_p2_active(bool active); // Multi start on the host
     static void set_p2(const ctl& c);       // fresh peer input, every host frame
     static bool step(uint32_t now); // false once nobody is left standing
-    static bool revive(uint8_t p);  // partner lift: downed back to 1 HP
+    static bool revive(uint8_t p);  // partner lift: downed back to 3 HP
 
     // net sync: host fills n (game stamps type+seq), client applies it wholesale.
     static void snapshot(net::game_state_msg& n);
