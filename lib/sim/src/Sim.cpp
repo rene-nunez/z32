@@ -18,8 +18,10 @@ int16_t sim::_path_ty[sim::NUM_PLAYERS] = {-1, -1};
 uint32_t sim::_last_aim[sim::NUM_PLAYERS] = {0, 0};
 uint8_t sim::_face_want[sim::NUM_PLAYERS] = {2, 2};
 uint8_t sim::_face_cnt[sim::NUM_PLAYERS] = {0, 0};
-uint8_t sim::_zface_want[sim::MAX_ZOMBIES] = {2, 2, 2, 2, 2, 2, 2, 2};
+uint8_t sim::_zface_want[sim::MAX_ZOMBIES] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
 uint8_t sim::_zface_cnt[sim::MAX_ZOMBIES] = {0};
+uint16_t sim::_wave_quota = 0;
+uint16_t sim::_wave_spawned = 0;
 sim::ctl sim::_p2ctl = {};
 
 constexpr int8_t sim::nbr_x[8];
@@ -273,11 +275,33 @@ void sim::_spawn_wave() {
     _s.zombies[i].active = false;
   }
 
-  const uint8_t count = _wave_total(_s.wave);
-  // composition: the boss steals slot 0 every 5th wave, then up to half the
-  // wave (from wave 2) are runners, the rest normals. 8 slots max, always.
+  // quota: wave+3 kills to clear, uncapped; at most MAX_ZOMBIES alive at once.
+  // composition: the boss steals spawn idx 0 every 5th wave, then up to half the
+  // quota (from wave 2) are runners, the rest normals. 10 alive max, always.
+  _wave_quota = _wave_total(_s.wave);
+  _wave_spawned = 0;
   const bool boss = _wave_boss(_s.wave);
-  const uint8_t runners = _wave_runners(_s.wave, count);
+  const uint8_t runners = _wave_runners(_s.wave, _wave_quota);
+
+  const uint8_t initial = _wave_quota > MAX_ZOMBIES ? MAX_ZOMBIES : (uint8_t)_wave_quota;
+  for (uint8_t i = 0; i < initial; ++i) {
+    _spawn_into(i, _wave_kind(_wave_spawned, boss, runners));
+    ++_wave_spawned;
+  }
+  _s.last_event = event::wave;
+}
+
+sim::actor_kind sim::_wave_kind(uint16_t idx, bool boss, uint8_t runners) {
+  if (boss && idx == 0) {
+    return actor_kind::boss;
+  }
+  if (idx < (uint16_t)(runners + (boss ? 1u : 0u))) {
+    return actor_kind::runner;
+  }
+  return actor_kind::normal;
+}
+
+void sim::_spawn_into(uint8_t slot, actor_kind kind) {
   const float px0 = _s.players[0].x + PLAYER_SIZE / 2.0f;
   const float py0 = _s.players[0].y + PLAYER_SIZE / 2.0f;
   const float px1 = _s.players[1].x + PLAYER_SIZE / 2.0f;
@@ -286,53 +310,46 @@ void sim::_spawn_wave() {
   const uint16_t total = (uint16_t)(tilemap::COLS * tilemap::ROWS);
   const int16_t off = (int16_t)((tilemap::TILE - ZOMBIE_SIZE) / 2);
 
-  for (uint8_t i = 0; i < count; ++i) {
-    const actor_kind kind = (boss && i == 0) ? actor_kind::boss
-        : (i < (uint8_t)(runners + (boss ? 1u : 0u))) ? actor_kind::runner
-                                                     : actor_kind::normal;
-    // scan every tile from a random offset, so a spot is always found
-    const uint16_t start = (uint16_t)(esp_random() % total);
-    for (uint16_t k = 0; k < total; ++k) {
-      const uint16_t idx = (uint16_t)((start + k) % total);
-      const int16_t tx = (int16_t)(idx % tilemap::COLS);
-      const int16_t ty = (int16_t)(idx / tilemap::COLS);
-      if (tilemap::solid(tx, ty)) {
-        continue;
-      }
-      const float x = (float)(tx * tilemap::TILE + off);
-      const float y = (float)(ty * tilemap::TILE + off);
-      const float dx0 = x - px0;
-      const float dy0 = y - py0;
-      bool close = dx0 * dx0 + dy0 * dy0 < (float)spawn_min_d2;
-      if (!close && p1_out) { // keep clear of both players, not just player 1
-        const float dx1 = x - px1;
-        const float dy1 = y - py1;
-        close = dx1 * dx1 + dy1 * dy1 < (float)spawn_min_d2;
-      }
-      if (close && k + 1 < total) {
-        continue; // too close to a player, keep looking
-      }
-      _s.zombies[i] = { x, y, _zombie_hp(kind, _s.wave), true, kind, 2 };
-      _zface_want[i] = 2;
-      _zface_cnt[i] = 0;
-      break;
+  // scan every tile from a random offset, so a spot is always found
+  const uint16_t start = (uint16_t)(esp_random() % total);
+  for (uint16_t k = 0; k < total; ++k) {
+    const uint16_t idx = (uint16_t)((start + k) % total);
+    const int16_t tx = (int16_t)(idx % tilemap::COLS);
+    const int16_t ty = (int16_t)(idx / tilemap::COLS);
+    if (tilemap::solid(tx, ty)) {
+      continue;
     }
+    const float x = (float)(tx * tilemap::TILE + off);
+    const float y = (float)(ty * tilemap::TILE + off);
+    const float dx0 = x - px0;
+    const float dy0 = y - py0;
+    bool close = dx0 * dx0 + dy0 * dy0 < (float)spawn_min_d2;
+    if (!close && p1_out) { // keep clear of both players, not just player 1
+      const float dx1 = x - px1;
+      const float dy1 = y - py1;
+      close = dx1 * dx1 + dy1 * dy1 < (float)spawn_min_d2;
+    }
+    if (close && k + 1 < total) {
+      continue; // too close to a player, keep looking
+    }
+    _s.zombies[slot] = { x, y, _zombie_hp(kind, _s.wave), true, kind, 2 };
+    _zface_want[slot] = 2;
+    _zface_cnt[slot] = 0;
+    break;
   }
-  _s.last_event = event::wave;
 }
 
-uint8_t sim::_wave_total(uint16_t wave) {
-  const uint16_t total = wave + 3u;
-  return total > MAX_ZOMBIES ? MAX_ZOMBIES : (uint8_t)total;
+uint16_t sim::_wave_total(uint16_t wave) {
+  return wave + 3u; // quota, uncapped: the alive cap is enforced at spawn time
 }
 
-uint8_t sim::_wave_runners(uint16_t wave, uint8_t total) {
+uint8_t sim::_wave_runners(uint16_t wave, uint16_t total) {
   if (wave < 2) {
     return 0; // gentle start: wave 1 is all normals
   }
   uint16_t runners = wave / 2u;
   if (runners > total / 2u) {
-    runners = (uint16_t)(total / 2u);
+    runners = total / 2u;
   }
   return (uint8_t)runners;
 }
@@ -652,6 +669,13 @@ bool sim::step(uint32_t now) {
           _s.zombies[z].active = false;
           ++_s.kills;
           _s.points += _kill_reward(_s.zombies[z].kind, _s.wave);
+          if (_wave_spawned < _wave_quota) {
+            // refill inmediato en el slot liberado: la oleada dura la cuota entera
+            const bool boss = _wave_boss(_s.wave);
+            const uint8_t runners = _wave_runners(_s.wave, _wave_quota);
+            _spawn_into(z, _wave_kind(_wave_spawned, boss, runners));
+            ++_wave_spawned;
+          }
         } else {
           _s.zombies[z].hp = (uint8_t)(_s.zombies[z].hp - dmg);
         }
@@ -784,8 +808,8 @@ bool sim::step(uint32_t now) {
   for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {
     any |= _s.zombies[i].active;
   }
-  if (!any) {
-    _spawn_wave();
+  if (!any && _wave_spawned >= _wave_quota) {
+    _spawn_wave(); // cuota agotada y mesa limpia: siguiente oleada
   }
   return true;
 }

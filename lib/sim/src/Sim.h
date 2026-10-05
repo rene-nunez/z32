@@ -16,7 +16,7 @@ class sim {
     static constexpr uint8_t PLAYER_SIZE = 8;
     static constexpr uint8_t ZOMBIE_SIZE = 6;
     static constexpr uint8_t BULLET_SIZE = 4;
-    static constexpr uint8_t MAX_ZOMBIES = 8;
+    static constexpr uint8_t MAX_ZOMBIES = 10;
     static constexpr uint8_t MAX_BULLETS = 8;
     static constexpr uint8_t NUM_PLAYERS = 2;
     static constexpr uint8_t PLAYER_HP_MAX = 10; // the panel draws one pip per point
@@ -176,6 +176,8 @@ class sim {
     static uint8_t _face_want[NUM_PLAYERS], _face_cnt[NUM_PLAYERS]; // player debounce
     static uint8_t _zface_want[MAX_ZOMBIES], _zface_cnt[MAX_ZOMBIES]; // zombie debounce
     static uint32_t _bleed_acc[NUM_PLAYERS]; // ms banked toward the next bleed tick
+    static uint16_t _wave_quota;   // kills to clear this wave (wave+3, uncapped)
+    static uint16_t _wave_spawned; // zombies spawned so far this wave (cap 10 alive)
     static int16_t _path_tx[NUM_PLAYERS], _path_ty[NUM_PLAYERS];
     static ctl _p2ctl;
 
@@ -201,9 +203,11 @@ class sim {
     static uint8_t _zombie_dmg(actor_kind kind);        // boss 2, rest 1
     static float _zombie_speed(actor_kind kind);        // 40 / 70 / 30
     static uint32_t _kill_reward(actor_kind kind, uint16_t wave); // normal 10+2w, runner 15+2w, boss 150+10w
-    static uint8_t _wave_total(uint16_t wave); // min(wave+3, MAX_ZOMBIES)
-    static uint8_t _wave_runners(uint16_t wave, uint8_t total); // 0 on wave 1, else up to half
+    static uint16_t _wave_total(uint16_t wave); // quota: wave+3, uncapped (cap is alive at once)
+    static uint8_t _wave_runners(uint16_t wave, uint16_t total); // 0 on wave 1, else up to half
     static bool _wave_boss(uint16_t wave);     // every 5th wave steals slot 0
+    static actor_kind _wave_kind(uint16_t idx, bool boss, uint8_t runners); // kind of spawn idx
+    static void _spawn_into(uint8_t slot, actor_kind kind); // random >=100px spawn into a slot
     // roulette odds over r = rand % 100: SMG 30, pistol 10, shotgun 25, rifle 12,
     // M16 13, sniper 10. SMG and shotgun hit more often; the pistol stays the booby prize.
     static weapon _roll_weapon(uint8_t r);

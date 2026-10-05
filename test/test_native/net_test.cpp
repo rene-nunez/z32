@@ -16,8 +16,8 @@ static void check(bool ok, const char* what) {
 }
 
 int main() {
-  check(sizeof(net::game_state_msg) == 134, "state len 134");
-  check(net::STATE_LEN == 134, "STATE_LEN 134");
+  check(sizeof(net::game_state_msg) == 146, "state len 146");
+  check(net::STATE_LEN == 146, "STATE_LEN 146");
   check(sizeof(net::player_input_msg) == 5, "input len 5");
   check(sizeof(net::game_state_msg) <= 250, "state under cap");
 

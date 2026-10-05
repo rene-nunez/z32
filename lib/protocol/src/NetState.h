@@ -6,7 +6,7 @@
 // (snapshot/apply_snapshot); game only moves these bytes.
 //
 // Layout (little-endian, same core both ends):
-//   game_state: type(1) + seq(2) + players 2x7 + meta 21 + zombies 8x6 + bullets 8x6 = 134B
+//   game_state: type(1) + seq(2) + players 2x7 + meta 21 + zombies 10x6 + bullets 8x6 = 146B
 //   player_input: type(1) + jx(1) + jy(1) + buttons(1) + seq(1) = 5B
 // Both fit the 250 bytes/msg cap with room to spare.
 #include <cmath>
@@ -17,7 +17,7 @@ namespace net {
   constexpr uint8_t TYPE_INPUT = 0x10; // == msg_type::player_input, asserted in Protocol.h
   constexpr uint8_t TYPE_CHAT = 0x20; // == msg_type::chat, asserted in Protocol.h
 
-  constexpr size_t STATE_LEN = 134;
+  constexpr size_t STATE_LEN = 146;
   constexpr size_t INPUT_LEN = 5;
   constexpr size_t MAX_MSG = 250;
 
@@ -81,7 +81,7 @@ namespace net {
     uint8_t event = 0; // sim::event as u8
     uint8_t screen = 0; // SCREEN_* (game-owned menu mirror)
     uint8_t sel = 0;    // pause cursor (game-owned, host drives it)
-    net_zombie zombies[8];
+    net_zombie zombies[10];
     net_bullet bullets[8];
   };
 
@@ -141,7 +141,7 @@ namespace net {
   }
 } // namespace net
 
-static_assert(sizeof(net::game_state_msg) == net::STATE_LEN, "game_state must stay 134B");
+static_assert(sizeof(net::game_state_msg) == net::STATE_LEN, "game_state must stay 146B");
 static_assert(sizeof(net::player_input_msg) == net::INPUT_LEN, "player_input must stay 5B");
 static_assert(net::STATE_LEN <= net::MAX_MSG, "game_state exceeds the 250B cap");
 static_assert(sizeof(net::chat_msg) == 4, "chat must stay 4B");

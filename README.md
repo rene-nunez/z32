@@ -6,18 +6,18 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 
 ## Características
 
-- Supervivencia por oleadas infinitas (4 zombis en ronda 1 hasta 8 simultáneos).
+- Supervivencia por oleadas infinitas (4 bajas en ronda 1, 10 simultáneos max con refill hasta la cuota).
 - 6 armas: Glock-19 inicial + MP9, SPAS-12 (3 perdigones), SKS, FAMAS (ráfaga de 3) y M82A1 (daño 6, más alcance) por ruleta (la Glock puede volver como premio tonto).
 - 4 máquinas expendedoras con niveles permanentes + ruleta de armas.
 - Puntos como cartera: ganas por matar, gastas en tienda; al morir se guardan puntos, ronda y bajas.
 - Minimapa en vivo con posición, zombis y encuadre de cámara.
 - Últimas 4 partidas (puntos, ronda y bajas) guardadas entre partidas (memoria RTC + `/z32.json` en microSD).
 - Menús: inicio, modo de juego, puntos, pausa y game over. Botón de apagado con sueño profundo.
-- Coop ESP-NOW a 2 placas: host autoritario (~30Hz, `game_state` 134B + `player_input` 5B), Solo silencioso en ambas, Multi vía `waiting` (timeout 10s / FIRE-solo). P2 entra con pistola fresh, comparte cartera, revive con INTERACT a 3 HP, pausa y game-over espejados.
+- Coop ESP-NOW a 2 placas: host autoritario (~30Hz, `game_state` 146B + `player_input` 5B), Solo silencioso en ambas, Multi vía `waiting` (timeout 10s / FIRE-solo). P2 entra con pistola fresh, comparte cartera, revive con INTERACT a 3 HP, pausa y game-over espejados.
 
 ## Mecánicas
 
-- **Oleadas**: cada ronda trae `ronda + 3` zombis (máximo 8 a la vez). Al limpiarlos llega la siguiente.
+- **Oleadas**: cada ronda pide `ronda + 3` bajas (10 simultáneos max, refill inmediato). Al limpiar la cuota llega la siguiente.
 - **Zombis**: vida `2 + ronda/2` (r1=2, r6=5, r10=7). Persiguen por el laberinto y quitan 1 HP
   por contacto (con 0.5s de inmunidad entre golpes). Jugador con 10 HP.
 - **Puntos**: cada baja paga `10 + 2·ronda` (r1=12 … r6=22). Gastar baja tu cartera; al morir
