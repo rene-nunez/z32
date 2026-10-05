@@ -968,6 +968,10 @@ void game::_update_playing_host() {
     }
     return;
   }
+  // pre-revive downed edges: the wave banner below needs them (held-on rises),
+  // but _revive_update advances _was_down first
+  const bool was_d0 = _was_down0;
+  const bool was_d1 = _was_down1;
   if (_revive_update(now)) {
     render::prompt(_hint_buf, _hint_col); // lift result now, shop waits a frame
   } else {
@@ -987,15 +991,22 @@ void game::_update_playing_host() {
       _hint_until = now + 2000;
       render::prompt(_hint_buf);
     } else if (now >= _hint_until) {
-      // bled-out wave rejoin, least important of the three: only when the strip is
-      // free (fresher hints already won above). Downed players that held on till
-      // the break rise silently (they never bled out).
+      // wave rejoins, least important of the three: only when the strip is
+      // free (fresher hints already won above). Bled-out rejoins and downed
+      // players that held on till the break both announce; a same-frame lift
+      // already overwrote the wave event (THX wins), so this only sees rises.
+      // Ties name the bled-out first: the bigger news wins the single strip.
       const sim::state& wv = sim::view();
+      const bool d0 = wv.players[0].active && wv.players[0].downed;
+      const bool d1 = _net_multi && wv.players[1].active && wv.players[1].downed;
       const bool p0_back = _was_dead0 && wv.players[0].hp > 0;
       const bool p1_back = _was_dead1 && wv.players[1].hp > 0;
-      if (p0_back || p1_back) {
-        snprintf(_hint_buf, sizeof(_hint_buf), p0_back ? "P1: I'M BACK!" : "P2: I'M BACK!");
-        _hint_col = p0_back ? colour::green : _mate_p2col; // the returner's colour
+      const bool p0_held = was_d0 && !d0 && wv.players[0].hp > 0;
+      const bool p1_held = was_d1 && !d1 && wv.players[1].hp > 0;
+      if (p0_back || p1_back || p0_held || p1_held) {
+        const bool p1 = p0_back || (!p1_back && p0_held);
+        snprintf(_hint_buf, sizeof(_hint_buf), p1 ? "P1: I'M BACK!" : "P2: I'M BACK!");
+        _hint_col = p1 ? colour::green : _mate_p2col; // the returner's colour
         _hint_until = now + 1500;
         render::prompt(_hint_buf, _hint_col);
       }
@@ -1060,12 +1071,24 @@ void game::_update_playing_client() {
   const bool c1_down = cv.players[0].active && cv.players[0].downed;
   const bool c2_down = cv.players[1].active && cv.players[1].downed;
   // edge news: the hint text never travels in the snapshot, so the client
-  // derives lift/death edges itself. A wave respawn also moves bodies, but
-  // that frame always carries the wave event (BACK/banner wins below), and a host
-  // restart drops the wave, so only lone edges land here. Priority per frame:
-  // lift result, then the bleed-out; ties name the local body. Falls stay silent
-  // (except arming HELP below, which shows until the first shout).
+  // derives lift/death edges itself. A wave respawn also moves bodies, but that
+  // frame carries the wave event or a wave-number rise (BACK/banner wins below),
+  // and a host restart drops the wave, so only lone edges land here. Priority
+  // per frame: lift result, then the bleed-out; ties name the local body. Falls
+  // stay silent (except arming HELP below, which shows until the first shout).
   bool edge_hint = false;
+  // pre-edge downed flags: the wave banner below needs them (held-on rises),
+  // but the chain advances _cli_was_down first
+  const bool was_c1_down = _cli_was_down0;
+  const bool was_c2_down = _cli_was_down1;
+  // the wave event lives a single host frame: if that snapshot is skipped (two
+  // arrivals between client frames), the next one still carries the higher wave
+  // number, so the banner below only slips a frame instead of being lost. A rise
+  // with a stamped event (lift/buy overwrote wave on the host) is not a wave
+  // frame: the host skipped its banners too, and the edges below still run.
+  const bool wave_rose = (cv.wave > _cli_wave);
+  const bool wave_frame = (cv.last_event == sim::event::wave) ||
+                          (wave_rose && cv.last_event == sim::event::none);
   if (!_cli_was_down0 && c1_down) {
     _cli_shouted0 = false; // fall edge: HELP shows again until the first shout
   }
@@ -1075,7 +1098,7 @@ void game::_update_playing_client() {
   if (cv.wave < _cli_wave) {
     _cli_was_down0 = c1_down; // host restarted: resync, no announcement
     _cli_was_down1 = c2_down;
-  } else if (cv.last_event != sim::event::wave) {
+  } else if (!wave_frame) {
     // hp gate: bleeding out also clears downed (hp stays 0, dead till the wave),
     // only a real lift comes back with hp. Without it the death reads as a revive.
     // Bleed-outs announce once (2s); the strip frees after.
@@ -1128,7 +1151,7 @@ void game::_update_playing_client() {
     }
   }
   const uint32_t cli_now = millis();
-  if (sim::view().last_event == sim::event::wave) {
+  if (wave_frame) {
     if (_boss_alive()) {
       snprintf(_hint_buf, sizeof(_hint_buf), "BOSS WAVE!"); // 2s locally, like the host hint
       _hint_col = colour::purple;
@@ -1138,14 +1161,18 @@ void game::_update_playing_client() {
       _hint_col = colour::yellow; // explicit: painted below with this, no stale boss purple
       _hint_until = cli_now + 2000;
     } else if (cli_now >= _hint_until) {
-      // bled-out wave rejoin, least important of the three: only when the strip
-      // is free. Mirrors the host banner; downed-held-on rises stay silent.
+      // wave rejoins, least important of the three: only when the strip is
+      // free. Bled-out rejoins and held-on rises both announce (ties name the
+      // bled-out first); mirrors the host banner.
       const sim::state& wv = sim::view();
       const bool p1_back = _cli_was_dead0 && wv.players[0].hp > 0;
       const bool p2_back = _cli_was_dead1 && wv.players[1].hp > 0;
-      if (p1_back || p2_back) {
-        snprintf(_hint_buf, sizeof(_hint_buf), p2_back ? "P2: I'M BACK!" : "P1: I'M BACK!");
-        _hint_col = p2_back ? _mate_p2col : colour::green; // the returner's colour
+      const bool p1_held = was_c1_down && !c1_down && wv.players[0].hp > 0;
+      const bool p2_held = was_c2_down && !c2_down && wv.players[1].hp > 0;
+      if (p1_back || p2_back || p1_held || p2_held) {
+        const bool p2 = p2_back || (!p1_back && p2_held);
+        snprintf(_hint_buf, sizeof(_hint_buf), p2 ? "P2: I'M BACK!" : "P1: I'M BACK!");
+        _hint_col = p2 ? _mate_p2col : colour::green; // the returner's colour
         _hint_until = cli_now + 1500;
       }
     }
