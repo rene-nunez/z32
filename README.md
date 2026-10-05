@@ -17,7 +17,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 
 ## Mecánicas
 
-- **Oleadas**: cada ronda pide `ronda + 3` bajas (10 simultáneos max, refill inmediato). Al limpiar la cuota hay 5s de calma y llega la siguiente.
+- **Oleadas**: cada ronda pide `ronda + 3` bajas (10 simultáneos max, refill inmediato). Al limpiar la cuota hay 3s de calma y llega la siguiente.
 - **Zombis**: vida `2 + ronda/2` (r1=2, r6=5, r10=7). Persiguen por el laberinto y quitan 1 HP
   por contacto (con 0.4s de inmunidad entre golpes). Jugador con 10 HP.
 - **Puntos**: cada baja paga `10 + 2·ronda` (r1=12 … r6=22). Gastar baja tu cartera; al morir
