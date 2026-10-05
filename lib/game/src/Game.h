@@ -85,7 +85,7 @@ class game {
     static void _on_chat(const uint8_t* data, size_t len); // PICK ME UP rx (both)
     static void _send_chat(uint8_t from); // PICK ME UP tx, edge only (multi only)
     static bool _urgent_callout(uint8_t me); // remote PICK ME UP / auto shout, above reloading
-    static bool _reload_prompt(uint8_t me); // own mag swap FYI ("P1: RELOADING.."), above shop
+    static bool _reload_prompt(uint8_t me); // own mag swap FYI ("P1: RELOADING..."), above shop
 
     static int8_t _nav_edge();
     static void _nav_step(); // nav edge + wrap, using the screen's own item count

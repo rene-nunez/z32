@@ -256,9 +256,9 @@ bool game::_reload_prompt(uint8_t me) {
     return false;
   }
   if (_net_multi) {
-    snprintf(_mate_buf, sizeof(_mate_buf), "P%u: RELOADING..", (unsigned)(me + 1u));
+    snprintf(_mate_buf, sizeof(_mate_buf), "P%u: RELOADING...", (unsigned)(me + 1u));
   } else {
-    snprintf(_mate_buf, sizeof(_mate_buf), "RELOADING.."); // solo: no partner, no prefix
+    snprintf(_mate_buf, sizeof(_mate_buf), "RELOADING..."); // solo: no partner, no prefix
   }
   render::prompt(_mate_buf, colour::white);
   return true;
@@ -928,6 +928,7 @@ void game::_update_playing_host() {
     } else if (_roulette_moved() && now >= _hint_until) {
       // the wheel really relocated: announce it over the proximity prompt once
       snprintf(_hint_buf, sizeof(_hint_buf), "ROLL RELOCATED!");
+      _hint_col = colour::yellow; // explicit: _shop_update repaints the buf with this
       _hint_until = now + 2000;
       render::prompt(_hint_buf);
     }
@@ -1048,6 +1049,7 @@ void game::_update_playing_client() {
       _hint_until = cli_now + 2000;
     } else if (_roulette_moved() && cli_now >= _hint_until) {
       snprintf(_hint_buf, sizeof(_hint_buf), "ROLL RELOCATED!");
+      _hint_col = colour::yellow; // explicit: painted below with this, no stale boss purple
       _hint_until = cli_now + 2000;
     }
   }
