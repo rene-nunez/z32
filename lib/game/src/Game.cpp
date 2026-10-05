@@ -1095,7 +1095,7 @@ void game::_draw_hud() {
   char buf[24];
 
   display::fill_rect(0, 0, 124, 8, colour::black);
-  snprintf(buf, sizeof(buf), "WAVES %u KILLS %u", v.wave, v.kills);
+  snprintf(buf, sizeof(buf), "WAVE %u KILLS %u", v.wave, v.kills);
   display::text(buf, 4, 1, colour::white, 1);
 
   char gun[16]; // "GUN GLOCK-19 15" is 15 chars: longest name (8) + current mag
