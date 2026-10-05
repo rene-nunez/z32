@@ -46,12 +46,12 @@ class sim {
 
     // shop: points are the spendable wallet. Heal is flat; damage and speed are
     // permanent levels on the character (like HP) and each level costs more.
-    static constexpr uint32_t PRICE_HEAL = 100; // +2 HP
+    static constexpr uint32_t PRICE_HEAL = 150; // +2 HP
     static constexpr uint32_t PRICE_DMG = 150;  // damage +25%/level, base price
     static constexpr uint32_t PRICE_SPD = 120;  // speed +8%/level, base price
     static constexpr uint32_t PRICE_RPD = 150;  // rapid -6% cooldown/level, base price
     static constexpr uint32_t PRICE_ROLL = 100; // roulette: random weapon
-    static constexpr uint32_t LVL_PRICE_STEP = 200; // extra cost per level owned
+    static constexpr uint32_t LVL_PRICE_STEP = 250; // extra cost per level owned
 
     // facing: 8-wind sector from dir_of(), 0=E 1=SE 2=S 3=SW 4=W 5=NW 6=N 7=NE
     // (+y is south on the glass). Render folds it onto the stored art + hflip.
@@ -158,7 +158,7 @@ class sim {
     static constexpr float hit_dist = 5.0f;
     static constexpr float contact_dist = 9.0f;
     static constexpr float declump_dist = 7.0f; // zombie-zombie push-out: core 6px + 1px air
-    static constexpr uint32_t damage_cd_ms = 500;
+    static constexpr uint32_t damage_cd_ms = 400;
 
     // 8-neighbourhood, cardinals first: the zombie aims at the best neighbour's centre,
     // so a diagonal step reads as smooth drift instead of a tile-by-tile shuffle
@@ -199,12 +199,12 @@ class sim {
     static uint8_t _eff_dmg(uint8_t base, uint8_t lvl); // base*(1+0.25*lvl), half-up, min 1
     static float _spd_mult(uint8_t lvl);                // 1+0.08*lvl
     static float _rpd_mult(uint8_t lvl);                // 0.94^lvl, 0.54 at max
-    static uint8_t _zombie_hp(actor_kind kind, uint16_t wave); // normal 2+w/2, runner 1+w/6, boss 20+w (capped 255)
+    static uint8_t _zombie_hp(actor_kind kind, uint16_t wave); // normal 2+w/2, runner 1+w/4, boss 20+w (capped 255)
     static uint8_t _zombie_dmg(actor_kind kind);        // boss 2, rest 1
     static float _zombie_speed(actor_kind kind);        // 40 / 70 / 30
     static uint32_t _kill_reward(actor_kind kind, uint16_t wave); // normal 10+2w, runner 15+2w, boss 150+10w
     static uint16_t _wave_total(uint16_t wave); // quota: wave+3, uncapped (cap is alive at once)
-    static uint8_t _wave_runners(uint16_t wave, uint16_t total); // 0 on wave 1, else up to half
+    static uint8_t _wave_runners(uint16_t wave, uint16_t total); // 0 on wave 1, else min(2w/3, half)
     static bool _wave_boss(uint16_t wave);     // every 5th wave steals slot 0
     static actor_kind _wave_kind(uint16_t idx, bool boss, uint8_t runners); // kind of spawn idx
     static void _spawn_into(uint8_t slot, actor_kind kind); // random >=100px spawn into a slot

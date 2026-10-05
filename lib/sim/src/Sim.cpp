@@ -347,7 +347,7 @@ uint8_t sim::_wave_runners(uint16_t wave, uint16_t total) {
   if (wave < 2) {
     return 0; // gentle start: wave 1 is all normals
   }
-  uint16_t runners = wave / 2u;
+  uint16_t runners = (2u * wave) / 3u;
   if (runners > total / 2u) {
     runners = total / 2u;
   }
@@ -360,7 +360,7 @@ bool sim::_wave_boss(uint16_t wave) {
 
 uint8_t sim::_zombie_hp(actor_kind kind, uint16_t wave) {
   switch (kind) {
-    case actor_kind::runner: return (uint8_t)(1u + wave / 6u); // frail long, 2 hits from w6
+    case actor_kind::runner: return (uint8_t)(1u + wave / 4u); // 2 hits from w4, 3 from w8
     case actor_kind::boss: { // 25 at w5, 30 at w10, capped: hp rides one byte
       const uint16_t h = 20u + wave;
       return h > 255u ? 255u : (uint8_t)h;

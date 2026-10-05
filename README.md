@@ -19,15 +19,15 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 
 - **Oleadas**: cada ronda pide `ronda + 3` bajas (10 simultáneos max, refill inmediato). Al limpiar la cuota llega la siguiente.
 - **Zombis**: vida `2 + ronda/2` (r1=2, r6=5, r10=7). Persiguen por el laberinto y quitan 1 HP
-  por contacto (con 0.5s de inmunidad entre golpes). Jugador con 10 HP.
+  por contacto (con 0.4s de inmunidad entre golpes). Jugador con 10 HP.
 - **Puntos**: cada baja paga `10 + 2·ronda` (r1=12 … r6=22). Gastar baja tu cartera; al morir
   se guardan los puntos que tenías (ganado menos gastado), la ronda y las bajas.
 - **Tiendas** (acércate y pulsa INTERACT):
-  - **H verde — Heal 100**: +2 HP.
+  - **H verde — Heal 150**: +2 HP.
   - **D roja — Daño 150**: +25% de daño por nivel, máximo 10 (se muestra `DMG +75%!`).
   - **S azul — Velocidad 120**: +8% de velocidad por nivel, máximo 10.
   - **C naranja — Cadencia 150**: −6% de cooldown por nivel aprox. (multiplicativo), máximo 10.
-  - Cada nivel cuesta más: `base + 200·nivel` (p. ej. daño: 150/350/550…). Niveles
+  - Cada nivel cuesta más: `base + 250·nivel` (p. ej. daño: 150/400/650…). Niveles
      permanentes por jugador (cada uno arma su build, panel con pips de HP + `%` real),
     cartera compartida. Sin puntos o al máximo, avisa (`NEED`, `MAX`).
 - **Ruleta 100**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3), SKS
@@ -54,7 +54,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 ## Pantalla (UI)
 
 - **Arriba**: HUD con ronda/bajas (`WAVE 3 KILLS 12`), arma y balas (`GUN MP9 18`); arena
-  de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
+  de juego con etiquetas de precio sobre cada máquina (`HEAL 150`, …) y
   franja central inferior con prompts (`GET DMG +75%`, `HEALED +2HP`,
   `RELOADING...`, `P2: SAVE ME!`…).
 - **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de
