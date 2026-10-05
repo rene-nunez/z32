@@ -51,7 +51,7 @@ Libraries resolve via LDF `chain`. Every `lib/*/src/*.cpp` compiles always; cros
 
 ## World / sim contracts
 
-- `_art` rows exactly `COLS` chars; map: meadow + 2-tile ring lanes, maze everywhere, 4 dispersed vendings + 4 roulette pads (casino 4-colour wheel, 1 active per 3-wave epoch via `hash(wave/3) % pads` from wave 3, dead pads tagless); 1240 walkable (69%), 0 orphans, 8/8 machine blocks reachable (per-block: wall-embedded corners allowed), BFS max 76, 0 local minima (all in `run.sh`)
+- `_art` rows exactly `COLS` chars; map: meadow + 2-tile ring lanes, maze everywhere, 4 dispersed vendings + 4 roulette pads (casino 4-colour wheel, 1 active per 3-wave epoch via `hash(wave/3) % pads` from wave 3, dead pads tagless); 1230 walkable (68%), 0 orphans, 8/8 machine blocks reachable (per-block: wall-embedded corners allowed), BFS max 76, 0 local minima (all in `run.sh`)
 - machine sprites must read at 32px (ASCII dump of `color_at`, never by eye)
 - `tilemap::solid_rect` gates movement per axis (X then Y); bullets die on non-walkable
 - zombie spawns: random-offset scan, first walkable tile >= 100px away
