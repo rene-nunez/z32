@@ -1370,7 +1370,9 @@ void game::_update_game_over() {
         anyone |= sim::view().players[p].active && sim::view().players[p].hp > 0;
       }
       if (anyone) {
+        const net::game_state_msg snap = _rx_state; // copy: _start_game clears the flag
         _start_game(true); // host restarted: re-init chrome, snapshots fill the sim
+        sim::apply_snapshot(snap); // paint live values on frame 1, never the reset sim
         return;
       }
     }
