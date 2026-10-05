@@ -22,6 +22,7 @@ uint8_t sim::_zface_want[sim::MAX_ZOMBIES] = {2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
 uint8_t sim::_zface_cnt[sim::MAX_ZOMBIES] = {0};
 uint16_t sim::_wave_quota = 0;
 uint16_t sim::_wave_spawned = 0;
+uint32_t sim::_wave_break_until = 0;
 sim::ctl sim::_p2ctl = {};
 
 constexpr int8_t sim::nbr_x[8];
@@ -72,6 +73,7 @@ void sim::reset() {
 
   _path_tx[0] = _path_tx[1] = -1; // force fresh fields at the new spawn
   _path_ty[0] = _path_ty[1] = -1;
+  _wave_break_until = 0; // run starts hot: wave 1 spawns below with no breather
 
   _spawn_wave();
 }
@@ -604,8 +606,8 @@ bool sim::step(uint32_t now) {
     const float spd = player_speed * _spd_mult(_s.spd_lvl[p]);
     _move_entity(_s.players[p].x, _s.players[p].y, dx * spd * dt, dy * spd * dt, PLAYER_SIZE);
 
-    if ((p == 0) ? input::fire_pressed() : _p2ctl.fire) {
-      _do_fire(now, p);
+    if ((p == 0) ? input::fire_down() : _p2ctl.fire) {
+      _do_fire(now, p); // held: the per-gun cooldown gates the rate, not the finger
     }
     if ((p == 0) ? input::reload_pressed() : _p2ctl.reload) {
       start_reload(now, p); // manual top-up while partially spent (auto covers empty)
@@ -809,7 +811,14 @@ bool sim::step(uint32_t now) {
     any |= _s.zombies[i].active;
   }
   if (!any && _wave_spawned >= _wave_quota) {
-    _spawn_wave(); // cuota agotada y mesa limpia: siguiente oleada
+    // cuota agotada y mesa limpia: 5s silent breather, then the next wave.
+    // No prompt: the wave event (jingle + boss/roll banners) fires at spawn.
+    if (_wave_break_until == 0) {
+      _wave_break_until = now + WAVE_BREAK_MS;
+    } else if (now >= _wave_break_until) {
+      _wave_break_until = 0;
+      _spawn_wave();
+    }
   }
   return true;
 }

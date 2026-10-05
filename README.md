@@ -17,7 +17,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 
 ## Mecánicas
 
-- **Oleadas**: cada ronda pide `ronda + 3` bajas (10 simultáneos max, refill inmediato). Al limpiar la cuota llega la siguiente.
+- **Oleadas**: cada ronda pide `ronda + 3` bajas (10 simultáneos max, refill inmediato). Al limpiar la cuota hay 5s de calma y llega la siguiente.
 - **Zombis**: vida `2 + ronda/2` (r1=2, r6=5, r10=7). Persiguen por el laberinto y quitan 1 HP
   por contacto (con 0.4s de inmunidad entre golpes). Jugador con 10 HP.
 - **Puntos**: cada baja paga `10 + 2·ronda` (r1=12 … r6=22). Gastar baja tu cartera; al morir
@@ -33,7 +33,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 - **Ruleta 100**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3), SKS
   (daño 3), FAMAS (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
   volver como premio tonto.
-- **Disparo**: auto-apuntado al zombi más cercano (alcance 160px, 220px el M82A1).
+- **Disparo**: mantén FIRE (auto a la cadencia del arma) con auto-apuntado al zombi más cercano (alcance 160px, 220px el M82A1).
   Cada arma tiene su cadencia: Glock 0.5s, MP9 0.18s, SPAS-12 0.9s, SKS 0.35s,
   FAMAS ráfagas de 3 cada 0.6s, M82A1 1.4s.
 - **Cargadores**: cada arma tiene su mag (Glock 15, MP9 30, SPAS-12 8, SKS 30,
@@ -46,7 +46,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 | Entrada   | Acción                                              |
 | --------- | --------------------------------------------------- |
 | Joystick  | Moverse (también navega por los menús)              |
-| FIRE      | Disparar / confirmar en menús                       |
+| FIRE      | Disparar manteniendo / confirmar en menús          |
 | INTERACT  | Comprar en tiendas y ruleta                         |
 | RELOAD    | Rematar el cargador a medias (el vacío recarga solo) |
 | PAUSE     | Pausa (Continuar / Reiniciar / Salir); salir = menú |

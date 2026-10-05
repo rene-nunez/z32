@@ -72,8 +72,8 @@ class sim {
       uint8_t facing; // 8-wind dir above, move-driven, aim overrides on fire
     };
 
-    // remote control for player 1, fed by game from the net each frame. Edges, not
-    // levels: game derives fire/interact/pause/reload edges from the peer's button bitmask.
+    // remote control for player 1, fed by game from the net each frame. Fire is a
+    // level (held, sim gates it by gun cooldown); interact/pause/reload are edges.
     struct ctl {
       float jx, jy;
       bool fire;
@@ -178,6 +178,8 @@ class sim {
     static uint32_t _bleed_acc[NUM_PLAYERS]; // ms banked toward the next bleed tick
     static uint16_t _wave_quota;   // kills to clear this wave (wave+3, uncapped)
     static uint16_t _wave_spawned; // zombies spawned so far this wave (cap 10 alive)
+    static uint32_t _wave_break_until; // millis() when the next wave may spawn, 0 = no break
+    static constexpr uint32_t WAVE_BREAK_MS = 5000; // silent breather between waves (shop/heal/reload)
     static int16_t _path_tx[NUM_PLAYERS], _path_ty[NUM_PLAYERS];
     static ctl _p2ctl;
 
