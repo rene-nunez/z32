@@ -4,13 +4,17 @@
 #include <SD.h>
 #include <SPI.h>
 
+#include <cstring>
+
 #include <pins.h>
 
 #include "scores.h"
 
 namespace {
   constexpr uint32_t _MAGIC = 0x5A3C21F0u; // bumped: run.wave went u8->u16 (kills/wave wrap fix)
-  constexpr const char* _PATH = "/z32.json";
+  constexpr const char* _RECENT = "/z32_recent.json"; // last-4 cache, {"runs":[{p,k,w}]}
+  constexpr const char* _LOG = "/z32_log.jsonl"; // full history, one {"p","k","w"} per line
+  constexpr uint32_t _TAIL_BYTES = 1024; // ~25 runs, we only ever need the last 4
 
   struct _rtc_scores {
     uint32_t magic;
@@ -74,21 +78,19 @@ namespace {
     return _sd_ready;
   }
 
-  void _sd_load_merge() {
-    if (!_sd_mount()) {
-      return;
-    }
-    File f = SD.open(_PATH, FILE_READ);
+  // parses a {"runs":[{p,k,w}]} cache; adopts it only when the RTC came up empty.
+  // Returns true when the file existed and parsed, even when there was nothing to adopt.
+  bool _load_recent_file(const char* path) {
+    File f = SD.open(path, FILE_READ);
     if (!f) {
-      Serial.println("[scores] no save file");
-      return;
+      return false;
     }
     JsonDocument doc;
     const DeserializationError err = deserializeJson(doc, f);
     f.close();
     if (err) {
-      Serial.println("[scores] save corrupt");
-      return;
+      Serial.println("[scores] recent corrupt");
+      return false;
     }
     if (_len == 0) { // rtc empty after a power loss: adopt the card history
       JsonArray runs = doc["runs"].as<JsonArray>();
@@ -102,14 +104,108 @@ namespace {
         ++_len;
       }
     }
+    return true;
+  }
+
+  void _log_append(const scores::run& r) {
+    File f = SD.open(_LOG, FILE_APPEND);
+    if (!f) {
+      Serial.println("[scores] log append failed");
+      return;
+    }
+    JsonDocument doc;
+    doc["p"] = r.pts;
+    doc["k"] = r.kills;
+    doc["w"] = r.wave;
+    if (!serializeJson(doc, f)) {
+      Serial.println("[scores] log write failed");
+    }
+    f.print('\n');
+    f.close();
+  }
+
+  // last resort when both the RTC and the recent cache are empty: replays the tail
+  // of the log. Reads at most _TAIL_BYTES so a years-old log still costs O(1) RAM.
+  void _log_tail_load() {
+    File f = SD.open(_LOG, FILE_READ);
+    if (!f) {
+      Serial.println("[scores] no save file");
+      return;
+    }
+    const size_t size = f.size();
+    const size_t want = size > _TAIL_BYTES ? (size_t)_TAIL_BYTES : size;
+    if (want == 0) {
+      f.close();
+      return;
+    }
+    if (size > want) {
+      f.seek(size - want);
+    }
+    char tail[_TAIL_BYTES + 1];
+    const size_t got = (size_t)f.readBytes(tail, want);
+    f.close();
+    tail[got] = '\0';
+
+    // A mid-line seek leaves a partial first line: skip it unless we read the whole file.
+    char* cur = tail;
+    if (size > want) {
+      char* nl = strchr(cur, '\n');
+      if (!nl) {
+        return;
+      }
+      cur = nl + 1;
+    }
+    // collect forward, keep only the last 4 valid lines (file order = oldest first)
+    scores::run kept[scores::HISTORY_N] = {};
+    uint8_t n = 0;
+    while (*cur != '\0') {
+      char* nl = strchr(cur, '\n');
+      if (nl) {
+        *nl = '\0';
+      }
+      if (*cur != '\0') {
+        JsonDocument doc;
+        if (!deserializeJson(doc, cur)) {
+          const scores::run r = {(uint32_t)(doc["p"] | 0u), (uint32_t)(doc["k"] | 0u),
+                                 (uint16_t)(doc["w"] | 0u)};
+          if (n < scores::HISTORY_N) {
+            kept[n++] = r;
+          } else {
+            kept[0] = kept[1];
+            kept[1] = kept[2];
+            kept[2] = kept[3];
+            kept[3] = r;
+          }
+        }
+      }
+      if (!nl) {
+        break;
+      }
+      cur = nl + 1;
+    }
+    // store recent-first: the last log line is the newest run
+    for (uint8_t i = 0; i < n; ++i) {
+      _hist[i] = kept[n - 1 - i];
+    }
+    _len = n;
+  }
+
+  void _sd_load_merge() {
+    if (!_sd_mount()) {
+      return;
+    }
+    const bool have_cache = _load_recent_file(_RECENT);
+    if (_len == 0 && !have_cache) {
+      _log_tail_load(); // recent missing/corrupt: replay the log tail
+    }
   }
 
   void _sd_save() {
     if (!_sd_mount()) {
       return;
     }
-    SD.remove(_PATH); // FILE_WRITE appends, so truncate first
-    File f = SD.open(_PATH, FILE_WRITE);
+    SD.remove(_RECENT); // FILE_WRITE appends, so truncate first
+    File f = SD.open(_RECENT, FILE_WRITE);
     if (!f) {
       Serial.println("[scores] save open failed");
       return;
@@ -126,6 +222,9 @@ namespace {
       Serial.println("[scores] save write failed");
     }
     f.close();
+    if (_len > 0) {
+      _log_append(_hist[0]); // newest run, one line per death
+    }
   }
 }
 
