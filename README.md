@@ -11,7 +11,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 - 4 máquinas expendedoras con niveles permanentes + ruleta de armas.
 - Puntos como cartera: ganas por matar, gastas en tienda; al morir se guardan puntos, ronda y bajas.
 - Minimapa en vivo con posición, zombis y encuadre de cámara.
-- Últimas 4 partidas (puntos, ronda y bajas) guardadas entre partidas (memoria RTC + `/z32.json` en microSD).
+- Últimas 4 partidas (puntos, ronda y bajas) guardadas entre partidas (memoria RTC + `/z32_recent.json` en microSD) más historial completo en `/z32_log.jsonl` (una línea JSON por partida). En coop cada placa guarda en su propia tarjeta.
 - Menús: inicio, modo de juego, scores, pausa y game over. Botón de apagado con sueño profundo.
 - Coop ESP-NOW a 2 placas: host autoritario (~30Hz, `game_state` 146B + `player_input` 5B), Solo silencioso en ambas, Multi vía `waiting` (timeout 10s / FIRE-solo). P2 entra con pistola fresh, comparte cartera, revive con INTERACT a 3 HP, pausa y game-over espejados.
 
@@ -68,8 +68,14 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 - TFT ST7789 SPI: CS 5, RST 4, DC 2, MOSI 23, SCLK 18, MISO 19, BL 21.
 - Joystick analógico: X 32, Y 33. Botones: FIRE 13, RELOAD 14, INTERACT 15, PAUSE 27.
 - Buzzer pasivo GPIO 26 con jingles (disparos, compras, oleadas…).
-- microSD (CS 22, comparte SPI) con historial en `/z32.json`.
+- microSD (CS 22, comparte SPI): caché de últimas 4 en `/z32_recent.json` + historial completo en `/z32_log.jsonl`.
 - Compilar: `pio run -e host` | `pio run -e client`.
+
+## Consola serial (115200)
+
+Eventos raros, nada por frame. Boot: `ready role=host/client`, `microsd ok` (o `no sd, rtc only`).
+Cada muerte guarda y anuncia la línea idéntica a la del historial: `run saved {"p":1250,"k":42,"w":5}`.
+En coop: `joined multi`, `waiting timeout`, `peer quiet 3000ms` y `pause from peer` (causas que no tienen aviso en pantalla).
 
 ## En camino
 
