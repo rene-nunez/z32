@@ -57,7 +57,7 @@ Libraries resolve via LDF `chain`. Every `lib/*/src/*.cpp` compiles always; a li
 - zombie spawns: random-offset scan, first walkable tile >= 100px away
 - BFS `field` rebuilds only when the player's **tile** changes (one field per player); `_zombie_steer` descends the nearest alive player's field to the best of 8 neighbours' centres (3 retries, direct chase on `UNREACHABLE` and terminal homing on the player's tile, standoff ring at `contact_dist` so zombies stop at hit range instead of piling onto the centre, contact tested post-move same-frame; one pairwise declump pass at 7px keeps stacked bodies side by side); pass `float&` members (never copies) to `_move_entity`
 - `sim` exposes one read-only `view()` (`reset()`, `step(now)->bool`, `set_p2/set_p2_active` for the peer, `revive(p)` for lifts); death (nobody standing: downed doesn't count) reported by return value, screens raised by caller; points zeroed only in `reset()`; bled-out respawn at the next wave, downed rise at 3 HP
-- economy: points are the spendable wallet (shared co-op); each death stores wallet/kills/wave; `render`/`panel` never move state; `game` owns shop proximity + `INTERACT` edge per player + `buzz` firing from `last_event`
+- economy: points are the spendable wallet (shared co-op); each death stores wallet/kills/wave on each board's own card; `render`/`panel` never move state; `game` owns shop proximity + `INTERACT` edge per player + `buzz` firing from `last_event`
 
 ## Shop (F1) — agreed prices/stats
 

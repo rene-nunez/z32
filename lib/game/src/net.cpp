@@ -257,7 +257,7 @@ void game::_update_playing_client() {
     return;
   }
   if (sim::view().last_event == sim::event::over) {
-    _enter_game_over(); // host declared it, we only mirror (no SD write, see guard)
+    _enter_game_over(); // host declared it, we mirror and store it on our own card
     return;
   }
   const sim::state& cv = sim::view();
@@ -431,7 +431,7 @@ void game::_mirror_pause() {
   }
   if (_rx_state.screen == net::SCREEN_OVER) {
     _cli_mirror = false;
-    _enter_game_over(); // host declared it, we only mirror (no SD write, see guard)
+    _enter_game_over(); // host declared it, we mirror and store it on our own card
     return;
   }
   uint8_t s = _rx_state.sel;

@@ -218,10 +218,8 @@ void game::_enter_menu() {
 
 void game::_enter_game_over() {
   const sim::state& v = sim::view();
-  // the host owns the wallet and the SD card; a client only mirrors the screen
-  if (!_net_multi || _handler.role() == ROLE_HOST) {
-    scores::add_run(v.kills, v.points, v.wave); // fold the run: wallet at death, kills, wave
-  }
+  // each board stores the run on its own card off the same shared state
+  scores::add_run(v.kills, v.points, v.wave); // fold the run: wallet at death, kills, wave
   _scr = screens::id::game_over;
   _sel = 0;
 }
