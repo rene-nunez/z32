@@ -1,10 +1,28 @@
+/*
+ * z32: ESP32 wave-based zombie video game with ESP-NOW multiplayer
+ * Copyright (C) 2026 René Núñez
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include <game.h>
 
-void setup() {
-  #ifndef DEVICE_ROLE
-    #error "DEVICE_ROLE not defined: use `pio run -e host` or `pio run -e client`"
-  #endif
+#ifndef DEVICE_ROLE
+  #error "DEVICE_ROLE not defined: use `pio run -e host` or `pio run -e client`"
+#endif
 
+void setup() {
   game::begin(DEVICE_ROLE);
 }
 
