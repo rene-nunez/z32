@@ -2,12 +2,12 @@
 #include <cstdio>
 #include <pgmspace.h>
 
-#include <Display.h>
+#include <display.h>
 #include <map.h>
-#include <Sim.h>
+#include <sim.h>
 #include <sprites.h>
 
-#include "Render.h"
+#include "render.h"
 
 // render core: camera, terrain repaint, entity erase and the frame draw.
 // Actors live in actors.cpp, price tags and the prompt strip in tags.cpp;

@@ -1,11 +1,11 @@
 #include <Arduino.h>
 
-#include <Display.h>
+#include <display.h>
 #include <map.h>
-#include <Render.h>
-#include <Sim.h>
+#include <render.h>
+#include <sim.h>
 
-#include "Panel.h"
+#include "panel.h"
 
 int16_t panel::_mm_px[2 + sim::MAX_ZOMBIES] = {0};
 int16_t panel::_mm_py[2 + sim::MAX_ZOMBIES] = {0};

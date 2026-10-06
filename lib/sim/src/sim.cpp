@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <cmath>
 
-#include <Input.h>
+#include <input.h>
 #include <map.h>
 
-#include "Sim.h"
+#include "sim.h"
 
 // sim core: state, reset, players, the frame step and net snapshots. Wave,
 // combat and shop tables live in their own files; every static below is

@@ -1,11 +1,11 @@
 #include <Arduino.h>
 #include <cstring>
 
-#include <Display.h>
-#include <Scores.h>
-#include <Sim.h>
+#include <display.h>
+#include <scores.h>
+#include <sim.h>
 
-#include "Screens.h"
+#include "screens.h"
 
 namespace {
   // menu rows: the full paint and the cursor repaint must agree on where a row is, so both

@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include <Network.h>
-#include "NetState.h"
+#include <network.h>
+#include "net_state.h"
 
 // handlers can dispatch from data[0] the `type` without parsing the rest
 enum class msg_type : uint8_t {

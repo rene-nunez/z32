@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <cmath>
 
-#include <Input.h>
+#include <input.h>
 #include <map.h>
 
-#include "Sim.h"
+#include "sim.h"
 
 // sim wave: zombie steering, spawn tables, quotas and per-kind stats. The wave
 // order (dithered runners) and the refill live here; step() only calls in.

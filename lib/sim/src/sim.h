@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <NetState.h>
+#include <net_state.h>
 #include <map.h>
 
 // The simulation: players, zombies, bullets, waves and points, in world px. It owns its

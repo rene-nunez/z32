@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <cmath>
 
-#include <Input.h>
+#include <input.h>
 #include <map.h>
 
-#include "Sim.h"
+#include "sim.h"
 
 // sim combat: weapon tables, fire pipeline, mags and reloads. Damage scales
 // with the owner's dmg_lvl, cadence with rpd_lvl; step() only calls in.

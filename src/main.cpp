@@ -1,4 +1,4 @@
-#include <Game.h>
+#include <game.h>
 
 void setup() {
   #ifndef DEVICE_ROLE

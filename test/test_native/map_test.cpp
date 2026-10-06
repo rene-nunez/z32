@@ -9,7 +9,7 @@
 #include <vector>
 #include <utility>
 
-#include <Display.h>
+#include <display.h>
 
 uint16_t display::rgb565(uint8_t r, uint8_t g, uint8_t b) {
   return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);

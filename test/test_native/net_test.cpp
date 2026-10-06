@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include <NetState.h>
+#include <net_state.h>
 
 static int fails = 0;
 static void check(bool ok, const char* what) {

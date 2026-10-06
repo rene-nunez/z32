@@ -6,7 +6,7 @@
 
 #include <pins.h>
 
-#include "Scores.h"
+#include "scores.h"
 
 namespace {
   constexpr uint32_t _MAGIC = 0x5A3C21F0u; // bumped: run.wave went u8->u16 (kills/wave wrap fix)

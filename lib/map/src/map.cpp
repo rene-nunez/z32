@@ -1,4 +1,4 @@
-#include <Display.h>
+#include <display.h>
 #include "map.h"
 
 namespace tilemap {

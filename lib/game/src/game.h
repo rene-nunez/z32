@@ -2,12 +2,12 @@
 
 #include <cstdint>
 
-#include <Handler.h>
-#include <Input.h>
-#include <NetState.h>
-#include <Screens.h>
+#include <handler.h>
+#include <input.h>
+#include <net_state.h>
+#include <screens.h>
 
-#include <Sim.h>
+#include <sim.h>
 
 class game {
   public:

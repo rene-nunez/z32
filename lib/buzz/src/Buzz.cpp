@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#include "Buzz.h"
+#include "buzz.h"
 #include "pins.h"
 
 namespace {

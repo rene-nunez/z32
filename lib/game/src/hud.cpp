@@ -5,16 +5,16 @@
 #include <esp_sleep.h>
 #include <esp_system.h>
 
-#include <Buzz.h>
-#include <Display.h>
+#include <buzz.h>
+#include <display.h>
 #include <map.h>
-#include <Panel.h>
-#include <Render.h>
-#include <Screens.h>
-#include <Scores.h>
-#include <Sim.h>
+#include <panel.h>
+#include <render.h>
+#include <screens.h>
+#include <scores.h>
+#include <sim.h>
 
-#include "Game.h"
+#include "game.h"
 #include "pins.h"
 
 // game hud: the 10px strip, the prompt/callout priority slots, boss watch and

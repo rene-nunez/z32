@@ -2,12 +2,12 @@
 #include <cstdio>
 #include <pgmspace.h>
 
-#include <Display.h>
+#include <display.h>
 #include <map.h>
-#include <Sim.h>
+#include <sim.h>
 #include <sprites.h>
 
-#include "Render.h"
+#include "render.h"
 
 // render tags: world-anchored shop price tags plus the centred prompt strip.
 // Tags erase only when stale (cut, moved cam, price change, rebuild) but paint

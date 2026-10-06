@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <cmath>
 
-#include <Input.h>
+#include <input.h>
 #include <map.h>
 
-#include "Sim.h"
+#include "sim.h"
 
 // sim shop: wallet, permanent levels, roulette and the display bonuses. Called
 // by game on INTERACT edges; exact points pay, denial stamps the denied event.

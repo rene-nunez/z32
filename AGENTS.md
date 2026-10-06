@@ -22,7 +22,7 @@
 ## Layout
 
 - `include/` — `pins.h`, `tft_setup.h` (ST7789 + `TFT_INVERSION_OFF` + `TFT_RGB_ORDER TFT_BGR`, panel BGR)
-- `lib/network` — raw ESP-NOW, no message logic; `lib/protocol` — `msg_type` + packed structs (`NetState.h`: `game_state` 146B + `player_input` 5B, Arduino-free so `test_native` checks sizes/round-trips; spare flag bits carry the 3-bit facing, rapid levels cost one meta byte); `lib/handler` — typed routing/dispatch
+- `lib/network` — raw ESP-NOW, no message logic; `lib/protocol` — `msg_type` + packed structs (`net_state.h`: `game_state` 146B + `player_input` 5B, Arduino-free so `test_native` checks sizes/round-trips; spare flag bits carry the 3-bit facing, rapid levels cost one meta byte); `lib/handler` — typed routing/dispatch
 - `lib/display` — `display` + `colour` (+`push_image` for one-burst RAM blits of terrain/actor composites, no transparency); the only place TFT_eSPI is used
 - `lib/input` — joystick (ADC1) + buttons (debounce + edge); stick centre calibrated at boot (20 samples/axis, ~200ms, hands off) since pots rest off 2047 per board; deadzone 0.3, span scaled to the rail from the calibrated centre
 - `lib/map` — `tilemap`: 60x30 grass maze, `_art` rows, wall queries, spawn, BFS `field` (+`field2` for player 2); tiles: meadow floor (only walkable), pale concrete walls, four 2x2 vendings (H heal green, D damage red, S speed blue, C rapid orange, some wall-embedded) + 4x 2x2 roulette pads (visual 32px sprites in `color_at`, price tags in `render`)
@@ -37,7 +37,7 @@
 - `src/main.cpp` — `game::begin(DEVICE_ROLE)` + `game::update()`
 - `test/test_native` — host-side tilemap/camera checks + net wire checks; `./test/test_native/run.sh` builds `map_test.cpp` + `net_test.cpp` with plain `g++` (binaries to `$TMPDIR`, no Unity); `test_ignore = test_native` keeps `pio test` off it
 
-Libraries resolve via LDF `chain`. Every `lib/*/src/*.cpp` compiles always; a lib's external deps must surface in its public header (a `.cpp`-only include can go blind to LDF after renames/splits: `render` needs `sprites.h` in `Render.h`). Cross-library includes use `<>`, same-directory use `""`. TFT config repo-wide from `[env]`: `-D USER_SETUP_LOADED` + `-include tft_setup.h`. Filenames case-sensitive on Linux.
+Libraries resolve via LDF `chain`. Every `lib/*/src/*.cpp` compiles always; a lib's external deps must surface in its public header (a `.cpp`-only include can go blind to LDF after renames/splits: `render` needs `sprites.h` in `render.h`). Cross-library includes use `<>`, same-directory use `""`. TFT config repo-wide from `[env]`: `-D USER_SETUP_LOADED` + `-include tft_setup.h`. Filenames case-sensitive on Linux.
 
 ## Display (TFT)
 
@@ -84,4 +84,4 @@ Libraries resolve via LDF `chain`. Every `lib/*/src/*.cpp` compiles always; a li
 
 ## Add a message
 
-- add `msg_type` in `lib/protocol/src/Protocol.h`, packed struct with `type` first, `on_message(type, cb)` in `lib/game/src/Game.cpp`, send via `_handler.send(&msg, sizeof(msg))`
+- add `msg_type` in `lib/protocol/src/protocol.h`, packed struct with `type` first, `on_message(type, cb)` in `lib/game/src/game.cpp`, send via `_handler.send(&msg, sizeof(msg))`

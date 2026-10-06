@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include <Render.h>
-#include <Sim.h>
+#include <render.h>
+#include <sim.h>
 #include <map.h>
 
 // The bottom panel: minimap plus the status text. The minimap outlines the camera cell, so it

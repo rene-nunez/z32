@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#include "Input.h"
+#include "input.h"
 #include "pins.h"
 
 constexpr float _deadzone = 0.3f;

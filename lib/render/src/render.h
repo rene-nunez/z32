@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include <Display.h>
-#include <Sim.h>
+#include <display.h>
+#include <sim.h>
 #include <sprites.h>
 
 // The arena view: camera, the incremental terrain repaint and the entity boxes. It reads the

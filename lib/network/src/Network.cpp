@@ -3,7 +3,7 @@
 #include <esp_wifi.h>
 #include <WiFi.h>
 
-#include "Network.h"
+#include "network.h"
 
 uint8_t network::_role = 0xFF;
 uint8_t network::_peer_mac[6] = {0};
