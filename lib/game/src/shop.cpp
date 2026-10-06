@@ -382,7 +382,7 @@ void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
       }
       break;
     case 4:
-      snprintf(_hint_buf, sizeof(_hint_buf), "%sGET ROLL 200", who);
+      snprintf(_hint_buf, sizeof(_hint_buf), "%sGET ROLL 100", who);
       render::prompt(_hint_buf);
       break;
     case 5:

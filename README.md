@@ -23,14 +23,14 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 - **Puntos**: cada baja paga `10 + 2·ronda` (r1=12 … r6=22). Gastar baja tu cartera; al morir
   se guardan los puntos que tenías (ganado menos gastado), la ronda y las bajas.
 - **Tiendas** (acércate y pulsa INTERACT):
-  - **H verde — Heal 150**: +2 HP.
-  - **D roja — Daño 250**: +25% de daño por nivel, máximo 10 (se muestra `DMG +75%!`).
-  - **S azul — Velocidad 250**: +8% de velocidad por nivel, máximo 10.
-  - **C naranja — Cadencia 250**: −6% de cooldown por nivel aprox. (multiplicativo), máximo 10.
-  - Cada nivel cuesta más: `base + 500·nivel` (p. ej. daño: 250/750/1250… hasta 4750). Niveles
+  - **H verde — Heal 100**: +2 HP.
+  - **D roja — Daño 150**: +25% de daño por nivel, máximo 10 (se muestra `DMG +75%!`).
+  - **S azul — Velocidad 150**: +8% de velocidad por nivel, máximo 10.
+  - **C naranja — Cadencia 150**: −6% de cooldown por nivel aprox. (multiplicativo), máximo 10.
+  - Cada nivel cuesta más: `base + 300·nivel` (p. ej. daño: 150/450/750… hasta 2850). Niveles
      permanentes por jugador (cada uno arma su build, panel con pips de HP + `%` real),
     cartera compartida. Sin puntos o al máximo, avisa (`NEED`, `MAX`).
-- **Ruleta 200**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3x2), AR-15
+- **Ruleta 100**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3x2), AR-15
   (daño 3), FAMAS (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
   volver como premio tonto.
 - **Disparo**: mantén FIRE con MP9/AR-15 (auto a su cadencia); Glock, SPAS-12, FAMAS y M82A1 son tiro a tiro, con auto-apuntado al zombi más cercano (alcance 160px, 220px el M82A1).
@@ -54,7 +54,7 @@ curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir me
 ## Pantalla (UI)
 
 - **Arriba**: HUD con ronda/bajas (`WAVE 3 KILLS 12`), arma y balas (`GUN MP9 18`); arena
-  de juego con etiquetas de precio sobre cada máquina (`HEAL 150`, …) y
+  de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
   franja central inferior con prompts (`GET DMG +75%`, `HEALED +2HP`,
   `RELOADING...`, `P2: SAVE ME!`…).
 - **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de

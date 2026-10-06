@@ -112,7 +112,7 @@ void render::_shop_labels(bool erase) {
              (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[f]));
   }
   const uint8_t want[4] = {tilemap::VENDING, tilemap::V_DMG, tilemap::V_SPD, tilemap::V_RPD};
-  const char* text[4] = {"HEAL 150", dmg_buf, spd_buf, rpd_buf};
+  const char* text[4] = {"HEAL 100", dmg_buf, spd_buf, rpd_buf};
   const uint16_t col[4] = {colour::green, colour::red, display::rgb565(60, 130, 230),
                            colour::orange};
   if (!_tag_anchors_done) {
@@ -181,7 +181,7 @@ void render::_shop_labels(bool erase) {
     if (is_roll && ti != act) {
       continue; // dead pads stay silent
     }
-    const char* t = (ti < 4) ? text[ti] : "ROLL 200";
+    const char* t = (ti < 4) ? text[ti] : "ROLL 100";
     const uint16_t cc = (ti < 4) ? col[ti] : colour::yellow;
     uint8_t len = 0;
     while (t[len] != '\0') {
