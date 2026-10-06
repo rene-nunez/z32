@@ -23,6 +23,7 @@ class game {
     static constexpr uint32_t _in_stale_ms = 300; // peer input older than this goes neutral
     static constexpr uint32_t _cli_quiet_ms = 3000; // no snapshot for this long: back to menu
     static constexpr int16_t _revive_r = 28; // partner-lift reach, px centre to centre
+    static constexpr uint16_t _mate_p2col = 0x54DA; // P2 steel-blue, brightened to read at 8px
 
     static uint32_t _last_frame_ms;
     static uint32_t _intro_ms0; // millis() at logo/team entry, anchors the intro timers
