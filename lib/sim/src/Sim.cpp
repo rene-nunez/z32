@@ -279,7 +279,8 @@ void sim::_spawn_wave() {
 
   // quota: wave+3 kills to clear, uncapped; at most MAX_ZOMBIES alive at once.
   // composition: the boss steals spawn idx 0 every 5th wave, then up to half the
-  // quota (from wave 2) are runners, the rest normals. 10 alive max, always.
+  // quota (from wave 2) are runners spread evenly over the wave (dither, so the
+  // wave never opens with a runner wall), the rest normals. 10 alive max, always.
   _wave_quota = _wave_total(_s.wave);
   _wave_spawned = 0;
   const bool boss = _wave_boss(_s.wave);
@@ -287,17 +288,20 @@ void sim::_spawn_wave() {
 
   const uint8_t initial = _wave_quota > MAX_ZOMBIES ? MAX_ZOMBIES : (uint8_t)_wave_quota;
   for (uint8_t i = 0; i < initial; ++i) {
-    _spawn_into(i, _wave_kind(_wave_spawned, boss, runners));
+    _spawn_into(i, _wave_kind(_wave_spawned, boss, runners, _wave_quota));
     ++_wave_spawned;
   }
   _s.last_event = event::wave;
 }
 
-sim::actor_kind sim::_wave_kind(uint16_t idx, bool boss, uint8_t runners) {
+sim::actor_kind sim::_wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16_t total) {
   if (boss && idx == 0) {
     return actor_kind::boss;
   }
-  if (idx < (uint16_t)(runners + (boss ? 1u : 0u))) {
+  const uint16_t slots = (uint16_t)(total - (boss ? 1u : 0u)); // non-boss slots
+  const uint16_t i = (uint16_t)(idx - (boss ? 1u : 0u));
+  // dither over the wave: exactly `runners` spread evenly (u32 math, quota is uncapped)
+  if ((uint32_t)i * (uint32_t)runners % (uint32_t)slots < (uint32_t)runners) {
     return actor_kind::runner;
   }
   return actor_kind::normal;
@@ -679,7 +683,7 @@ bool sim::step(uint32_t now) {
             // refill inmediato en el slot liberado: la oleada dura la cuota entera
             const bool boss = _wave_boss(_s.wave);
             const uint8_t runners = _wave_runners(_s.wave, _wave_quota);
-            _spawn_into(z, _wave_kind(_wave_spawned, boss, runners));
+            _spawn_into(z, _wave_kind(_wave_spawned, boss, runners, _wave_quota));
             ++_wave_spawned;
           }
         } else {

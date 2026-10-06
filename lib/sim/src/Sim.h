@@ -210,7 +210,7 @@ class sim {
     static uint16_t _wave_total(uint16_t wave); // quota: wave+3, uncapped (cap is alive at once)
     static uint8_t _wave_runners(uint16_t wave, uint16_t total); // 0 on wave 1, else min(2w/3, half)
     static bool _wave_boss(uint16_t wave);     // every 5th wave steals slot 0
-    static actor_kind _wave_kind(uint16_t idx, bool boss, uint8_t runners); // kind of spawn idx
+    static actor_kind _wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16_t total); // kind of spawn idx, runners spread evenly
     static void _spawn_into(uint8_t slot, actor_kind kind); // random >=100px spawn into a slot
     // roulette odds over r = rand % 100: SMG 30, pistol 10, shotgun 25, rifle 12,
     // M16 13, sniper 10. SMG and shotgun hit more often; the pistol stays the booby prize.
