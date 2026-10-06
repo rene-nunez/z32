@@ -71,7 +71,7 @@ namespace {
     if (!_sd_ready) {
       Serial.println("[scores] no sd, rtc only");
     } else {
-      Serial.printf("[scores] sd ok, type %u size %lluMB\n", SD.cardType(),
+      Serial.printf("[scores] microsd ok, type %u size %lluMB\n", SD.cardType(),
                     SD.cardSize() / (1024u * 1024u));
     }
     digitalWrite(TFT_CS, HIGH); // leave the bus parked for the TFT
@@ -89,7 +89,7 @@ namespace {
     const DeserializationError err = deserializeJson(doc, f);
     f.close();
     if (err) {
-      Serial.println("[scores] recent corrupt");
+      Serial.println("[scores] recent corrupt, starting empty");
       return false;
     }
     if (_len == 0) { // rtc empty after a power loss: adopt the card history
@@ -108,20 +108,25 @@ namespace {
   }
 
   void _log_append(const scores::run& r) {
-    File f = SD.open(_LOG, FILE_APPEND);
-    if (!f) {
-      Serial.println("[scores] log append failed");
-      return;
-    }
+    // one buffer for both sinks, so the serial line is byte-identical to the file line
+    char line[64];
     JsonDocument doc;
     doc["p"] = r.pts;
     doc["k"] = r.kills;
     doc["w"] = r.wave;
-    if (!serializeJson(doc, f)) {
+    if (!serializeJson(doc, line, sizeof(line))) {
       Serial.println("[scores] log write failed");
+      return;
     }
+    File f = SD.open(_LOG, FILE_APPEND);
+    if (!f) {
+      Serial.println("[scores] log write failed");
+      return;
+    }
+    f.print(line);
     f.print('\n');
     f.close();
+    Serial.printf("[scores] run saved %s\n", line);
   }
 
   // last resort when both the RTC and the recent cache are empty: replays the tail
@@ -129,8 +134,7 @@ namespace {
   void _log_tail_load() {
     File f = SD.open(_LOG, FILE_READ);
     if (!f) {
-      Serial.println("[scores] no save file");
-      return;
+      return; // clean boot, nothing stored yet: stay silent
     }
     const size_t size = f.size();
     const size_t want = size > _TAIL_BYTES ? (size_t)_TAIL_BYTES : size;
@@ -207,7 +211,7 @@ namespace {
     SD.remove(_RECENT); // FILE_WRITE appends, so truncate first
     File f = SD.open(_RECENT, FILE_WRITE);
     if (!f) {
-      Serial.println("[scores] save open failed");
+      Serial.println("[scores] recent open failed");
       return;
     }
     JsonDocument doc;
@@ -219,7 +223,7 @@ namespace {
       r["w"] = _hist[i].wave;
     }
     if (!serializeJson(doc, f)) {
-      Serial.println("[scores] save write failed");
+      Serial.println("[scores] recent write failed");
     }
     f.close();
     if (_len > 0) {

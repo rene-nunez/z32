@@ -49,6 +49,7 @@ class game {
     static uint32_t _in_last_ms;   // last peer input rx time (host, stale check)
     static volatile bool _rx_ready; // snapshot waiting to apply (client)
     static bool _cli_mirror; // client is painting the host-owned pause (arena chrome is covered)
+    static bool _cli_pause_logged; // pause-from-peer line already printed for this pause
     static bool _cli_was_down0, _cli_was_down1; // downed flags last client frame, for the rise edge
     static bool _cli_was_dead0, _cli_was_dead1; // hp==0 && !downed last client frame, BACK edge
     static bool _cli_shouted0, _cli_shouted1; // SAVE ME sent this down (client), HELP hides after

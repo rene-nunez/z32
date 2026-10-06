@@ -20,17 +20,17 @@ bool network::begin(uint8_t role) {
   delay(100);
 
   if (esp_wifi_set_mac(WIFI_IF_STA, own_mac) != ESP_OK) {
-    Serial.println("[network] failed to set custom mac");
+    Serial.println("[network] mac set failed, resetting...");
     return false;
   }
 
   if (esp_wifi_set_channel(WIFI_CHANNEL, WIFI_SECOND_CHAN_NONE) != ESP_OK) {
-    Serial.println("[network] failed to set custom wifi channel");
+    Serial.println("[network] channel set failed, resetting...");
     return false;
   }
 
   if (esp_now_init() != ESP_OK) {
-    Serial.println("[network] esp_now_init failed");
+    Serial.println("[network] esp_now init failed, resetting...");
     return false;
   }
 
@@ -38,12 +38,11 @@ bool network::begin(uint8_t role) {
   esp_now_register_recv_cb(_on_received); // receive callback
 
   if (!_add_peer()) {
-    Serial.println("[network] failed to add peer");
+    Serial.println("[network] peer add failed, resetting...");
     return false;
   }
 
-  Serial.print("[network] role: ");
-  Serial.println(role == ROLE_HOST ? "host" : "client");
+  // role is reported once by game at boot ([game] ready role=...)
   return true;
 }
 
@@ -65,9 +64,8 @@ bool network::_add_peer() {
 }
 
 void network::_on_sent(const uint8_t* mac, esp_now_send_status_t status) {
-  if (status != ESP_NOW_SEND_SUCCESS) {
-    Serial.println("[network] packet delivery failed");
-  }
+  (void)mac;
+  (void)status; // single drops are routine at ~30Hz; a dead peer surfaces via quiet-drop
 }
 
 void network::_on_received(const uint8_t* mac, const uint8_t* data, int len) {

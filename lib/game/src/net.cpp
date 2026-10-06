@@ -144,6 +144,9 @@ void game::_update_playing_host() {
   sim::set_p2(c);
 
   if (input::pause_pressed() || _p2_pause_edge) {
+    if (_p2_pause_edge && !input::pause_pressed()) {
+      Serial.println("[net] pause from peer");
+    }
     _p2_pause_edge = false;
     _scr = screens::id::pause;
     _sel = 0;
@@ -231,9 +234,14 @@ void game::_update_playing_client() {
   // route off the last snapshot before touching the frame: while the host-owned menu is
   // up, clear() would spray terrain erases over it, so mirror frames skip clear/draw.
   if (_rx_state.screen == net::SCREEN_PAUSE) {
+    if (!_cli_pause_logged) {
+      _cli_pause_logged = true;
+      Serial.println("[net] pause from peer");
+    }
     _mirror_pause(); // _scr stays playing so update() keeps routing here
     return;
   }
+  _cli_pause_logged = false; // host resumed: next remote pause logs again
   if (_cli_mirror) {
     // first playing frame after the menu: its chrome covered the arena, so rebuild it
     // exactly like the host resume path (progressive terrain over the next 2 frames).
@@ -252,6 +260,7 @@ void game::_update_playing_client() {
   }
   if (millis() - _cli_last_rx >= _cli_quiet_ms) {
     buzz::play(buzz::jingle::denied); // host went away (menu/sleep): drop to menu
+    Serial.println("[net] peer quiet 3000ms, back to menu");
     _net_multi = false;
     _enter_menu();
     return;

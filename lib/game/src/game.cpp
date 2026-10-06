@@ -37,6 +37,7 @@ float game::_in_jy = 0.0f;
 uint32_t game::_in_last_ms = 0;
 volatile bool game::_rx_ready = false;
 bool game::_cli_mirror = false;
+bool game::_cli_pause_logged = false;
 bool game::_cli_was_down0 = false;
 bool game::_cli_was_down1 = false;
 bool game::_cli_was_dead0 = false;
@@ -138,7 +139,7 @@ bool game::begin(uint8_t role) {
   screens::paint(_scr, _sel);
   buzz::play(buzz::jingle::intro); // fanfare over the logo screen
 
-  Serial.println("[game] ready");
+  Serial.printf("[game] ready role=%s\n", role == ROLE_HOST ? "host" : "client");
   return true;
 }
 
@@ -182,6 +183,7 @@ void game::_start_game(bool multi) {
   _in_jx = _in_jy = 0.0f;
   _rx_ready = false;
   _cli_mirror = false; // a fresh run owns the arena again, never the pause chrome
+  _cli_pause_logged = false; // a fresh run re-arms the pause-from-peer line
   _cli_was_down0 = _cli_was_down1 = false; // no rise edge on the join frame
   _cli_was_dead0 = _cli_was_dead1 = false; // no BACK edge on the join frame
   _cli_shouted0 = _cli_shouted1 = false; // HELP shows on the next down
@@ -331,6 +333,7 @@ void game::_update_waiting() {
       _rx_ready = false;
       _peer_seen = false;
       buzz::play(buzz::jingle::wave);
+      Serial.println("[net] joined multi role=client");
       _start_game(true);
       sim::apply_snapshot(snap); // start from the live frame, not the reset one
       _cli_last_rx = millis();
@@ -339,11 +342,13 @@ void game::_update_waiting() {
   } else if (_peer_seen) {
     _peer_seen = false;
     buzz::play(buzz::jingle::wave);
+    Serial.println("[net] joined multi role=host");
     _start_game(true); // peer showed up (a client also joins mid-run off snapshots)
     return;
   }
   if (now - _wait_since >= _wait_ms) {
     buzz::play(buzz::jingle::denied); // nobody out there
+    Serial.println("[net] waiting timeout, solo");
     _enter_menu();
     return;
   }
@@ -436,6 +441,7 @@ void game::_update_game_over() {
     }
     if (millis() - _cli_last_rx >= _cli_quiet_ms) {
       _net_multi = false;
+      Serial.println("[net] peer quiet 3000ms, back to menu");
       _enter_menu(); // host left: drop to menu
       return;
     }
