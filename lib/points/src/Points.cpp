@@ -49,8 +49,21 @@ namespace {
     }
     pinMode(TFT_CS, OUTPUT);
     digitalWrite(TFT_CS, HIGH); // park the TFT, we own the bus for init
+    pinMode(SD_CS, OUTPUT);
+    digitalWrite(SD_CS, HIGH); // deselect the card for the wake-up clocks
     SPI.begin(18, 19, 23, -1); // route the VSPI pins (-1 = no bus-wide SS, CS is per device)
-    _sd_ready = SD.begin(SD_CS, SPI, 4000000); // 4MHz: dupont wires + a shared bus
+    // a soft reset (EN button) keeps power on, so a card stuck mid-init stays deaf
+    // until real clocks arrive: 80+ idle clocks with CS high plus a few attempts
+    // usually wake it without replugging the board.
+    for (uint8_t i = 0; i < 10; ++i) {
+      SPI.transfer(0xFF); // 10 bytes = 80 clocks
+    }
+    for (uint8_t attempt = 0; attempt < 3 && !_sd_ready; ++attempt) {
+      if (attempt > 0) {
+        delay(200);
+      }
+      _sd_ready = SD.begin(SD_CS, SPI, 4000000); // 4MHz: dupont wires + a shared bus
+    }
     if (!_sd_ready) {
       Serial.println("[points] no sd, rtc only");
     } else {
