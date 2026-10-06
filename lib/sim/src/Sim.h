@@ -47,11 +47,11 @@ class sim {
     // shop: points are the spendable wallet. Heal is flat; damage and speed are
     // permanent levels on the character (like HP) and each level costs more.
     static constexpr uint32_t PRICE_HEAL = 150; // +2 HP
-    static constexpr uint32_t PRICE_DMG = 150;  // damage +25%/level, base price
-    static constexpr uint32_t PRICE_SPD = 120;  // speed +8%/level, base price
-    static constexpr uint32_t PRICE_RPD = 150;  // rapid -6% cooldown/level, base price
-    static constexpr uint32_t PRICE_ROLL = 100; // roulette: random weapon
-    static constexpr uint32_t LVL_PRICE_STEP = 250; // extra cost per level owned
+    static constexpr uint32_t PRICE_DMG = 250;  // damage +25%/level, base price
+    static constexpr uint32_t PRICE_SPD = 250;  // speed +8%/level, base price
+    static constexpr uint32_t PRICE_RPD = 250;  // rapid -6% cooldown/level, base price
+    static constexpr uint32_t PRICE_ROLL = 200; // roulette: random weapon
+    static constexpr uint32_t LVL_PRICE_STEP = 500; // extra cost per level owned
 
     // facing: 8-wind sector from dir_of(), 0=E 1=SE 2=S 3=SW 4=W 5=NW 6=N 7=NE
     // (+y is south on the glass). Render folds it onto the stored art + hflip.

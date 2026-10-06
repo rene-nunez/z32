@@ -530,7 +530,7 @@ void render::_shop_labels(bool erase) {
     if (is_roll && ti != act) {
       continue; // dead pads stay silent
     }
-    const char* t = (ti < 4) ? text[ti] : "ROLL 100";
+    const char* t = (ti < 4) ? text[ti] : "ROLL 200";
     const uint16_t cc = (ti < 4) ? col[ti] : colour::yellow;
     uint8_t len = 0;
     while (t[len] != '\0') {
