@@ -6,29 +6,29 @@
 
 #include <pins.h>
 
-#include "Points.h"
+#include "Scores.h"
 
 namespace {
   constexpr uint32_t _MAGIC = 0x5A3C21F0u; // bumped: run.wave went u8->u16 (kills/wave wrap fix)
   constexpr const char* _PATH = "/z32.json";
 
-  struct _rtc_points {
+  struct _rtc_scores {
     uint32_t magic;
-    points::run hist[points::HISTORY_N]; // recent first, index 0 is the newest
+    scores::run hist[scores::HISTORY_N]; // recent first, index 0 is the newest
     uint8_t len; // runs actually stored, 0..HISTORY_N
   };
 
-  RTC_NOINIT_ATTR _rtc_points _rtc;
-  points::run _hist[points::HISTORY_N] = {};
+  RTC_NOINIT_ATTR _rtc_scores _rtc;
+  scores::run _hist[scores::HISTORY_N] = {};
   uint8_t _len = 0;
   bool _sd_ready = false;
 
-  void _push(const points::run& r) {
-    for (int8_t i = points::HISTORY_N - 1; i > 0; --i) {
+  void _push(const scores::run& r) {
+    for (int8_t i = scores::HISTORY_N - 1; i > 0; --i) {
       _hist[i] = _hist[i - 1];
     }
     _hist[0] = r;
-    if (_len < points::HISTORY_N) {
+    if (_len < scores::HISTORY_N) {
       ++_len;
     }
   }
@@ -36,7 +36,7 @@ namespace {
   void _mirror_rtc() {
     _rtc.magic = _MAGIC;
     _rtc.len = _len;
-    for (uint8_t i = 0; i < points::HISTORY_N; ++i) {
+    for (uint8_t i = 0; i < scores::HISTORY_N; ++i) {
       _rtc.hist[i] = _hist[i];
     }
   }
@@ -65,9 +65,9 @@ namespace {
       _sd_ready = SD.begin(SD_CS, SPI, 4000000); // 4MHz: dupont wires + a shared bus
     }
     if (!_sd_ready) {
-      Serial.println("[points] no sd, rtc only");
+      Serial.println("[scores] no sd, rtc only");
     } else {
-      Serial.printf("[points] sd ok, type %u size %lluMB\n", SD.cardType(),
+      Serial.printf("[scores] sd ok, type %u size %lluMB\n", SD.cardType(),
                     SD.cardSize() / (1024u * 1024u));
     }
     digitalWrite(TFT_CS, HIGH); // leave the bus parked for the TFT
@@ -80,20 +80,20 @@ namespace {
     }
     File f = SD.open(_PATH, FILE_READ);
     if (!f) {
-      Serial.println("[points] no save file");
+      Serial.println("[scores] no save file");
       return;
     }
     JsonDocument doc;
     const DeserializationError err = deserializeJson(doc, f);
     f.close();
     if (err) {
-      Serial.println("[points] save corrupt");
+      Serial.println("[scores] save corrupt");
       return;
     }
     if (_len == 0) { // rtc empty after a power loss: adopt the card history
       JsonArray runs = doc["runs"].as<JsonArray>();
       for (JsonObject r : runs) {
-        if (_len >= points::HISTORY_N) {
+        if (_len >= scores::HISTORY_N) {
           break;
         }
         _hist[_len].pts = r["p"] | 0u;
@@ -111,7 +111,7 @@ namespace {
     SD.remove(_PATH); // FILE_WRITE appends, so truncate first
     File f = SD.open(_PATH, FILE_WRITE);
     if (!f) {
-      Serial.println("[points] save open failed");
+      Serial.println("[scores] save open failed");
       return;
     }
     JsonDocument doc;
@@ -123,13 +123,13 @@ namespace {
       r["w"] = _hist[i].wave;
     }
     if (!serializeJson(doc, f)) {
-      Serial.println("[points] save write failed");
+      Serial.println("[scores] save write failed");
     }
     f.close();
   }
 }
 
-void points::load() {
+void scores::load() {
   if (_rtc.magic == _MAGIC) {
     _len = _rtc.len > HISTORY_N ? HISTORY_N : _rtc.len;
     for (uint8_t i = 0; i < HISTORY_N; ++i) {
@@ -145,16 +145,16 @@ void points::load() {
   _mirror_rtc();
 }
 
-void points::add_run(uint32_t kills, uint32_t wallet, uint16_t wave) {
+void scores::add_run(uint32_t kills, uint32_t wallet, uint16_t wave) {
   _push({wallet, kills, wave});
   _mirror_rtc();
   _sd_save(); // once per death, cheap enough to mount+write here
 }
 
-const points::run* points::history() {
+const scores::run* scores::history() {
   return _hist;
 }
 
-uint8_t points::history_len() {
+uint8_t scores::history_len() {
   return _len;
 }

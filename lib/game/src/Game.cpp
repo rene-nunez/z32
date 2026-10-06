@@ -11,7 +11,7 @@
 #include <Panel.h>
 #include <Render.h>
 #include <Screens.h>
-#include <Points.h>
+#include <Scores.h>
 #include <Sim.h>
 
 #include "Game.h"
@@ -118,7 +118,7 @@ bool game::begin(uint8_t role) {
 
   tilemap::init();
 
-  points::load();
+  scores::load();
 
   if (!buzz::begin()) {
     Serial.println("[game] buzz init failed, silent mode");
@@ -357,7 +357,7 @@ void game::_enter_game_over() {
   const sim::state& v = sim::view();
   // the host owns the wallet and the SD card; a client only mirrors the screen
   if (!_net_multi || _handler.role() == ROLE_HOST) {
-    points::add_run(v.kills, v.points, v.wave); // fold the run: wallet at death, kills, wave
+    scores::add_run(v.kills, v.points, v.wave); // fold the run: wallet at death, kills, wave
   }
   _scr = screens::id::game_over;
   _sel = 0;

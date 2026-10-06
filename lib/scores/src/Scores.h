@@ -5,9 +5,9 @@
 // The last runs, in RTC memory so they survive a deep
 // sleep, mirrored to /z32.json on the microSD (same TFT SPI bus, CS 22) so they survive
 // a power loss. No sums, no records: each death pushes one {pts,kills,wave} run and the
-// menu lists the last 4. Only the storage inside Points.cpp changes, the calls below
+// menu lists the last 4. Only the storage inside Scores.cpp changes, the calls below
 // do not.
-class points {
+class scores {
   public:
     static constexpr uint8_t HISTORY_N = 4; // recent runs kept, most recent first
 
