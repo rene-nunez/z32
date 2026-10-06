@@ -147,8 +147,8 @@ class sim {
     static const char* gun_name(weapon w);
   private:
     static constexpr float player_speed = 110.0f;
-    static constexpr float zombie_speed = 40.0f; // normal; runner 70, boss 30
-    static constexpr float runner_speed = 70.0f;
+    static constexpr float zombie_speed = 40.0f; // normal; runner 80, boss 30
+    static constexpr float runner_speed = 80.0f;
     static constexpr float boss_speed = 30.0f;
     static constexpr uint32_t runner_reward = 15; // base, +2 per wave on top
     static constexpr uint16_t spawn_min_d2 = 100 * 100; // keep spawns >= 100px away
@@ -204,8 +204,8 @@ class sim {
     static float _spd_mult(uint8_t lvl);                // 1+0.08*lvl
     static float _rpd_mult(uint8_t lvl);                // 0.94^lvl, 0.54 at max
     static uint8_t _zombie_hp(actor_kind kind, uint16_t wave); // normal 2+w/2, runner 1+w/4, boss 20+w (capped 255)
-    static uint8_t _zombie_dmg(actor_kind kind);        // boss 2, rest 1
-    static float _zombie_speed(actor_kind kind);        // 40 / 70 / 30
+    static uint8_t _zombie_dmg(actor_kind kind);        // boss 3, rest 1
+    static float _zombie_speed(actor_kind kind);        // 40 / 80 / 30
     static uint32_t _kill_reward(actor_kind kind, uint16_t wave); // normal 10+2w, runner 15+2w, boss 150+10w
     static uint16_t _wave_total(uint16_t wave); // quota: wave+3, uncapped (cap is alive at once)
     static uint8_t _wave_runners(uint16_t wave, uint16_t total); // 0 on wave 1, else min(2w/3, half)

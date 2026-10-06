@@ -372,7 +372,8 @@ uint8_t sim::_zombie_hp(actor_kind kind, uint16_t wave) {
 }
 
 uint8_t sim::_zombie_dmg(actor_kind kind) {
-  return (kind == actor_kind::boss) ? 2 : 1; // the tank hits back, the rest scratch
+  // the tank mauls (one-shots a freshly revived 3HP player), the rest scratch
+  return (kind == actor_kind::boss) ? 3 : 1;
 }
 
 float sim::_zombie_speed(actor_kind kind) {
@@ -438,7 +439,8 @@ uint8_t sim::_base_dmg(weapon w) {
   switch (w) {
     case weapon::rifle: return 3; // steady mid punch, one-shots early waves
     case weapon::sniper: return 6; // one heavy round, worth the wait
-    default: return 1; // pistol, smg, m16 and each shotgun pellet
+    case weapon::shotgun: return 2; // each pellet: 6/trigger split over 3 bodies
+    default: return 1; // pistol, smg and m16
   }
 }
 
