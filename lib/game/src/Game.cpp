@@ -146,7 +146,7 @@ void game::update() {
     case screens::id::team: _update_team(); break;
     case screens::id::menu: _update_menu(); break;
     case screens::id::mode: _update_mode(); break;
-    case screens::id::points: _update_points(); break;
+    case screens::id::scores: _update_scores(); break;
     case screens::id::playing: _update_playing(); break;
     case screens::id::pause: _update_pause(); break;
     case screens::id::game_over: _update_game_over(); break;
@@ -833,7 +833,7 @@ void game::_update_menu() {
         _sel = 0;
         break;
       case 1:
-        _scr = screens::id::points;
+        _scr = screens::id::scores;
         _sel = 0;
         break;
       default: // Exit
@@ -909,7 +909,7 @@ void game::_update_waiting() {
   screens::paint(_scr, _sel);
 }
 
-void game::_update_points() {
+void game::_update_scores() {
   if (input::fire_pressed() || input::pause_pressed()) {
     if (input::fire_pressed()) {
       buzz::play(buzz::jingle::menu);

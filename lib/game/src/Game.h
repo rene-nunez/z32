@@ -111,7 +111,7 @@ class game {
 
     static void _update_menu();
     static void _update_mode();
-    static void _update_points();
+    static void _update_scores();
     static void _update_playing();
     static void _update_playing_host();   // host sim + broadcast (solo: sim only)
     static void _update_playing_client(); // input tx + snapshot apply + draw

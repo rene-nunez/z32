@@ -7,7 +7,7 @@
 // entry, then only the cursor" order wrong.
 class screens {
   public:
-    enum class id : uint8_t { logo, team, menu, mode, points, playing, pause, game_over, waiting };
+    enum class id : uint8_t { logo, team, menu, mode, scores, playing, pause, game_over, waiting };
 
     // items in that screen's list, 0 when it has none. The menu wrap uses it, so adding an
     // item cannot leave a stale hardcoded modulus behind

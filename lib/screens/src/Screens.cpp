@@ -15,7 +15,7 @@ namespace {
   constexpr int16_t _menu_x = 16, _menu_y = 96, _menu_row = 24;
   constexpr int16_t _over_x = 24, _over_y = 128; // the game over screen is indented
 
-  const char* const _menu_items[] = { "Start Game", "Points", "Exit" };
+  const char* const _menu_items[] = { "Start Game", "Scores", "Exit" };
   const char* const _mode_items[] = { "Solo", "Multiplayer", "Back" };
   const char* const _pause_items[] = { "Continue", "Restart", "Exit to Menu" };
   const char* const _over_items[] = { "Restart", "Menu" };
@@ -39,7 +39,7 @@ namespace {
     {"TEAM", nullptr, 0, false, colour::lime, nullptr}, // team (custom name list, no items)
     {"z32", _menu_items, 3, false, colour::lime, "JOY: move   FIRE: select"}, // menu
     {"GAME MODE", _mode_items, 3, false, colour::lime, "JOY: move   FIRE: select"}, // mode
-    {"POINTS", nullptr, 0, false, colour::lime, nullptr}, // points
+    {"SCORES", nullptr, 0, false, colour::lime, nullptr}, // scores (run history)
     {nullptr, nullptr, 0, false, colour::black, nullptr}, // playing
     {"PAUSED", _pause_items, 3, false, colour::lime, "JOY: move   FIRE: select   PAUSE: resume"}, // pause
     {"GAME OVER", _over_items, 2, true, colour::red, "JOY: move   FIRE: select"}, // game over
@@ -111,8 +111,8 @@ namespace {
     // no footer: both intro screens advance alone (FIRE just hurries them)
   }
 
-  void _full_points() {
-    _background("POINTS", colour::lime);
+  void _full_scores() {
+    _background("SCORES", colour::lime);
 
     char buf[32];
 
@@ -184,7 +184,7 @@ void screens::paint(id scr, uint8_t sel) {
     switch (scr) {
       case id::logo: _full_logo(); break;
       case id::team: _full_team(); break;
-      case id::points: _full_points(); break;
+      case id::scores: _full_scores(); break;
       case id::game_over: _full_game_over(sel); break;
       case id::waiting: _full_waiting(); break;
       default: _full_menu(t, sel); break;
