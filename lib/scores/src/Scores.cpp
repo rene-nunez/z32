@@ -81,6 +81,9 @@ namespace {
   // parses a {"runs":[{p,k,w}]} cache; adopts it only when the RTC came up empty.
   // Returns true when the file existed and parsed, even when there was nothing to adopt.
   bool _load_recent_file(const char* path) {
+    if (!SD.exists(path)) {
+      return false; // clean boot: stay silent, the VFS logs an error on missing reads
+    }
     File f = SD.open(path, FILE_READ);
     if (!f) {
       return false;
@@ -132,6 +135,9 @@ namespace {
   // last resort when both the RTC and the recent cache are empty: replays the tail
   // of the log. Reads at most _TAIL_BYTES so a years-old log still costs O(1) RAM.
   void _log_tail_load() {
+    if (!SD.exists(_LOG)) {
+      return; // clean boot: stay silent, the VFS logs an error on missing reads
+    }
     File f = SD.open(_LOG, FILE_READ);
     if (!f) {
       return; // clean boot, nothing stored yet: stay silent
