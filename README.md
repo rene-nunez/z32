@@ -1,82 +1,169 @@
 # z32
 
-Juego estilo COD Zombies para ESP32 con pantalla TFT de 2.4" (320x240). Sobrevive oleadas de
-zombis en un laberinto, gana puntos por cada baja y gástalos en máquinas expendedoras para
-curarte, subir daño y velocidad, o prueba suerte en la ruleta para conseguir mejores armas.
+Juego estilo COD Zombies para ESP32 con pantalla TFT de 2.4" (ST7789 240x320).
+Sobrevive oleadas infinitas en un laberinto, gana puntos por cada baja y gástalos
+en máquinas expendedoras para curarte y subir tu build, o prueba suerte en la
+ruleta para conseguir mejores armas. Solo o coop a 2 placas por ESP-NOW.
 
-## Características
+## Inicio rápido
 
-- Supervivencia por oleadas infinitas (4 bajas en ronda 1, 10 simultáneos max con refill hasta la cuota).
-- 6 armas: Glock-19 inicial + MP9, SPAS-12 (3 perdigones), AR-15, FAMAS (ráfaga de 3) y M82A1 (daño 6, más alcance) por ruleta (la Glock puede volver como premio tonto).
-- 4 máquinas expendedoras con niveles permanentes + ruleta de armas.
-- Puntos como cartera: ganas por matar, gastas en tienda; al morir se guardan puntos, ronda y bajas.
-- Minimapa en vivo con posición, zombis y encuadre de cámara.
-- Últimas 4 partidas (puntos, ronda y bajas) guardadas entre partidas (memoria RTC + `/z32_recent.json` en microSD) más historial completo en `/z32_log.jsonl` (una línea JSON por partida). En coop cada placa guarda en su propia tarjeta.
-- Menús: inicio, modo de juego, scores, pausa y game over. Botón de apagado con sueño profundo.
-- Coop ESP-NOW a 2 placas: host autoritario (~30Hz, `game_state` 146B + `player_input` 5B), Solo silencioso en ambas, Multi vía `waiting` (timeout 10s / FIRE-solo). P2 entra con pistola fresh, comparte cartera, revive con INTERACT a 3 HP, pausa y game-over espejados.
+- Compilar y flashear según el rol de la placa: `pio run -e host` | `pio run -e client`.
+- Flujo de pantallas: `logo` → `team` (2.5s cada una, se saltan con FIRE) → `menu` →
+  `mode` (Solo / Multi) → `scores` / `waiting` → `playing` → `pause` / `game_over`.
+- En Multi, si no aparece el compañero en 10s (o pulsas FIRE en la espera),
+  entras en Solo.
 
-## Mecánicas
+## Objetivo
 
-- **Oleadas**: cada ronda pide `ronda + 3` bajas (10 simultáneos max, refill inmediato). Al limpiar la cuota hay 3s de calma y llega la siguiente.
-- **Zombis**: vida `2 + ronda/2` (r1=2, r6=5, r10=7). Persiguen por el laberinto y quitan 1 HP
-  por contacto (el boss 3, con 0.4s de inmunidad entre golpes). Jugador con 10 HP.
-- **Puntos**: cada baja paga `10 + 2·ronda` (r1=12 … r6=22). Gastar baja tu cartera; al morir
-  se guardan los puntos que tenías (ganado menos gastado), la ronda y las bajas.
-- **Tiendas** (acércate y pulsa INTERACT):
-  - **H verde — Heal 100**: +2 HP.
-  - **D roja — Daño 150**: +25% de daño por nivel, máximo 10 (se muestra `DMG +75%!`).
-  - **S azul — Velocidad 150**: +8% de velocidad por nivel, máximo 10.
-  - **C naranja — Cadencia 150**: −6% de cooldown por nivel aprox. (multiplicativo), máximo 10.
-  - Cada nivel cuesta más: `base + 300·nivel` (p. ej. daño: 150/450/750… hasta 2850). Niveles
-     permanentes por jugador (cada uno arma su build, panel con pips de HP + `%` real),
-    cartera compartida. Sin puntos o al máximo, avisa (`NEED`, `MAX`).
-- **Ruleta 100**: arma aleatoria entre MP9 (rápido), SPAS-12 (abanico de 3x2), AR-15
-  (daño 3), FAMAS (ráfaga de 3) y M82A1 (daño 6, alcance 220px). La Glock puede
-  volver como premio tonto.
-- **Disparo**: mantén FIRE con MP9/AR-15 (auto a su cadencia); Glock, SPAS-12, FAMAS y M82A1 son tiro a tiro, con auto-apuntado al zombi más cercano (alcance 160px, 220px el M82A1).
-  Cada arma tiene su cadencia: Glock 0.5s, MP9 0.18s, SPAS-12 0.9s, AR-15 0.35s,
-  FAMAS ráfagas de 3 cada 0.6s, M82A1 1.4s.
-- **Cargadores**: cada arma tiene su mag (Glock 15, MP9 30, SPAS-12 8, AR-15 30,
-  FAMAS 30, M82A1 10). La recarga es auto al vaciar (~1s, M82A1 2s, SPAS-12
-  1.5s; moverse es libre, disparar no, avisa `RELOADING...`) y manual con
-  RELOAD para rematar a medias. Arma nueva de ruleta llega cargada.
+- Cada ronda pide `ronda + 3` bajas (ronda 1 = 4). Hay 10 zombis vivos como máximo
+  con refill inmediato en el slot liberado, y 3s de calma silenciosa al limpiar
+  la cuota antes de la siguiente oleada.
+- Pierdes cuando nadie queda en pie (los caídos no cuentan): sale `game_over`
+  y tu run se guarda.
+- Solo hay un mundo y una vida por oleada: aguanta, gasta bien y no te encierren.
 
 ## Controles
 
-| Entrada   | Acción                                              |
-| --------- | --------------------------------------------------- |
-| Joystick  | Moverse (también navega por los menús)              |
-| FIRE      | Disparar (mantener en MP9/AR-15) / confirmar      |
-| INTERACT  | Comprar en tiendas y ruleta                         |
-| RELOAD    | Rematar el cargador a medias (el vacío recarga solo) |
-| PAUSE     | Pausa (Continuar / Reiniciar / Salir); salir = menú |
+| Entrada  | Acción                                                        |
+| -------- | ------------------------------------------------------------- |
+| Joystick | Moverse (también navega por los menús)                         |
+| FIRE     | Disparar (mantener con MP9/AR-15) / confirmar                  |
+| INTERACT | Comprar en tiendas y ruleta / revivir al compañero / pedir ayuda caído |
+| RELOAD   | Rematar el cargador a medias (el vacío recarga solo)           |
+| PAUSE    | Pausa (Continuar / Reiniciar / Salir); salir = menú            |
+
+El centro del joystick se calibra al arrancar (~200ms, manos quietas) y tiene
+zona muerta, así que el reposo nunca mueve al jugador.
+
+## El mundo
+
+- Laberinto de 60x30 tiles de 16px (mundo 960x480): suelo de pradera (lo único
+  caminable) y muros de concreto. 1230 tiles caminables (68%), sin huérfanos.
+- 4 máquinas expendedoras de 2x2 (H/D/S/C) + 4 ruletas de 2x2. Las máquinas son
+  sólidas: hay que comprar pegado a ellas (alcance 28px desde el centro).
+- La cámara sigue a tu jugador en una cuadrícula exacta de 3x3 con cortes duros
+  entre celdas; la arena repinta 80 filas por frame con objetivo de 33ms.
+
+## Zombis
+
+Persiguen por BFS al jugador vivo más cercano, paran a distancia de contacto en
+vez de apilarse y se desempatan entre ellos. Hay 0.4s de inmunidad entre golpes
+recibidos.
+
+| Tipo   | Color  | Vel.  | Vida                  | Daño | Paga               |
+| ------ | ------ | ----- | --------------------- | ---- | ------------------ |
+| Normal | rojo   | 40    | `2 + ronda/2`         | 1    | `10 + 2·ronda`     |
+| Runner | naranja| 80    | `1 + ronda/4`         | 1    | `15 + 2·ronda`     |
+| Boss   | morado | 30    | `20 + ronda`          | 3    | `150 + 10·ronda`   |
+
+- Runners: 0 en ronda 1, luego `min(2·ronda/3, cuota/2)` repartidos uniformes en
+  la cuota (nunca te encierran al abrir).
+- Boss: cada ronda múltiplo de 5 roba el slot 0 de spawn.
+- Spawns a ≥100px del jugador, en tile caminable aleatorio.
+
+## Puntos y tiendas
+
+Los puntos son la cartera compartida (también en coop): matas, cobras y gastas.
+Acércate a la máquina y pulsa INTERACT. Sin puntos o al máximo, avisa
+(`NEED 450 PTS`, `DMG MAX`). Cada máquina muestra su precio flotando encima.
+
+| Máq. | Color   | Efecto                                            | Precio |
+| ---- | ------- | ------------------------------------------------- | ------ |
+| H Heal   | verde   | +2 HP (hasta 10)                              | 100 fijo |
+| D Daño   | roja    | +25% daño por nivel, máx. 10 (panel: `DMG +75%!`) | base 150 + 300·nivel |
+| S Velocidad | azul | +8% velocidad por nivel, máx. 10              | base 150 + 300·nivel |
+| C Cadencia | naranja | −6% cooldown por nivel (multiplicativo), máx. 10 | base 150 + 300·nivel |
+
+Niveles: `150/450/750/…/2850`, rama completa 15000, build completo 45000.
+Los niveles son permanentes por jugador (cada uno arma su build) y la cartera
+es compartida.
+
+## Ruleta y armas
+
+- **Ruleta 100**: arma aleatoria. Solo hay 1 pad activo cada 3 oleadas
+  (desde la 3, por hash acordado entre placas); los apagados responden
+  `NO LUCK HERE`. Si se mueve, anuncia `ROLL RELOCATED!`.
+- Probabilidades: MP9 30 / Glock-19 10 / SPAS-12 25 / AR-15 12 / FAMAS 13 / M82A1 10.
+  La Glock puede volver como premio tonto. Empiezas con Glock-19.
+- El disparo apunta solo al zombi más cercano (alcance 160px, 220px el M82A1).
+  Solo MP9 y AR-15 disparan manteniendo FIRE; el resto es tiro a tiro.
+
+| Arma    | Daño        | Cadencia | Mag | Notas                          |
+| ------- | ----------- | -------- | --- | ------------------------------ |
+| Glock-19| 1           | 0.5s     | 15  | inicial                        |
+| MP9     | 1           | 0.18s    | 30  | auto manteniendo FIRE          |
+| SPAS-12 | 2 por perdigón (3×2, 6/gatillo) | 0.9s | 8 | abanico, recarga 1.5s |
+| AR-15   | 3           | 0.35s    | 30  | auto manteniendo FIRE          |
+| FAMAS   | 1 × ráfaga de 3 (cada 100ms) | 0.6s | 30 | un toque = 3 balas    |
+| M82A1   | 6           | 1.4s     | 10  | alcance 220px, recarga 2s      |
+
+- **Cargadores**: recarga auto al vaciar (~1s, M82A1 2s, SPAS-12 1.5s; moverse es
+  libre, disparar no, avisa `RELOADING...`) y manual con RELOAD para rematar a
+  medias. Arma nueva de ruleta llega cargada. La ruleta y la ráfaga cancelan
+  la recarga en curso.
+- El daño escala con tu nivel: `base·(1 + 0.25·nivel)`.
+
+## Caído y revive (coop)
+
+- A 0 HP caes (no mueres): sangras 15s (`DOWN n` en el panel, marco amarillo).
+- Tu compañero te levanta con INTERACT (`PRESS INT TO REVIVE`) y vuelves con 3 HP
+  (`THX!`). Si sangras del todo (`I'M OUT!`), respawneas en la siguiente oleada
+  (`I'M BACK!`); si aguantaste caído hasta el cambio de oleada, también te levantas
+  con 3 HP.
+- Caído y sin máquinas cerca, INTERACT grita `SAVE ME!`; quieto sale
+  `PRESS INT FOR HELP`. Los avisos salen en el color del que habla
+  (P1 verde, P2 azul acero).
+- El caído conserva su arma y build; el muerto especta al compañero (cámara, HUD
+  y panel muestran su arma/build) hasta respawnear.
 
 ## Pantalla (UI)
 
-- **Arriba**: HUD con ronda/bajas (`WAVE 3 KILLS 12`), arma y balas (`GUN MP9 18`); arena
-  de juego con etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
-  franja central inferior con prompts (`GET DMG +75%`, `HEALED +2HP`,
-  `RELOADING...`, `P2: SAVE ME!`…).
-- **Abajo (panel)**: `POINTS`, ronda y bajas (`W3 K12`), arma (`GUN MP9`), pips de
-  `HP` (10 chunky, en rojo si quedan ≤4), `DMG`, `SPD` y `ROF` como `%` en bold
-   (tu build) + minimapa con tu punto
-   verde (P2 azul, rojo si HP≤4),
-   zombis rojos, ruleta activa en lime y marco amarillo de cámara.
+- **Arriba (HUD 10px)**: `WAVE/KILLS` a la izquierda, `GUN + balas` en el centro
+  y rol a la derecha. Cada placa muestra su propio foco (host P1, cliente P2).
+- **Arena (160px)**: etiquetas de precio sobre cada máquina (`HEAL 100`, …) y
+  franja central de avisos con prioridad: resultados (`THX!`/`I'M OUT!`/`I'M BACK!`)
+  > `PRESS INT TO REVIVE` > `SAVE ME!` > `PRESS INT FOR HELP` > `RELOADING...` >
+  proximidad (`GET DMG +75%`, `GET ROLL 100`…) / `NO LUCK HERE` / jefes.
+- **Abajo (panel 70px)**: `POINTS` grande + pips de `HP` (10, en rojo con ≤4;
+  en coop `HP1+HP2` con `DOWN n` sangrando) + `DMG/SPD/ROF` como `%` real de tu
+  build + minimapa de 2px/tile (tú verde, P2 azul, rojo en crítico, caído
+  amarillo, zombis rojo/naranja/morado según tipo, ruleta activa en lima y marco
+  amarillo de cámara).
+
+## Coop (2 placas, ESP-NOW)
+
+- Host autoritario: simula ambas placas y emite estado a ~30Hz
+  (`game_state` 146B + `player_input` 5B); el cliente envía inputs y espeja.
+- Solo es local y silencioso en ambas placas. Multi vía `waiting`: el host entra
+  con el latido del peer, el cliente con el primer snapshot vivo; timeout 10s o
+  FIRE para ir Solo; si el cliente pierde al host 3s, vuelve al menú.
+- P2 comparte cartera/kills y entra con pistola y build fresh; se cura a sí mismo
+  y revive igual. La pausa es del host pero se puede pedir desde cualquiera
+  (Continuar/Reiniciar/Salir solo en host) y el game-over se espeja completo.
+
+## Sonido
+
+Buzzer pasivo en GPIO 26 (no bloqueante): menú, disparo, compra, ruleta, daño,
+oleada, game-over, denegado, intro y recarga.
+
+## Scores
+
+Cada muerte guarda `{puntos, bajas, oleada}` en tu propia placa: últimas 4 en
+memoria RTC + `/z32_recent.json` en microSD, e historial completo en
+`/z32_log.jsonl` (un JSON por línea). Pantalla `scores` en el menú.
 
 ## Hardware (ESP32)
 
 - TFT ST7789 SPI: CS 5, RST 4, DC 2, MOSI 23, SCLK 18, MISO 19, BL 21.
 - Joystick analógico: X 32, Y 33. Botones: FIRE 13, RELOAD 14, INTERACT 15, PAUSE 27.
-- Buzzer pasivo GPIO 26 con jingles (disparos, compras, oleadas…).
-- microSD (CS 22, comparte SPI): caché de últimas 4 en `/z32_recent.json` + historial completo en `/z32_log.jsonl`.
-- Compilar: `pio run -e host` | `pio run -e client`.
+- Buzzer pasivo GPIO 26. microSD compartiendo el SPI del TFT + CS 22.
+- ADC2 no se usa para analógico (lo inhabilita el WiFi/ESP-NOW).
 
-## Consola serial (115200)
+## Compilar y depurar
 
-Eventos raros, nada por frame. Boot: `ready role=host/client`, `microsd ok` (o `no sd, rtc only`).
-Cada muerte guarda y anuncia la línea idéntica a la del historial: `run saved {"p":1250,"k":42,"w":5}`.
-En coop: `joined multi`, `waiting timeout`, `peer quiet 3000ms` y `pause from peer` (causas que no tienen aviso en pantalla).
-
-## En camino
-
-- Pulido final y balance en hardware.
+- Compilar: `pio run -e host` | `pio run -e client` (el rol viene del build).
+- Tests nativos (sin hardware): `./test/test_native/run.sh` (tilemap/cámara + wire).
+- Consola serial (115200): solo eventos, nada por frame. Boot: `ready role=host/client`,
+  `microsd ok` (o `no sd, rtc only`). Cada muerte anuncia la línea idéntica a la
+  del historial: `run saved {"p":1250,"k":42,"w":5}`. En coop: `joined multi`,
+  `waiting timeout`, `peer quiet 3000ms` y `pause from peer`.
