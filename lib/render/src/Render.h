@@ -4,6 +4,7 @@
 
 #include <Display.h>
 #include <Sim.h>
+#include <sprites.h>
 
 // The arena view: camera, the incremental terrain repaint and the entity boxes. It reads the
 // simulation and nothing else, so what it paints is a function of sim state plus geometry.
@@ -41,6 +42,9 @@ class render {
     static uint16_t _prompt_col; // its colour (default yellow, green buys/THX, white info, red danger...)
 
     static int16_t _cell_cam(int16_t p, int16_t step, int16_t max_cam);
+    static void _art_bbox(const uint16_t* img, uint8_t art, bool flip, uint8_t& x0,
+                          uint8_t& y0, uint8_t& w, uint8_t& h); // opaque art bbox, cached
+    static void _erase_box(int16_t wx, int16_t wy, int16_t w, int16_t h); // one-burst terrain push
     static int16_t _sprite_tl(int16_t e, uint8_t hitbox, uint8_t art); // art centred on hitbox
     static void _draw_actor(int16_t ex, int16_t ey, uint8_t hitbox, uint8_t art,
                             const uint16_t* img, bool flip); // centred sprite, opt. mirror

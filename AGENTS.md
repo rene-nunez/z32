@@ -37,7 +37,7 @@
 - `src/main.cpp` — `game::begin(DEVICE_ROLE)` + `game::update()`
 - `test/test_native` — host-side tilemap/camera checks + net wire checks; `./test/test_native/run.sh` builds `map_test.cpp` + `net_test.cpp` with plain `g++` (binaries to `$TMPDIR`, no Unity); `test_ignore = test_native` keeps `pio test` off it
 
-Libraries resolve via LDF `chain`. Every `lib/*/src/*.cpp` compiles always; cross-library includes use `<>`, same-directory use `""`. TFT config repo-wide from `[env]`: `-D USER_SETUP_LOADED` + `-include tft_setup.h`. Filenames case-sensitive on Linux.
+Libraries resolve via LDF `chain`. Every `lib/*/src/*.cpp` compiles always; a lib's external deps must surface in its public header (a `.cpp`-only include can go blind to LDF after renames/splits: `render` needs `sprites.h` in `Render.h`). Cross-library includes use `<>`, same-directory use `""`. TFT config repo-wide from `[env]`: `-D USER_SETUP_LOADED` + `-include tft_setup.h`. Filenames case-sensitive on Linux.
 
 ## Display (TFT)
 
