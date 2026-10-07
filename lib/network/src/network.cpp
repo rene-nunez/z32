@@ -34,8 +34,8 @@ bool network::begin(uint8_t role) {
     return false;
   }
 
-  esp_now_register_send_cb(_on_sent); // send callback
-  esp_now_register_recv_cb(_on_received); // receive callback
+  esp_now_register_send_cb(_on_sent);
+  esp_now_register_recv_cb(_on_received);
 
   if (!_add_peer()) {
     Serial.println("[network] peer add failed, resetting...");
