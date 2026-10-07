@@ -6,19 +6,17 @@
 #include <sim.h>
 #include <map.h>
 
-// The bottom panel: minimap plus the status text. The minimap outlines the camera cell, so it
-// reads render for the arena origin and the camera, and sim for the blips.
+// The bottom panel: minimap plus the status text
 class panel {
   public:
-    static void init();  // once per run: black panel + minimap terrain
-    static void draw();  // per frame: points, HP pips, DMG/SPD/ROF % (focus build)
+    static void init(); // once per run: black panel + minimap terrain
+    static void draw(); // per frame: points, HP pips, DMG/SPD/ROF % (focus build)
     static void blips(); // per frame: camera cell frame and the entity dots
-    // active roulette pad marker (top-left tile, -1 = none): game pushes it from
-    // its shop scan + wave epoch, blips() paints it green under the dots
+
+    // active roulette pad (top-left tile, -1 = none): game pushes it, blips() paints its minimap marker lime
     static void set_roll(int16_t tx, int16_t ty);
 
   private:
-    // minimap: 2px per tile, drawn once, then only blips change
     static constexpr uint8_t _mm_scale = 2;
     static constexpr uint8_t _panel_h = 70;
     static constexpr int16_t _mm_w = (int16_t)tilemap::COLS * _mm_scale;

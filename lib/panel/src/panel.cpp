@@ -10,16 +10,20 @@
 int16_t panel::_mm_px[2 + sim::MAX_ZOMBIES] = {0};
 int16_t panel::_mm_py[2 + sim::MAX_ZOMBIES] = {0};
 uint8_t panel::_mm_n = 0;
-int16_t panel::_mm_ctx = -1; // camera cell tile whose frame is on the minimap, -1 = none yet
+int16_t panel::_mm_ctx = -1;
 int16_t panel::_mm_cty = -1;
-int16_t panel::_roll_tx = -1, panel::_roll_ty = -1; // set by game, painted green in blips
-int16_t panel::_roll_dx = -1, panel::_roll_dy = -1; // last painted marker, restored next frame
+int16_t panel::_roll_tx = -1, panel::_roll_ty = -1; // set by game, painted lime in blips
+int16_t panel::_roll_dx = -1, panel::_roll_dy = -1;
+
 // stats cache: draw() only repaints when a value changes, blips() stays per-frame
 static uint32_t _cache_points = 0xFFFFFFFF;
 static uint8_t _cache_hp0 = 0xFF, _cache_hp1 = 0xFF, _cache_bleed0 = 0xFF, _cache_bleed1 = 0xFF;
 static uint8_t _cache_dmg = 0xFF, _cache_spd = 0xFF, _cache_rpd = 0xFF;
 static uint8_t _cache_p2 = 0xFF, _cache_down0 = 0xFF, _cache_down1 = 0xFF;
-static uint8_t _cache_shown = 0xFF; // displayed player: focus, or partner while spectating
+static uint8_t _cache_shown = 0xFF;
+
+// P2 steel blue, brightened to read at 2px (same as the HP2 row and P2 prompts)
+static constexpr uint16_t _p2_blue = 0x54DA; // rgb565(80,152,208)
 
 int16_t panel::_mm_x() {
   return (int16_t)display::width() - _mm_w - _mm_gap;
@@ -47,16 +51,13 @@ void panel::init() {
     for (uint8_t c = 1; c < tilemap::COLS; ++c) {
       const uint16_t col = tilemap::color(tilemap::tile_at((int16_t)c * tilemap::TILE, wy));
       if (col != run_col) {
-        display::fill_rect(mx + run_x * _mm_scale, sy, (int16_t)(c - run_x) * _mm_scale, _mm_scale,
-                           run_col);
+        display::fill_rect(mx + run_x * _mm_scale, sy, (int16_t)(c - run_x) * _mm_scale, _mm_scale, run_col);
         run_x = c;
         run_col = col;
       }
     }
-    display::fill_rect(mx + run_x * _mm_scale, sy, (int16_t)(tilemap::COLS - run_x) * _mm_scale,
-                       _mm_scale, run_col);
+    display::fill_rect(mx + run_x * _mm_scale, sy, (int16_t)(tilemap::COLS - run_x) * _mm_scale, _mm_scale, run_col);
   }
-  _mm_n = 0;
 }
 
 void panel::set_roll(int16_t tx, int16_t ty) {
@@ -73,14 +74,11 @@ void panel::_pip_row(int16_t y, const char* label, uint8_t lvl, uint8_t max, uin
 }
 
 void panel::draw() {
-  // stats live left of the minimap; wave/kills and the gun moved to the 10px HUD, so this
-  // keeps POINTS big plus the pip rows with room to breathe. Every row is cleared first:
-  // numbers shrink and overpainting alone would leave ghost digits behind.
-  // cached: POINTS/HP/buffs only change on kills/buys/hits, so most frames skip here
-  // entirely (blips() still runs per frame). init() invalidates the cache.
+  // stats live left of the minimap; every row is cleared first (shrinking numbers would leave ghost digits)
+  // Cached on value change; init() invalidates
   const sim::state& v = sim::view();
   const uint8_t p2 = v.players[1].active ? 1 : 0;
-  const uint8_t f = render::focus(); // this board's build: host/solo P1, client P2
+  const uint8_t f = render::focus();
   // spectator: bled-out (dead till the wave, not downed) shows the living partner's
   // build till the respawn; downed keeps its own (it rises with it)
   const uint8_t q = (uint8_t)(1 - f);
@@ -128,23 +126,18 @@ void panel::draw() {
       // countdown starts where the pips start: same column, same row
       display::text(label, 4, y, colour::white, 1);
       snprintf(buf, sizeof(buf), "DOWN %u", v.players[p].bleed);
-      display::text(buf, 28, y, colour::yellow, 1); // seconds shrink, cleared above
+      display::text(buf, 28, y, colour::yellow, 1);
       return;
     }
-    const uint16_t col = (v.players[p].hp * 5 <= sim::PLAYER_HP_MAX * 2) ? colour::red
-                                                                                   : ok_col; // low hp reads red
+    const uint16_t col = (v.players[p].hp * 5 <= sim::PLAYER_HP_MAX * 2) ? colour::red : ok_col; // low hp reads red
     _pip_row(y, label, v.players[p].hp, sim::PLAYER_HP_MAX, col);
   };
-  hp_row(0, hp_y, p2 ? "HP1" : "HP", colour::green); // P1 suit reads green already
+  hp_row(0, hp_y, p2 ? "HP1" : "HP", colour::green);
   if (p2) {
-    // P2 suit is dark steel blue (0x3310): same hue, brightened to read at 8px
-    constexpr uint16_t hp2_col = 0x54DA; // rgb565(80,152,208)
-    hp_row(1, hp_y + pitch, "HP2", hp2_col);
+    hp_row(1, hp_y + pitch, "HP2", _p2_blue);
   }
-  // buffs are % text only (no pips): this board's build, or the living partner's
-  // while spectating bled-out (focus: host/solo P1, client P2), left-aligned at
-  // x=28 hugging the label. Bold via a double draw; every row is cleared first
-  // so shrinking text leaves no ghosts.
+  // buffs are % text only: this board's build (or the living partner's while
+  // spectating bled-out), left-aligned at x=28. Bold via a double draw
   auto buff_row = [&](int16_t y, const char* label, uint8_t b, char sign, uint16_t col) {
     display::fill_rect(0, y, mx, 8, colour::black);
     display::text(label, 4, y, colour::white, 1);
@@ -153,8 +146,7 @@ void panel::draw() {
     display::text(buf, 29, y, col, 1);
   };
   buff_row(tail_y, "DMG", sim::dmg_bonus(v.dmg_lvl[s]), '+', colour::red);
-  buff_row(tail_y + pitch, "SPD", sim::spd_bonus(v.spd_lvl[s]), '+',
-           display::rgb565(60, 130, 230));
+  buff_row(tail_y + pitch, "SPD", sim::spd_bonus(v.spd_lvl[s]), '+', display::rgb565(60, 130, 230));
   buff_row(tail_y + 2 * pitch, "ROF", sim::rpd_cut(v.rpd_lvl[s]), '-', colour::orange);
 }
 
@@ -195,8 +187,7 @@ void panel::_mm_dot(int16_t wx, int16_t wy, uint16_t col) {
   if (_mm_n >= (uint8_t)(2 + sim::MAX_ZOMBIES)) {
     return;
   }
-  display::fill_rect(_mm_x() + (wx / tilemap::TILE) * _mm_scale, _mm_y + (wy / tilemap::TILE) * _mm_scale,
-                     _mm_scale, _mm_scale, col);
+  display::fill_rect(_mm_x() + (wx / tilemap::TILE) * _mm_scale, _mm_y + (wy / tilemap::TILE) * _mm_scale, _mm_scale, _mm_scale, col);
   _mm_px[_mm_n] = wx;
   _mm_py[_mm_n] = wy;
   ++_mm_n;
@@ -230,15 +221,11 @@ void panel::_mm_frame() {
   _mm_cty = cty;
 }
 
-// P2 steel blue, brightened to read at 2px (same as the HP2 row and P2 prompts)
-static constexpr uint16_t _p2_blue = 0x54DA; // rgb565(80,152,208)
-
 void panel::blips() {
   for (uint8_t i = 0; i < _mm_n; ++i) { // restore the terrain under last frame's dots
     const int16_t tx = _mm_px[i] / tilemap::TILE;
     const int16_t ty = _mm_py[i] / tilemap::TILE;
-    display::fill_rect(_mm_x() + tx * _mm_scale, _mm_y + ty * _mm_scale, _mm_scale, _mm_scale,
-                       tilemap::color(tilemap::tile_at(_mm_px[i], _mm_py[i])));
+    display::fill_rect(_mm_x() + tx * _mm_scale, _mm_y + ty * _mm_scale, _mm_scale, _mm_scale, tilemap::color(tilemap::tile_at(_mm_px[i], _mm_py[i])));
   }
   _mm_n = 0;
 
@@ -251,8 +238,7 @@ void panel::blips() {
       _roll_ty + 1 < tilemap::ROWS) {
     // active roulette pad: solid lime 2x2 under the dots (lime is free on the
     // minimap: players green/steel-blue/yellow, zombies red/orange/purple)
-    display::fill_rect(_mm_x() + _roll_tx * _mm_scale, _mm_y + _roll_ty * _mm_scale,
-                       (int16_t)(2 * _mm_scale), (int16_t)(2 * _mm_scale), colour::lime);
+    display::fill_rect(_mm_x() + _roll_tx * _mm_scale, _mm_y + _roll_ty * _mm_scale, (int16_t)(2 * _mm_scale), (int16_t)(2 * _mm_scale), colour::lime);
     _roll_dx = _roll_tx;
     _roll_dy = _roll_ty;
   }
@@ -263,9 +249,7 @@ void panel::blips() {
   for (uint8_t p = 0; p < sim::NUM_PLAYERS; ++p) {
     if (!v.players[p].active || (v.players[p].hp == 0 && !v.players[p].downed)) {
       continue; // inactive, or bled out (dead till the wave): no dot. Downed keeps
-    }           // its yellow dot (hp reads 0 there too, so the downed check matters).
-    // dots wear the HP colours (P1 green, P2 steel blue), red at critical HP
-    // like the pips (hp<=4 of 10); downed stays yellow, bled-out has no dot
+    }           // its yellow dot (hp reads 0 there too, so the downed check matters)
     uint16_t col = (p == 0) ? colour::green : _p2_blue;
     if (v.players[p].downed) {
       col = colour::yellow; // body to rescue
