@@ -12,10 +12,8 @@ namespace {
   const buzz::note _j_wave[] = {{392, 90}, {523, 90}, {659, 140}};
   const buzz::note _j_over[] = {{400, 120}, {300, 120}, {200, 120}, {150, 200}};
   const buzz::note _j_denied[] = {{200, 90}, {0, 40}, {200, 120}};
-  const buzz::note _j_reload[] = {{1200, 30}, {0, 40}, {900, 50}}; // mag out, mag in
-  // intro lament: stepwise D-minor song rising D-E-F, sinking to the modal C
-  // and resolving from low A, ~2.15s so it fills one 2.5s intro screen.
-  // Fired on logo entry and re-fired on team entry.
+  const buzz::note _j_reload[] = {{1200, 30}, {0, 40}, {900, 50}};
+  // ~2.15s to fill one intro screen.
   const buzz::note _j_intro[] = {{294, 150}, {330, 150}, {349, 150}, {330, 150},
                                  {294, 200}, {262, 200}, {294, 450}, {0, 150},
                                  {220, 200}, {294, 350}};
@@ -56,10 +54,10 @@ void buzz::play(jingle j) {
 
 void buzz::update(uint32_t now) {
   if (_seq == nullptr) {
-    return; // idle
+    return;
   }
   if ((int32_t)(now - _until) < 0) {
-    return; // sounding note still has time left (wrap-safe)
+    return; // wrap-safe
   }
   const uint8_t next = (uint8_t)(_i + 1u);
   if (next >= _n) {
