@@ -25,7 +25,6 @@ namespace tilemap {
             t = WALL;
             break;
           case 'H':
-          case 'V':
             t = VENDING;
             break;
           case 'D':
@@ -60,8 +59,9 @@ namespace tilemap {
 
   bool solid(int16_t tx, int16_t ty) {
     if (tx < 0 || tx >= (int16_t)COLS || ty < 0 || ty >= (int16_t)ROWS) {
-      return true; // outside the map is wall
+      return true;
     }
+
     return !_walkable_tile(tiles[ty][tx]);
   }
 
@@ -78,6 +78,7 @@ namespace tilemap {
         }
       }
     }
+
     return false;
   }
 
@@ -87,6 +88,7 @@ namespace tilemap {
     if (tx < 0 || tx >= (int16_t)COLS || ty < 0 || ty >= (int16_t)ROWS) {
       return WALL;
     }
+
     return tiles[ty][tx];
   }
 
@@ -109,7 +111,7 @@ namespace tilemap {
     }
   }
 
-  // scale an rgb565 colour by num/den with clamping; used for sprite shading.
+  // scale an rgb565 colour by num/den with clamping
   static uint16_t _shade(uint16_t col, uint8_t num, uint8_t den) {
     uint16_t r = (uint16_t)((col >> 11) & 0x1F);
     uint16_t g = (uint16_t)((col >> 5) & 0x3F);
@@ -123,17 +125,18 @@ namespace tilemap {
     return (uint16_t)((r << 11) | (g << 5) | b);
   }
 
-  // Super-minimal: flat grass, 1px darker edge on plain solids. The shop
-  // furniture gets real 16px sprites so it reads as what it is.
+  // The shop furniture gets real 16px sprites so it reads as what it is
   uint16_t color_at(int16_t wx, int16_t wy) {
     const uint8_t t = tile_at(wx, wy);
     const uint16_t base = color(t);
     if (t == FLOOR) {
       return base;
     }
+
     if (wx < 0 || wy < 0 || wx >= (int16_t)WORLD_W || wy >= (int16_t)WORLD_H) {
       return base;
     }
+
     const int16_t px = wx & 15;
     const int16_t py = wy & 15;
 
@@ -142,10 +145,7 @@ namespace tilemap {
       case V_DMG:
       case V_SPD:
       case V_RPD: {
-        // 2x2 vending machine (32x32): local coords from the same-type
-        // neighbours above/left, so every quadrant draws its own quarter.
-        // H green = heal, D red = damage, S blue = speed, C orange = rapid;
-        // the side panel and the colour band below the header carry the base.
+        // 2x2 vending machine (32x32): local coords from the same-type neighbours above/left, so every quadrant draws its own quarter
         const int16_t gx = (tile_at(wx - TILE, wy) == t ? 16 : 0) + px;
         const int16_t gy = (tile_at(wx, wy - TILE) == t ? 16 : 0) + py;
         const bool edge_x = (gx == 0 || gx == 31);
@@ -160,7 +160,7 @@ namespace tilemap {
           return display::rgb565(210, 240, 250); // header light
         }
         if (gy >= 7 && gy <= 9) {
-          return base; // colour band: green heal, red damage, blue speed
+          return base;
         }
         if (gy >= 28) {
           return display::rgb565(20, 50, 65); // kick plate
@@ -187,7 +187,7 @@ namespace tilemap {
         return display::rgb565(25, 60, 75); // dark glass
       }
       case ROULETTE: {
-        // 2x2 prize wheel (32x32), oxidized: bronze segments, rust details.
+        // 2x2 prize wheel (32x32)
         const int16_t gx = (tile_at(wx - TILE, wy) == ROULETTE ? 16 : 0) + px;
         const int16_t gy = (tile_at(wx, wy - TILE) == ROULETTE ? 16 : 0) + py;
         const int16_t dx = gx - 16;
@@ -239,6 +239,7 @@ namespace tilemap {
         if (px == 0 || px == 15 || py == 0 || py == 15) {
           return _shade(base, 4, 5); // 1px darker edge on plain solids
         }
+
         return base;
       }
     }
@@ -289,6 +290,7 @@ namespace tilemap {
     if (wx < 0 || wy < 0 || wx >= (int16_t)WORLD_W || wy >= (int16_t)WORLD_H) {
       return UNREACHABLE;
     }
+
     return field[wy / TILE][wx / TILE];
   }
 }
