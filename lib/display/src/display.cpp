@@ -13,9 +13,8 @@ bool display::begin() {
   digitalWrite(TFT_BL, HIGH);
 
   _tft.setRotation(1); // landscape 320x240
-  _tft.setSwapBytes(true); // pushImage sends raw words: without the swap the
-                           // blit/erase bursts come out byte-flipped (BGR glass).
-                           // fillRect/text/drawPixel are unaffected by this flag.
+  _tft.setSwapBytes(true); // pushImage sends raw words: without the swap the blit/erase bursts come out byte-flipped (BGR glass),
+                           // fillRect/text/drawPixel are unaffected by this flag
   _tft.fillScreen(colour::black);
 
   return true;
@@ -29,16 +28,8 @@ uint16_t display::height() {
   return _tft.height();
 }
 
-void display::clear(uint16_t color) {
-  _tft.fillScreen(color);
-}
-
 void display::fill_rect(int16_t x, int16_t y, int16_t w, int16_t h, uint16_t color) {
   _tft.fillRect(x, y, w, h, color);
-}
-
-void display::pixel(int16_t x, int16_t y, uint16_t color) {
-  _tft.drawPixel(x, y, color);
 }
 
 void display::text(const char* s, int16_t x, int16_t y, uint16_t color, uint8_t size, uint16_t bg) {
@@ -56,6 +47,7 @@ void display::push_image(int16_t x, int16_t y, int16_t w, int16_t h, const uint1
   if (w <= 0 || h <= 0) {
     return;
   }
+
   _tft.pushImage(x, y, (int32_t)w, (int32_t)h, (uint16_t*)data);
 }
 
