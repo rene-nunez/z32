@@ -3,26 +3,26 @@
 // Net wire format for F6 co-op. Deliberately free of Arduino/ESP-NOW includes so the
 // native bank (test/test_native) can compile it with plain g++: structs, sizes and the
 // quantizers are all checked there. The firmware mapping sim<->net lives in sim
-// (snapshot/apply_snapshot); game only moves these bytes.
+// (snapshot/apply_snapshot); game only moves these bytes
 //
 // Layout (little-endian, same core both ends):
 //   game_state: type(1) + seq(2) + players 2x7 + meta 21 + zombies 10x6 + bullets 8x6 = 146B
 //   player_input: type(1) + jx(1) + jy(1) + buttons(1) + seq(1) = 5B
-// Both fit the 250 bytes/msg cap with room to spare.
+// Both fit the 250 bytes/msg cap with room to spare
 #include <cmath>
 #include <cstdint>
 
 namespace net {
-  constexpr uint8_t TYPE_STATE = 0x02; // == msg_type::game_state, asserted in Protocol.h
-  constexpr uint8_t TYPE_INPUT = 0x10; // == msg_type::player_input, asserted in Protocol.h
-  constexpr uint8_t TYPE_CHAT = 0x20; // == msg_type::chat, asserted in Protocol.h
+  constexpr uint8_t TYPE_STATE = 0x02; // == msg_type::game_state, asserted in protocol.h
+  constexpr uint8_t TYPE_INPUT = 0x10; // == msg_type::player_input, asserted in protocol.h
+  constexpr uint8_t TYPE_CHAT = 0x20; // == msg_type::chat, asserted in protocol.h
 
   constexpr size_t STATE_LEN = 146;
   constexpr size_t INPUT_LEN = 5;
   constexpr size_t MAX_MSG = 250;
 
-  // screen mirror for the co-op pause menu: the host owns it, the client only paints it.
-  // game-owned bytes: sim::snapshot leaves them alone, game sets them per broadcast.
+  // screen mirror for the co-op pause menu: the host owns it, the client only paints it
+  // game-owned bytes: sim::snapshot leaves them alone, game sets them per broadcast
   constexpr uint8_t SCREEN_PLAYING = 0;
   constexpr uint8_t SCREEN_PAUSE = 1;
   constexpr uint8_t SCREEN_OVER = 2;
@@ -50,14 +50,14 @@ namespace net {
   struct __attribute__((packed)) net_player {
     uint16_t x, y; // world px * 4 (0.25px steps; 960*4 < 2^16)
     uint8_t hp;
-    uint8_t flags; // PF_ACTIVE | PF_DOWNED
+    uint8_t flags; // PF_ACTIVE | PF_DOWNED | PF_RELOADING | dir << PF_DIR_SHIFT
     uint8_t bleed; // seconds left while downed
   };
 
   struct __attribute__((packed)) net_zombie {
     uint16_t x, y; // world px * 4
     uint8_t hp;
-    uint8_t flags; // ZF_ACTIVE | kind << ZF_KIND_SHIFT
+    uint8_t flags; // ZF_ACTIVE | kind << ZF_KIND_SHIFT | dir << ZF_DIR_SHIFT
   };
 
   struct __attribute__((packed)) net_bullet {
@@ -89,14 +89,14 @@ namespace net {
     uint8_t type = TYPE_INPUT;
     int8_t jx = 0; // -127..127
     int8_t jy = 0;
-    uint8_t buttons = 0; // BTN_* bitmask, levels (host derives edges)
+    uint8_t buttons = 0; // levels bitmask (host derives edges)
     uint8_t seq = 0;
   };
 
   // co-op callouts (SAVE ME / THX): 4B edge-triggered shouts, one code
   // path both directions. THX derives locally from the shared sim state
   // (zero bytes); only the voluntary SAVE ME travels (still the come wire
-  // id, no protocol change). Solo never sends.
+  // id, no protocol change). Solo never sends
   enum class chat_id : uint8_t { help, come, thanks, ammo };
 
   struct __attribute__((packed)) chat_msg {
