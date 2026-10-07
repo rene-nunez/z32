@@ -6,7 +6,7 @@
 constexpr float _deadzone = 0.3f;
 constexpr float _smoothing = 0.5f;
 constexpr uint32_t _debounce_ms = 50;
-constexpr uint8_t _calib_n = 20; // boot samples per axis, stick at rest
+constexpr uint8_t _calib_n = 20;
 
 float input::_jx = 0.0f;
 float input::_jy = 0.0f;
@@ -27,14 +27,16 @@ bool input::begin() {
   pinMode(BTN_INTERACT, INPUT_PULLUP);
   pinMode(BTN_PAUSE, INPUT_PULLUP);
 
-  // every pot rests elsewhere: average the stick at boot so release reads 0.
-  // hands off during the logo or the centre learns an offset (same 200ms window).
+  // every pot rests elsewhere: average the stick at boot so release reads 0
+  // hands off during the logo or the centre learns an offset (same 200ms window)
   uint32_t sx = 0, sy = 0;
+
   for (uint8_t i = 0; i < _calib_n; ++i) {
     sx += analogRead(JOY_X);
     sy += analogRead(JOY_Y);
     delay(10);
   }
+
   _cx = (uint16_t)(sx / _calib_n);
   _cy = (uint16_t)(sy / _calib_n);
 
@@ -95,9 +97,11 @@ float input::_axis(uint8_t pin) {
   const uint16_t c = (pin == JOY_X) ? _cx : _cy;
   const float span = (float)((c > 2047) ? (4095 - c) : c); // headroom to the rail
   const float v = (span > 0.0f) ? (float)((int)analogRead(pin) - (int)c) / span : 0.0f;
+
   if (v > -_deadzone && v < _deadzone) {
     return 0.0f;
   }
+
   return v > 0.0f ? (v - _deadzone) / (1.0f - _deadzone) : (v + _deadzone) / (1.0f - _deadzone);
 }
 
