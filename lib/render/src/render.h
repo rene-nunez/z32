@@ -7,8 +7,8 @@
 #include <sprites.h>
 
 // The arena view: camera, the incremental terrain repaint and the entity boxes. It reads the
-// simulation and nothing else, so what it paints is a function of sim state plus geometry.
-// The panel sits next to it and needs the arena origin and the camera, hence those are public.
+// simulation and nothing else, so what it paints is a function of sim state plus geometry
+// The panel sits next to it and needs the arena origin and the camera, hence those are public
 class render {
   public:
     // screen layout: hud strip (W/K + gun + role badge, painted by game), arena, bottom panel
@@ -18,13 +18,13 @@ class render {
     static constexpr uint8_t SPRITE = 16; // actor art is 16x16, centred on the hitbox
     static constexpr uint8_t BOSS_ART = 32; // the boss is double presence, same 6px core
 
-    static void repaint();     // schedule a full arena repaint from the tilemap
+    static void repaint(); // schedule a full arena repaint from the tilemap
     static void repaint_step(); // paint up to PAINT_CHUNK pending arena rows
     static void update_camera();
     static void set_focus(uint8_t p); // co-op: each board frames its own player
     static uint8_t focus(); // that player: panel/HUD/tags show its build
-    static void clear();       // erase the entities through the tilemap colours
-    static void draw();        // terrain, entities, tags and the prompt
+    static void clear(); // erase the entities through the tilemap colours
+    static void draw(); // terrain, entities, tags and the prompt
     static void prompt(const char* msg, uint16_t color = colour::yellow); // transient strip text
 
     static int16_t cam_x();
@@ -32,7 +32,7 @@ class render {
 
   private:
     static constexpr uint8_t PAINT_CHUNK = 80; // arena rows repainted per frame
-    static constexpr int16_t _prompt_h = 10;   // prompt strip height at the arena bottom
+    static constexpr int16_t _prompt_h = 10; // prompt strip height at the arena bottom
     static constexpr int16_t _tag_max_w = 8 * 6; // widest price tag ("DMG 2850"), for erasing
 
     static int16_t _cam_x, _cam_y;
@@ -42,12 +42,10 @@ class render {
     static uint16_t _prompt_col; // its colour (default yellow, green buys/THX, white info, red danger...)
 
     static int16_t _cell_cam(int16_t p, int16_t step, int16_t max_cam);
-    static void _art_bbox(const uint16_t* img, uint8_t art, bool flip, uint8_t& x0,
-                          uint8_t& y0, uint8_t& w, uint8_t& h); // opaque art bbox, cached
+    static void _art_bbox(const uint16_t* img, uint8_t art, bool flip, uint8_t& x0, uint8_t& y0, uint8_t& w, uint8_t& h); // opaque art bbox, cached
     static void _erase_box(int16_t wx, int16_t wy, int16_t w, int16_t h); // one-burst terrain push
     static int16_t _sprite_tl(int16_t e, uint8_t hitbox, uint8_t art); // art centred on hitbox
-    static void _draw_actor(int16_t ex, int16_t ey, uint8_t hitbox, uint8_t art,
-                            const uint16_t* img, bool flip); // centred sprite, opt. mirror
+    static void _draw_actor(int16_t ex, int16_t ey, uint8_t hitbox, uint8_t art, const uint16_t* img, bool flip); // centred sprite, opt. mirror
     // facing (sim 8-wind) -> stored art + mirror: players N,S,E,NE,SE; zombies N,S,E
     static const uint16_t* _player_img(uint8_t p, uint8_t d, bool& flip);
     static const uint16_t* _zombie_img(sim::actor_kind k, uint8_t d, bool& flip);

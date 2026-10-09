@@ -9,9 +9,9 @@
 
 #include "render.h"
 
-// render core: camera, terrain repaint, entity erase and the frame draw.
+// render core: camera, terrain repaint, entity erase and the frame draw
 // Actors live in actors.cpp, price tags and the prompt strip in tags.cpp;
-// every class static below is defined once here and used across them.
+// every class static below is defined once here and used across them
 
 int16_t render::_cam_x = 0;
 int16_t render::_cam_y = 0;
@@ -21,7 +21,7 @@ const char* render::_prompt = nullptr;
 uint16_t render::_prompt_col = colour::yellow;
 // conditional strip erase: text the strip was last erased for ("" = clean terrain)
 // plus the camera of that erase. Steady text + steady camera skips the 320x10
-// terrain repaint every frame (that cost used to stretch frames and tear sprites).
+// terrain repaint every frame
 static char _prompt_erased[28] = "";
 static int16_t _prompt_ex = -1, _prompt_ey = -1;
 
@@ -41,7 +41,7 @@ int16_t render::cam_y() {
 void render::repaint() {
   // NOTE: HUD strip (0..HUD_H) belongs to game::_draw_hud (cached): a camera cut must
   // not wipe it, or the cache would skip and leave it black. Menu->playing transitions
-  // force a full HUD repaint via game (which wipes + repaints all fields itself).
+  // force a full HUD repaint via game (which wipes + repaints all fields itself)
   _paint_y = 0; // the arena repaint runs from here, PAINT_CHUNK rows per frame
 }
 
@@ -97,9 +97,9 @@ void render::update_camera() {
   const int16_t aw = (int16_t)display::width();
   const sim::state& v = sim::view();
   // each board frames its own player, so co-op splits across districts freely. A downed
-  // focus still frames its body (spectate the rescue); only an inactive focus falls back.
+  // focus still frames its body (spectate the rescue); only an inactive focus falls back
   // A bled-out body (active, hp 0, not downed) spectates the living partner until the
-  // next wave respawns it: the rule is per frame, so the camera returns on its own.
+  // next wave respawns it: the rule is per frame, so the camera returns on its own
   uint8_t f = _focus;
   const uint8_t o = (f == 0) ? 1 : 0;
   const bool f_dead = v.players[f].active && !v.players[f].downed && v.players[f].hp == 0;
@@ -209,8 +209,7 @@ void render::clear() {
   }
   for (uint8_t i = 0; i < sim::MAX_ZOMBIES; ++i) {
     if (v.zombies[i].active) {
-      const uint8_t art =
-          (v.zombies[i].kind == sim::actor_kind::boss) ? BOSS_ART : SPRITE;
+      const uint8_t art = (v.zombies[i].kind == sim::actor_kind::boss) ? BOSS_ART : SPRITE;
       const int16_t tlx = _sprite_tl((int16_t)v.zombies[i].x, sim::ZOMBIE_SIZE, art);
       const int16_t tly = _sprite_tl((int16_t)v.zombies[i].y, sim::ZOMBIE_SIZE, art);
       bool flip = false;
@@ -231,42 +230,39 @@ void render::clear() {
     _shop_labels(true); // erase last frame's price tags, but only when stale
   }
   // erase the prompt strip at the old camera: it is screen-fixed, so its world
-  // rect moves with the camera and a camera cut would strand it otherwise.
+  // rect moves with the camera and a camera cut would strand it otherwise
   // conditional: _prompt still holds last frame's text here (game sets the new one
   // after the step). Steady text + steady camera = nothing to clean, so the
   // 320x10 terrain repaint (3200 color_at/frame) runs only on text change,
   // camera move or progressive repaint. draw() repaints the text every frame
   // with an opaque bg, so it self-covers; the erase is always full-width, so
-  // shrinking text never strands pixels.
+  // shrinking text never strands pixels
   const char* cur_prompt = (_prompt != nullptr) ? _prompt : "";
   if ((cur_prompt[0] != '\0' || _prompt_erased[0] != '\0') &&
       (strcmp(cur_prompt, _prompt_erased) != 0 || _cam_x != _prompt_ex ||
        _cam_y != _prompt_ey || _paint_y < ARENA_H)) {
-    _erase_world_area(_cam_x, _cam_y + ARENA_H - _prompt_h, (int16_t)display::width(),
-                      _prompt_h);
+    _erase_world_area(_cam_x, _cam_y + ARENA_H - _prompt_h, (int16_t)display::width(), _prompt_h);
     snprintf(_prompt_erased, sizeof(_prompt_erased), "%s", cur_prompt);
     _prompt_ex = _cam_x;
     _prompt_ey = _cam_y;
   }
 }
 
-// flat bullets: one box per shot, nothing to ghost on erase.
+// flat bullets: one box per shot, nothing to ghost on erase
 // The HUD carries no render text: game draws W/K, gun and role badge up there,
-// stats live in the panel.
+// stats live in the panel
 void render::draw() {
   repaint_step(); // terrain first, so a cut never paints over a live sprite
 
   const sim::state& v = sim::view();
-  // zombies first, players on top: in contact the zombie used to cover you
-  // (the boss is 32px over your 16px), now you cover it. Erase is untouched:
-  // clear() wipes everything against the terrain before this runs.
+  // zombies first, players on top (the boss is 32px over your 16px). Erase is untouched:
+  // clear() wipes everything against the terrain before this runs
   for (uint8_t i = 0; i < sim::MAX_ZOMBIES; ++i) {
     if (v.zombies[i].active) {
       bool flip = false;
       const uint16_t* img = _zombie_img(v.zombies[i].kind, v.zombies[i].facing & 7, flip);
       const uint8_t art = (v.zombies[i].kind == sim::actor_kind::boss) ? BOSS_ART : SPRITE;
-      _draw_actor((int16_t)v.zombies[i].x, (int16_t)v.zombies[i].y, sim::ZOMBIE_SIZE, art,
-                  img, flip);
+      _draw_actor((int16_t)v.zombies[i].x, (int16_t)v.zombies[i].y, sim::ZOMBIE_SIZE, art, img, flip);
     }
   }
   for (uint8_t p = 0; p < sim::NUM_PLAYERS; ++p) {
@@ -278,28 +274,25 @@ void render::draw() {
     if (v.players[p].downed) {
       const int16_t sx = _sprite_tl((int16_t)v.players[p].x, sim::PLAYER_SIZE, SPRITE);
       const int16_t sy = _sprite_tl((int16_t)v.players[p].y, sim::PLAYER_SIZE, SPRITE);
-      _draw_actor((int16_t)v.players[p].x, (int16_t)v.players[p].y, sim::PLAYER_SIZE, SPRITE,
-                  img, flip);
+      _draw_actor((int16_t)v.players[p].x, (int16_t)v.players[p].y, sim::PLAYER_SIZE, SPRITE, img, flip);
       _frame_box(sx, sy, colour::yellow); // body to rescue
     } else if (v.players[p].hp > 0) {
-      _draw_actor((int16_t)v.players[p].x, (int16_t)v.players[p].y, sim::PLAYER_SIZE, SPRITE,
-                  img, flip);
+      _draw_actor((int16_t)v.players[p].x, (int16_t)v.players[p].y, sim::PLAYER_SIZE, SPRITE, img, flip);
     }
   }
   for (uint8_t i = 0; i < sim::MAX_BULLETS; ++i) {
     if (v.bullets[i].active) {
-      _fill_world_box((int16_t)v.bullets[i].x, (int16_t)v.bullets[i].y, sim::BULLET_SIZE,
-                      colour::white);
+      _fill_world_box((int16_t)v.bullets[i].x, (int16_t)v.bullets[i].y, sim::BULLET_SIZE, colour::white);
     }
   }
   // NOTE: the paint runs every frame on purpose (the erase above is the conditional
   // one): actor/prompt erases can clobber tag pixels without staling them, and
   // repainting identical text self-heals. Text only shrinks on a buy, which always
   // stales the erase first, so no ghosts. On a camera cut the old tags linger until
-  // the progressive repaint covers them (2 frames), while the new ones paint at once.
+  // the progressive repaint covers them (2 frames), while the new ones paint at once
   _shop_labels(false);
   // prompt last, on top by design: a 32px boss walking behind the bottom strip is
-  // covered there (reads as "cut"). Reordering would let the sprite bleed over UI text.
+  // covered there (reads as "cut"). Reordering would let the sprite bleed over UI text
   if (_prompt != nullptr && _prompt[0] != '\0') {
     uint8_t len = 0;
     while (_prompt[len] != '\0') {

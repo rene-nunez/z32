@@ -9,21 +9,19 @@
 
 #include "render.h"
 
-// render tags: world-anchored shop price tags plus the centred prompt strip.
-// Tags erase only when stale (cut, moved cam, price change, rebuild) but paint
-// every frame, so actor/prompt erases self-heal; the prompt paints last, on top.
+// render tags: world-anchored shop price tags plus the centred prompt strip
 
 // Price tags erase only when stale: a camera cut (via repaint), a moved camera, or a
 // price-level change (buys). The paint runs every frame instead: actor/prompt erases
 // can clobber tag pixels without staling them, and repainting identical text is a
-// no-op (text only ever shrinks on a buy, which always stales the erase first).
+// no-op (text only ever shrinks on a buy, which always stales the erase first)
 static int16_t _tags_cx = -1, _tags_cy = -1; // camera the tags were last erased for
 static uint8_t _tags_dmg = 0xFF, _tags_spd = 0xFF; // levels the tags were last erased for
 static uint8_t _tags_rpd = 0xFF;
 static uint16_t _tags_roll = 0xFFFF; // active roulette pad the tags were last erased for
 // active wheel pad: row-major scan order, hash(wave/3) % pads (3-wave epochs from
 // wave 3: waves 1-2, 3-5, 6-8, ...). Mirrors game::_roulette_active off the synced
-// wave, so tags follow the wheel with no extra net bytes.
+// wave, so tags follow the wheel with no extra net bytes
 static uint8_t _roll_active(uint8_t n) {
   if (n == 0) {
     return 0;
@@ -39,7 +37,7 @@ static uint8_t _roll_active(uint8_t n) {
 // shop tag anchors are world-fixed (machines parse once from constexpr _art), so the
 // 60x30 scan runs once and every frame reuses the cached centres. 0=H 1=D 2=S 3=C,
 // 4..=roulette pads in row-major scan order (same order game::_scan_shops uses,
-// so the active index agrees on both sides).
+// so the active index agrees on both sides)
 struct _tag_anchor {
   int16_t cx; // block centre, world px
   int16_t wy; // tag top, world px (8px glyph + 2px gap above the block)
@@ -53,11 +51,11 @@ static bool _tag_anchors_done = false;
 // is still rebuilding under the tags (progressive repaint paints over them, so the
 // erase must keep up). Runs in clear(), at the old camera, so the erase lands on last
 // frame's pixels. Caches update only on erase: steady frames keep comparing against
-// the last erase position.
+// the last erase position
 bool render::_tags_stale() {
   const sim::state& v = sim::view();
   // roulette pads found so far (anchors fill on first paint); the active pad rotates
-  // with the wave, so a rotation must erase the old tag even if the camera sat still.
+  // with the wave, so a rotation must erase the old tag even if the camera sat still
   uint8_t rn = 0;
   for (uint8_t i = 4; i < 4 + TAG_PADS; ++i) {
     if (_tag_anchors_done && _tag_anchors[i].found) {
@@ -83,12 +81,11 @@ bool render::_tags_stale() {
 }
 
 // price tags over the shop machines, anchored to the world so they pan with the
-// camera. HEAL/ROLL are fixed; DMG/SPD show the live next-level price (or MAX).
+// camera. HEAL/ROLL are fixed; DMG/SPD show the live next-level price (or MAX)
 // Drawn every frame after the terrain, erased via the tilemap like sprites. The
 // erase always covers the widest tag (8 chars): a buy can shrink the text and a
 // tight erase would strand the old pixels for a frame. Only the wave-active
-// roulette pad paints its tag; dead pads stay silent (game prompts NO LUCK HERE).
-// Anchors are defined above (0=H 1=D 2=S 3=C, 4..=roulette pads).
+// roulette pad paints its tag; dead pads stay silent (game prompts NO LUCK HERE)
 void render::_shop_labels(bool erase) {
   char dmg_buf[12], spd_buf[12], rpd_buf[12];
   const sim::state& v = sim::view();
@@ -96,25 +93,21 @@ void render::_shop_labels(bool erase) {
   if (v.dmg_lvl[f] >= sim::MAX_LVL) {
     snprintf(dmg_buf, sizeof(dmg_buf), "DMG MAX");
   } else {
-    snprintf(dmg_buf, sizeof(dmg_buf), "DMG %lu",
-             (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl[f]));
+    snprintf(dmg_buf, sizeof(dmg_buf), "DMG %lu", (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl[f]));
   }
   if (v.spd_lvl[f] >= sim::MAX_LVL) {
     snprintf(spd_buf, sizeof(spd_buf), "SPD MAX");
   } else {
-    snprintf(spd_buf, sizeof(spd_buf), "SPD %lu",
-             (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[f]));
+    snprintf(spd_buf, sizeof(spd_buf), "SPD %lu", (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[f]));
   }
   if (v.rpd_lvl[f] >= sim::MAX_LVL) {
     snprintf(rpd_buf, sizeof(rpd_buf), "ROF MAX");
   } else {
-    snprintf(rpd_buf, sizeof(rpd_buf), "ROF %lu",
-             (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[f]));
+    snprintf(rpd_buf, sizeof(rpd_buf), "ROF %lu", (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[f]));
   }
   const uint8_t want[4] = {tilemap::VENDING, tilemap::V_DMG, tilemap::V_SPD, tilemap::V_RPD};
   const char* text[4] = {"HEAL 100", dmg_buf, spd_buf, rpd_buf};
-  const uint16_t col[4] = {colour::green, colour::red, display::rgb565(60, 130, 230),
-                           colour::orange};
+  const uint16_t col[4] = {colour::green, colour::red, display::rgb565(60, 130, 230), colour::orange};
   if (!_tag_anchors_done) {
     _tag_anchors_done = true;
     for (uint8_t i = 0; i < 4 + TAG_PADS; ++i) {
@@ -140,7 +133,6 @@ void render::_shop_labels(bool erase) {
         }
       }
     }
-    // roulette pads in row-major scan order, same order game::_scan_shops uses
     uint8_t rn = 0;
     for (uint8_t r = 0; r < tilemap::ROWS && rn < TAG_PADS; ++r) {
       for (uint8_t c = 0; c < tilemap::COLS && rn < TAG_PADS; ++c) {
@@ -174,8 +166,7 @@ void render::_shop_labels(bool erase) {
     const bool is_roll = ti >= 4;
     if (erase) {
       // erase every pad (active moved => old tag must clear even off-camera logic aside)
-      _erase_world_area(_tag_anchors[ti].cx - _tag_max_w / 2, _tag_anchors[ti].wy,
-                        _tag_max_w, 8);
+      _erase_world_area(_tag_anchors[ti].cx - _tag_max_w / 2, _tag_anchors[ti].wy, _tag_max_w, 8);
       continue;
     }
     if (is_roll && ti != act) {
