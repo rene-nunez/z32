@@ -9,9 +9,9 @@
 
 namespace {
   // menu rows: the full paint and the cursor repaint must agree on where a row is, so both
-  // read these. _item takes an absolute y; nothing may add the row pitch twice.
+  // read these. _item takes an absolute y; nothing may add the row pitch twice
   // The chrome sits centred: title at 64, first row at 96 on the 240px glass. Items are
-  // size 2 (12x16 glyphs, 24px pitch); hints stay size 1.
+  // size 2 (12x16 glyphs, 24px pitch); hints stay size 1
   constexpr int16_t _menu_x = 16, _menu_y = 96, _menu_row = 24;
   constexpr int16_t _over_x = 24, _over_y = 128; // the game over screen is indented
 
@@ -91,22 +91,19 @@ namespace {
     display::fill_rect(0, 0, display::width(), display::height(), colour::black);
     // "z32" huge and centred: 3 glyphs of 6x8 at size 6 -> 108x48
     constexpr uint8_t size = 6;
-    display::text("z32", (display::width() - 3 * 6 * size) / 2, (display::height() - 8 * size) / 2,
-                  colour::red, size);
+    display::text("z32", (display::width() - 3 * 6 * size) / 2, (display::height() - 8 * size) / 2, colour::red, size);
   }
 
   void _full_team() {
     // vertically centred block: title at 48, names at 80..176, all in 48..192 (centre 120)
     display::fill_rect(0, 0, display::width(), display::height(), colour::black);
     const char* title = "TEAM";
-    display::text(title, (display::width() - 6 * (int16_t)strlen(title) * 2) / 2, 48, colour::lime,
-                  2);
+    display::text(title, (display::width() - 6 * (int16_t)strlen(title) * 2) / 2, 48, colour::lime, 2);
 
     constexpr uint8_t names = sizeof(_team_names) / sizeof(_team_names[0]);
     for (uint8_t i = 0; i < names; ++i) {
       const int16_t w = 12 * (int16_t)strlen(_team_names[i]);
-      display::text(_team_names[i], (display::width() - w) / 2, 80 + (int16_t)i * _menu_row,
-                    colour::white, 2);
+      display::text(_team_names[i], (display::width() - w) / 2, 80 + (int16_t)i * _menu_row, colour::white, 2);
     }
     // no footer: both intro screens advance alone (FIRE just hurries them)
   }
@@ -117,7 +114,7 @@ namespace {
     char buf[32];
 
     // last-4 runs, recent first, ranked gold/silver/bronze/gray. Empty state keeps the
-    // "no runs yet" placeholder; once runs land, that slot becomes the section header.
+    // "no runs yet" placeholder; once runs land, that slot becomes the section header
     static const uint16_t rank_col[] = {colour::yellow, colour::white, colour::orange, colour::gray};
     const uint8_t n = scores::history_len();
     const scores::run* h = scores::history();
@@ -170,7 +167,7 @@ void screens::invalidate() {
 // A full-screen fill is 320*240*2 = 153600 bytes, ~31ms of SPI at 40MHz, so repainting it every
 // frame both blew the 33ms budget and tore against the panel scan-out: that was the line
 // sweeping corner to corner. Paint the chrome once per screen entry, then only the two cursor
-// lines when the selection moves.
+// lines when the selection moves
 void screens::paint(id scr, uint8_t sel) {
   const _list& t = _table(scr);
   if (!t.title) {

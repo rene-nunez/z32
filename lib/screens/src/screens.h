@@ -4,7 +4,7 @@
 
 // The menu chrome. The state machine stays in game: this owns the screen identity, the item
 // tables and the incremental-repaint bookkeeping, so a caller cannot get the "paint once on
-// entry, then only the cursor" order wrong.
+// entry, then only the cursor" order wrong
 class screens {
   public:
     enum class id : uint8_t { logo, team, menu, mode, scores, playing, pause, game_over, waiting };
