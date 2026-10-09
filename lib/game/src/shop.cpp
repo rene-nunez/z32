@@ -18,7 +18,7 @@
 #include "pins.h"
 
 // game shop: machine scan, proximity, INTERACT buys, revive lifts and the prompt
-// order. Runs after sim::step, owns no screen: results ride _hint_buf/the strip.
+// order. Runs after sim::step, owns no screen: results ride _hint_buf/the strip
 
 uint8_t game::_roulette_active_at(uint16_t w, uint8_t n) {
   if (n == 0 || w == 0) {
@@ -46,8 +46,7 @@ void game::_push_roll_marker() {
     return;
   }
   // centres are exact tile multiples ((c+1)*TILE), so the top-left tile is one back
-  panel::set_roll((int16_t)(_shop_rx[act] / tilemap::TILE - 1),
-                  (int16_t)(_shop_ry[act] / tilemap::TILE - 1));
+  panel::set_roll((int16_t)(_shop_rx[act] / tilemap::TILE - 1), (int16_t)(_shop_ry[act] / tilemap::TILE - 1));
 }
 
 bool game::_roulette_moved() {
@@ -182,8 +181,8 @@ bool game::_revive_update(uint32_t now) {
   const bool d0 = v.players[0].active && v.players[0].downed;
   const bool d1 = _net_multi && v.players[1].active && v.players[1].downed;
   // bleed-outs announce once (2s): the strip frees after, the panel keeps the DOWN
-  // countdown. Falls stay silent now: the downed shout below + the panel cover it.
-  // A lift below overwrites with the risen's THX.
+  // countdown. Falls stay silent now: the downed shout below + the panel cover it
+  // A lift below overwrites with the risen's THX
   const bool p0_died = _was_down0 && !d0 && v.players[0].hp == 0;
   const bool p1_died = _was_down1 && !d1 && v.players[1].hp == 0;
   if (p0_died || p1_died) {
@@ -194,7 +193,7 @@ bool game::_revive_update(uint32_t now) {
   // bled-out wave rejoins are announced in the wave-banner block below (BACK is
   // the least important of the three wave messages); downed players that held on
   // till the break rise silently (they never bled out). _was_dead advances after
-  // the banners so they still see the previous frame.
+  // the banners so they still see the previous frame
   if (!_was_down0 && d0) {
     _shouted0 = false; // fall edge: HELP shows again until the first shout
   }
@@ -237,9 +236,7 @@ void game::_shop_update(uint32_t now) {
           snprintf(_hint_buf, sizeof(_hint_buf), "HEALED +2HP");
           _hint_col = colour::green;
         } else {
-          snprintf(_hint_buf, sizeof(_hint_buf),
-                   v.players[0].hp >= sim::PLAYER_HP_MAX ? "HP FULL" : "NEED %lu PTS",
-                   (unsigned long)sim::PRICE_HEAL);
+          snprintf(_hint_buf, sizeof(_hint_buf), v.players[0].hp >= sim::PLAYER_HP_MAX ? "HP FULL" : "NEED %lu PTS", (unsigned long)sim::PRICE_HEAL);
           _hint_col = colour::white; // info, not danger: red never shows in the strip
         }
         break;
@@ -250,12 +247,10 @@ void game::_shop_update(uint32_t now) {
         } else {
           ok = sim::buy_damage(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "DMG +%u%%!",
-                     sim::dmg_bonus(sim::view().dmg_lvl[0]));
+            snprintf(_hint_buf, sizeof(_hint_buf), "DMG +%u%%!", sim::dmg_bonus(sim::view().dmg_lvl[0]));
             _hint_col = colour::green;
           } else {
-            snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS",
-                     (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl[0]));
+            snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS", (unsigned long)sim::price_for(sim::PRICE_DMG, v.dmg_lvl[0]));
             _hint_col = colour::white;
           }
         }
@@ -267,12 +262,10 @@ void game::_shop_update(uint32_t now) {
         } else {
           ok = sim::buy_speed(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "SPD +%u%%!",
-                     sim::spd_bonus(sim::view().spd_lvl[0]));
+            snprintf(_hint_buf, sizeof(_hint_buf), "SPD +%u%%!", sim::spd_bonus(sim::view().spd_lvl[0]));
             _hint_col = colour::green;
           } else {
-            snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS",
-                     (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[0]));
+            snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS", (unsigned long)sim::price_for(sim::PRICE_SPD, v.spd_lvl[0]));
             _hint_col = colour::white;
           }
         }
@@ -284,12 +277,10 @@ void game::_shop_update(uint32_t now) {
         } else {
           ok = sim::buy_rapid(now);
           if (ok) {
-            snprintf(_hint_buf, sizeof(_hint_buf), "ROF -%u%%!",
-                     sim::rpd_cut(sim::view().rpd_lvl[0]));
+            snprintf(_hint_buf, sizeof(_hint_buf), "ROF -%u%%!", sim::rpd_cut(sim::view().rpd_lvl[0]));
             _hint_col = colour::green;
           } else {
-            snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS",
-                     (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[0]));
+            snprintf(_hint_buf, sizeof(_hint_buf), "NEED %lu PTS", (unsigned long)sim::price_for(sim::PRICE_RPD, v.rpd_lvl[0]));
             _hint_col = colour::white;
           }
         }
@@ -308,9 +299,9 @@ void game::_shop_update(uint32_t now) {
     _hint_until = now + 1500;
   }
 
-  // player 2 shops from the shared wallet on its own INTERACT edge (net, F6.3 sets it).
-  // silent on the host screen: the buy runs, no P2 prompt/hint is painted here.
-  // the client paints its own proximity off the snapshot.
+  // player 2 shops from the shared wallet on its own INTERACT edge (net, F6.3 sets it)
+  // silent on the host screen: the buy runs, no P2 prompt/hint is painted here
+  // the client paints its own proximity off the snapshot
   if (_p2_interact && shop2 != 0) {
     switch (shop2) {
       case 1: sim::buy_heal(now, 1); break;
@@ -367,8 +358,7 @@ void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
       if (v.dmg_lvl[p] >= sim::MAX_LVL) {
         render::prompt("DMG MAX", colour::white);
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET DMG +%u%%", who,
-                 sim::dmg_bonus((uint8_t)(v.dmg_lvl[p] + 1u)));
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET DMG +%u%%", who, sim::dmg_bonus((uint8_t)(v.dmg_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
       break;
@@ -376,8 +366,7 @@ void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
       if (v.spd_lvl[p] >= sim::MAX_LVL) {
         render::prompt("SPD MAX", colour::white);
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET SPD +%u%%", who,
-                 sim::spd_bonus((uint8_t)(v.spd_lvl[p] + 1u)));
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET SPD +%u%%", who, sim::spd_bonus((uint8_t)(v.spd_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
       break;
@@ -389,8 +378,7 @@ void game::_shop_prompt(uint8_t shop, const char* who, uint8_t p) {
       if (v.rpd_lvl[p] >= sim::MAX_LVL) {
         render::prompt("ROF MAX", colour::white);
       } else {
-        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET ROF -%u%%", who,
-                 sim::rpd_cut((uint8_t)(v.rpd_lvl[p] + 1u)));
+        snprintf(_hint_buf, sizeof(_hint_buf), "%sGET ROF -%u%%", who, sim::rpd_cut((uint8_t)(v.rpd_lvl[p] + 1u)));
         render::prompt(_hint_buf);
       }
       break;

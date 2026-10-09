@@ -18,7 +18,7 @@
 #include "pins.h"
 
 // game hud: the 10px strip, the prompt/callout priority slots, boss watch and
-// the buzz dispatch. Text only, never state: buys already moved the wallet.
+// the buzz dispatch. Text only, never state: buys already moved the wallet
 
 bool game::_urgent_callout(uint8_t /*me*/) {
   if (_net_multi && millis() < _chat_until && _chat_buf[0] != '\0') {
@@ -33,7 +33,7 @@ bool game::_urgent_callout(uint8_t /*me*/) {
 // how to call. Multi-only with a living partner (same gate as the shout) and only
 // where INT really shouts: near a machine INT buys (shop prompts keep priority
 // there), so the hint stays off. Yellow like the shop prompts. The fresh shout
-// above wins while live, so the first mash swaps to SAVE ME! for 2s.
+// above wins while live, so the first mash swaps to SAVE ME! for 2s
 bool game::_help_hint(uint8_t me) {
   if (!_net_multi || me > 1) {
     return false;
@@ -59,8 +59,8 @@ bool game::_help_hint(uint8_t me) {
   return true;
 }
 
-// reload slot (below the urgent shout, above shop): own mag swap FYI, white info.
-// Auto starts it the moment the mag hits 0, so this replaces the old OUT OF AMMO nag.
+// reload slot (below the urgent shout, above shop): own mag swap FYI, white info
+// Auto starts it the moment the mag hits 0
 bool game::_reload_prompt(uint8_t me) {
   if (!sim::reloading(me)) {
     return false;
@@ -107,21 +107,17 @@ bool game::_boss_alive() {
 
 void game::_draw_hud() {
   // the 10px strip is net+sim state, not renderer state, so game paints it: wave/kills
-  // left, gun+current-mag centred, role badge right. Every field is cleared first (K12 -> K9 and
-  // MP9 30/30 -> MP9 9/30 shrink, overpainting alone would leave ghost digits behind).
-  // cached: wave/kills/gun/ammo/role barely change, so most frames skip all three
-  // fill+text pairs (~2.6ms). _hud_first forces a full-strip wipe + repaint after
-  // menu chrome covered the strip (render::repaint no longer wipes it, so camera
-  // cuts never dirty the cache).
+  // left, gun+current-mag centred, role badge right. Every field is cleared first
+  // (shrinking text would leave ghosts). Cached: most frames skip; _hud_first
+  // forces a full wipe after menu chrome (render::repaint no longer wipes the strip)
   const sim::state& v = sim::view();
   const uint8_t role = !_net_multi ? 0 : (_handler.role() == ROLE_HOST ? 1 : 2);
-  const uint8_t f = render::focus(); // this board's gun: solo/host P1, client P2
+  const uint8_t f = render::focus();
   // spectator: bled-out (dead till the wave, not downed) watches the living
   // partner's gun till the respawn; downed keeps its own (it rises with it)
   const uint8_t q = (uint8_t)(1 - f);
   const bool f_dead = v.players[f].active && v.players[f].hp == 0 && !v.players[f].downed;
-  const bool q_alive =
-      v.players[q].active && (v.players[q].hp > 0 || v.players[q].downed);
+  const bool q_alive = v.players[q].active && (v.players[q].hp > 0 || v.players[q].downed);
   const uint8_t s = (f_dead && q_alive) ? q : f;
   if (!_hud_first && v.wave == _hud_wave && v.kills == _hud_kills && v.guns[s] == _hud_gun &&
       v.ammo[s] == _hud_ammo && role == _hud_role && s == _hud_shown) {

@@ -33,16 +33,14 @@ class game {
 
     static handler _handler;
     static uint32_t _tick;
-    static uint32_t _peer_tick;
 
     // F6 co-op net state. Host simulates both players and broadcasts snapshots;
-    // the client sends inputs and applies snapshots. Solo never touches the air.
+    // the client sends inputs and applies snapshots. Solo never touches the air
     static bool _net_multi;        // this run is co-op
     static uint32_t _wait_since;   // waiting entry, millis()
     static uint32_t _wait_last_hb; // last waiting heartbeat, millis()
     static bool _peer_seen;        // peer showed up while waiting
     static uint16_t _seq_out;      // snapshot/input sequence, host and client each own theirs
-    static uint8_t _in_seq;        // last peer input seq applied (host)
     static uint8_t _in_buttons;    // latest peer button levels (host)
     static uint8_t _in_prev;       // previous peer buttons, for edges (host)
     static float _in_jx, _in_jy;   // latest peer axes (host)

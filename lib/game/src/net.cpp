@@ -18,18 +18,15 @@
 #include "pins.h"
 
 // game net: ESP-NOW handlers, snapshot broadcast, client input shipping and the
-// per-board playing frames. Host simulates, client mirrors; solo stays silent.
+// per-board playing frames. Host simulates, client mirrors; solo stays silent
 
 void game::_on_heartbeat(const uint8_t* data, size_t len) {
   if (len < sizeof(heartbeat_msg)) {
     return;
   }
-
-  heartbeat_msg hb;
-  memcpy(&hb, data, sizeof(hb));
-  _peer_tick = hb.tick;
+  (void)data; // presence is the signal: the host counts heartbeats, not their values
   // the host starts a co-op run off heartbeats; the client waits for a snapshot
-  // (live map) instead, so heartbeats never flip a waiting client into playing.
+  // (live map) instead, so heartbeats never flip a waiting client into playing
   if (_handler.role() == ROLE_HOST) {
     _peer_seen = true; // any peer heartbeat counts while waiting (consumed there)
   }
@@ -59,7 +56,6 @@ void game::_on_input(const uint8_t* data, size_t len) {
   _in_jx = net::uqaxis(in.jx);
   _in_jy = net::uqaxis(in.jy);
   _in_buttons = in.buttons;
-  _in_seq = in.seq;
   _in_last_ms = millis();
 }
 
@@ -78,9 +74,9 @@ void game::_on_chat(const uint8_t* data, size_t len) {
   _chat_pip = true; // buzzed from the frame loop, never from the rx task
 }
 
-// downed INTERACT shout: still the come wire id (no protocol change), now reads SAVE ME.
+// downed INTERACT shout: still the come wire id (no protocol change), now reads SAVE ME
 // The sender also sees its own shout as a local echo (visual only, never buzzed);
-// only the peer's rx path sets _chat_pip, so the hurt pip stays remote.
+// only the peer's rx path sets _chat_pip, so the hurt pip stays remote
 void game::_send_chat(uint8_t from) {
   if (!_net_multi) {
     return; // solo: no peer, and send() with no peer sprays delivery-failed
@@ -96,7 +92,7 @@ void game::_send_chat(uint8_t from) {
   _chat_col = (from == 0) ? colour::green : _mate_p2col;
   _chat_until = millis() + 2000;
   // first shout this down: the HELP hint below retires (each board reads its own
-  // pair, so set both; the unread one is harmless).
+  // pair, so set both; the unread one is harmless)
   if (from == 0) {
     _shouted0 = true;
     _cli_shouted0 = true;
@@ -131,8 +127,7 @@ void game::_update_playing_host() {
     c.jy = _in_jy;
     // P2 fire mirrors the local rule: level for autos (MP9/AR-15), edge for the rest
     const bool p2_lvl = (_in_buttons & net::fire_bit) != 0;
-    c.fire = sim::auto_fire(sim::view().guns[1]) ? p2_lvl
-                                                 : (p2_lvl && !(_in_prev & net::fire_bit));
+    c.fire = sim::auto_fire(sim::view().guns[1]) ? p2_lvl : (p2_lvl && !(_in_prev & net::fire_bit));
     _p2_interact = (_in_buttons & net::interact_bit) && !(_in_prev & net::interact_bit);
     _p2_pause_edge = (_in_buttons & net::pause_bit) && !(_in_prev & net::pause_bit);
     c.reload = (_in_buttons & net::reload_bit) && !(_in_prev & net::reload_bit);
@@ -190,8 +185,8 @@ void game::_update_playing_host() {
       // wave rejoins, least important of the three: only when the strip is
       // free (fresher hints already won above). Bled-out rejoins and downed
       // players that held on till the break both announce; a same-frame lift
-      // already overwrote the wave event (THX wins), so this only sees rises.
-      // Ties name the bled-out first: the bigger news wins the single strip.
+      // already overwrote the wave event (THX wins), so this only sees rises
+      // Ties name the bled-out first: the bigger news wins the single strip
       const sim::state& wv = sim::view();
       const bool d0 = wv.players[0].active && wv.players[0].downed;
       const bool d1 = _net_multi && wv.players[1].active && wv.players[1].downed;
@@ -232,7 +227,7 @@ void game::_update_playing_client() {
   _send_input();
 
   // route off the last snapshot before touching the frame: while the host-owned menu is
-  // up, clear() would spray terrain erases over it, so mirror frames skip clear/draw.
+  // up, clear() would spray terrain erases over it, so mirror frames skip clear/draw
   if (_rx_state.screen == net::SCREEN_PAUSE) {
     if (!_cli_pause_logged) {
       _cli_pause_logged = true;
@@ -244,9 +239,9 @@ void game::_update_playing_client() {
   _cli_pause_logged = false; // host resumed: next remote pause logs again
   if (_cli_mirror) {
     // first playing frame after the menu: its chrome covered the arena, so rebuild it
-    // exactly like the host resume path (progressive terrain over the next 2 frames).
+    // exactly like the host resume path (progressive terrain over the next 2 frames)
     _cli_mirror = false;
-    screens::invalidate(); // the next pause must repaint its chrome
+    screens::invalidate();
     panel::init(); _hud_first = true;         // the pause menu covered the panel and the minimap
     render::repaint();     // clear leftover pause menu
   }
@@ -277,7 +272,7 @@ void game::_update_playing_client() {
   // frame carries the wave event or a wave-number rise (BACK/banner wins below),
   // and a host restart drops the wave, so only lone edges land here. Priority
   // per frame: lift result, then the bleed-out; ties name the local body. Falls
-  // stay silent (except arming HELP below, which shows until the first shout).
+  // stay silent (except arming HELP below, which shows until the first shout)
   bool edge_hint = false;
   // pre-edge downed flags: the wave banner below needs them (held-on rises),
   // but the chain advances _cli_was_down first
@@ -287,7 +282,7 @@ void game::_update_playing_client() {
   // arrivals between client frames), the next one still carries the higher wave
   // number, so the banner below only slips a frame instead of being lost. A rise
   // with a stamped event (lift/buy overwrote wave on the host) is not a wave
-  // frame: the host skipped its banners too, and the edges below still run.
+  // frame: the host skipped its banners too, and the edges below still run
   const bool wave_rose = (cv.wave > _cli_wave);
   const bool wave_frame = (cv.last_event == sim::event::wave) ||
                           (wave_rose && cv.last_event == sim::event::none);
@@ -302,8 +297,8 @@ void game::_update_playing_client() {
     _cli_was_down1 = c2_down;
   } else if (!wave_frame) {
     // hp gate: bleeding out also clears downed (hp stays 0, dead till the wave),
-    // only a real lift comes back with hp. Without it the death reads as a revive.
-    // Bleed-outs announce once (2s); the strip frees after.
+    // only a real lift comes back with hp. Without it the death reads as a revive
+    // Bleed-outs announce once (2s); the strip frees after
     const bool p1_rose = _cli_was_down0 && !c1_down && cv.players[0].hp > 0;
     const bool p2_rose = _cli_was_down1 && !c2_down && cv.players[1].hp > 0;
     const bool p1_died = _cli_was_down0 && !c1_down && cv.players[0].hp == 0;
@@ -365,7 +360,7 @@ void game::_update_playing_client() {
     } else if (cli_now >= _hint_until) {
       // wave rejoins, least important of the three: only when the strip is
       // free. Bled-out rejoins and held-on rises both announce (ties name the
-      // bled-out first); mirrors the host banner.
+      // bled-out first); mirrors the host banner
       const sim::state& wv = sim::view();
       const bool p1_back = _cli_was_dead0 && wv.players[0].hp > 0;
       const bool p2_back = _cli_was_dead1 && wv.players[1].hp > 0;
@@ -415,8 +410,8 @@ void game::_send_input() {
 void game::_mirror_pause() {
   // Host-owned menu on the client: keep shipping inputs (PAUSE resumes from either
   // board), paint the host cursor, never step it locally. _scr stays playing so
-  // update() keeps routing here; the chrome entry is tracked by screens::paint itself.
-  // No buzz here: the frozen snapshot event would otherwise jingle every frame.
+  // update() keeps routing here; the chrome entry is tracked by screens::paint itself
+  // No buzz here: the frozen snapshot event would otherwise jingle every frame
   _send_input();
 
   if (_rx_ready) {
@@ -433,7 +428,7 @@ void game::_mirror_pause() {
   if (_rx_state.screen == net::SCREEN_PLAYING) {
     // host resumed or restarted: rebuild the arena chrome like the host resume path
     _cli_mirror = false;
-    screens::invalidate(); // the next pause must repaint its chrome
+    screens::invalidate();
     panel::init(); _hud_first = true;         // the pause menu covered the panel and the minimap
     render::repaint();     // clear leftover pause menu
     return;

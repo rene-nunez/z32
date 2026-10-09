@@ -18,18 +18,16 @@
 #include "pins.h"
 
 // game core: boot, frame dispatch, menus and shared state. Shop/net/hud live in
-// their own files; every static below is defined once here and used across them.
+// their own files; every static below is defined once here and used across them
 
 handler game::_handler;
 uint32_t game::_tick = 0;
-uint32_t game::_peer_tick = 0;
 
 bool game::_net_multi = false;
 uint32_t game::_wait_since = 0;
 uint32_t game::_wait_last_hb = 0;
 bool game::_peer_seen = false;
 uint16_t game::_seq_out = 0;
-uint8_t game::_in_seq = 0;
 uint8_t game::_in_buttons = 0;
 uint8_t game::_in_prev = 0;
 float game::_in_jx = 0.0f;
@@ -177,7 +175,7 @@ int8_t game::_nav_edge() {
 void game::_start_game(bool multi) {
   _net_multi = multi;
   // solo always frames player 1; multi frames the local board (host P1, client P2)
-  render::set_focus((multi && _handler.role() == ROLE_CLIENT) ? 1 : 0); // each board frames its own
+  render::set_focus((multi && _handler.role() == ROLE_CLIENT) ? 1 : 0);
   _seq_out = 0;
   _in_prev = _in_buttons; // hold levels so a held PAUSE/FIRE does not phantom-edge on entry
   _in_jx = _in_jy = 0.0f;
@@ -204,12 +202,12 @@ void game::_start_game(bool multi) {
   _chat_until = 0;
   _chat_buf[0] = '\0';
   _chat_pip = false;
-  panel::init(); // static panel + minimap terrain, then blips on top
+  panel::init();
   _hud_first = true; // the menu chrome covered the HUD strip: wipe+repaint it fully
   render::update_camera();
   render::repaint(); // forced: the game over screen cleared the arena and the camera may not move
   _scr = screens::id::playing;
-  screens::invalidate(); // the next pause must repaint its chrome
+  screens::invalidate();
 }
 
 void game::_enter_menu() {
@@ -296,7 +294,7 @@ void game::_update_mode() {
     } else if (_sel == 0) {
       _start_game(false); // Solo: local run, the radio stays silent
     } else {
-      _scr = screens::id::waiting; // Multiplayer: wait for the peer
+      _scr = screens::id::waiting;
       _sel = 0;
       _wait_since = millis();
       _wait_last_hb = 0;
@@ -327,7 +325,7 @@ void game::_update_waiting() {
   }
   if (_handler.role() == ROLE_CLIENT) {
     // the client joins off a live snapshot (host map), never off a bare heartbeat,
-    // so it lands straight into the running frame instead of an empty reset.
+    // so it lands straight into the running frame instead of an empty reset
     if (_rx_ready) {
       const net::game_state_msg snap = _rx_state; // copy: _start_game clears the flag
       _rx_ready = false;
@@ -366,7 +364,7 @@ void game::_update_scores() {
 }
 
 void game::_update_playing() {
-  // solo is always a local sim on both boards (silent radio); only multi + client mirrors.
+  // solo is always a local sim on both boards (silent radio); only multi + client mirrors
   if (!_net_multi) {
     _update_playing_host();
     return;
@@ -382,7 +380,7 @@ void game::_update_pause() {
   _nav_step();
   // the client keeps shipping inputs while frozen, so derive its PAUSE edge here too:
   // otherwise nobody converts levels to an edge while the host sits in pause and the
-  // client can never resume.
+  // client can never resume
   if (_net_multi && _handler.role() == ROLE_HOST) {
     const bool lvl = (_in_buttons & net::pause_bit) != 0;
     _p2_pause_edge = lvl && ((_in_prev & net::pause_bit) == 0);
@@ -391,7 +389,7 @@ void game::_update_pause() {
   if (input::pause_pressed() || _p2_pause_edge) {
     _p2_pause_edge = false;
     _scr = screens::id::playing;
-    screens::invalidate(); // the next pause must repaint its chrome
+    screens::invalidate();
     panel::init(); _hud_first = true; // the pause menu covered the panel and the minimap
     render::repaint(); // clear leftover pause menu
   } else if (input::fire_pressed()) {
@@ -399,7 +397,7 @@ void game::_update_pause() {
     switch (_sel) {
       case 0: // Continue
         _scr = screens::id::playing;
-        screens::invalidate(); // the next pause must repaint its chrome
+        screens::invalidate();
         panel::init(); _hud_first = true; // the pause menu covered the panel and the minimap
         render::repaint(); // clear leftover pause menu
         break;
@@ -418,7 +416,7 @@ void game::_update_pause() {
 }
 
 void game::_update_game_over() {
-  // solo on either board is a local game over; only a multi client mirrors the host.
+  // solo on either board is a local game over; only a multi client mirrors the host
   if (_net_multi && _handler.role() == ROLE_CLIENT) {
     // full mirror like the pause chrome: the host owns the cursor, we only paint it
     if (_rx_ready) {
