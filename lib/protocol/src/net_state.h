@@ -13,9 +13,9 @@
 #include <cstdint>
 
 namespace net {
-  constexpr uint8_t TYPE_STATE = 0x02; // == msg_type::game_state, asserted in protocol.h
-  constexpr uint8_t TYPE_INPUT = 0x10; // == msg_type::player_input, asserted in protocol.h
-  constexpr uint8_t TYPE_CHAT = 0x20; // == msg_type::chat, asserted in protocol.h
+  constexpr uint8_t TYPE_STATE = 0x02; // == msg_type::game_state
+  constexpr uint8_t TYPE_INPUT = 0x10; // == msg_type::player_input
+  constexpr uint8_t TYPE_CHAT = 0x20; // == msg_type::chat
 
   constexpr size_t STATE_LEN = 146;
   constexpr size_t INPUT_LEN = 5;
