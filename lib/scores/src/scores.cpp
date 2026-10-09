@@ -45,8 +45,8 @@ namespace {
     }
   }
 
-  // shares the TFT SPI bus (23/19/18, default VSPI pins) with the dedicated CS 22.
-  // Best-effort: a missing card only logs, the RTC mirror keeps the game going.
+  // shares the TFT SPI bus (23/19/18, default VSPI pins) with the dedicated CS 22
+  // Best-effort: a missing card only logs, the RTC mirror keeps the game going
   bool _sd_mount() {
     if (_sd_ready) {
       return true;
@@ -58,7 +58,7 @@ namespace {
     SPI.begin(18, 19, 23, -1); // route the VSPI pins (-1 = no bus-wide SS, CS is per device)
     // a soft reset (EN button) keeps power on, so a card stuck mid-init stays deaf
     // until real clocks arrive: 80+ idle clocks with CS high plus a few attempts
-    // usually wake it without replugging the board.
+    // usually wake it without replugging the board
     for (uint8_t i = 0; i < 10; ++i) {
       SPI.transfer(0xFF); // 10 bytes = 80 clocks
     }
@@ -71,15 +71,14 @@ namespace {
     if (!_sd_ready) {
       Serial.println("[scores] no sd, rtc only");
     } else {
-      Serial.printf("[scores] microsd ok, type %u size %lluMB\n", SD.cardType(),
-                    SD.cardSize() / (1024u * 1024u));
+      Serial.printf("[scores] microsd ok, type %u size %lluMB\n", SD.cardType(), SD.cardSize() / (1024u * 1024u));
     }
     digitalWrite(TFT_CS, HIGH); // leave the bus parked for the TFT
     return _sd_ready;
   }
 
-  // parses a {"runs":[{p,k,w}]} cache; adopts it only when the RTC came up empty.
-  // Returns true when the file existed and parsed, even when there was nothing to adopt.
+  // parses a {"runs":[{p,k,w}]} cache; adopts it only when the RTC came up empty
+  // Returns true when the file existed and parsed, even when there was nothing to adopt
   bool _load_recent_file(const char* path) {
     if (!SD.exists(path)) {
       return false; // clean boot: stay silent, the VFS logs an error on missing reads
@@ -133,7 +132,7 @@ namespace {
   }
 
   // last resort when both the RTC and the recent cache are empty: replays the tail
-  // of the log. Reads at most _TAIL_BYTES so a years-old log still costs O(1) RAM.
+  // of the log. Reads at most _TAIL_BYTES so a years-old log still costs O(1) RAM
   void _log_tail_load() {
     if (!SD.exists(_LOG)) {
       return; // clean boot: stay silent, the VFS logs an error on missing reads
@@ -156,7 +155,7 @@ namespace {
     f.close();
     tail[got] = '\0';
 
-    // A mid-line seek leaves a partial first line: skip it unless we read the whole file.
+    // A mid-line seek leaves a partial first line: skip it unless we read the whole file
     char* cur = tail;
     if (size > want) {
       char* nl = strchr(cur, '\n');
@@ -176,8 +175,7 @@ namespace {
       if (*cur != '\0') {
         JsonDocument doc;
         if (!deserializeJson(doc, cur)) {
-          const scores::run r = {(uint32_t)(doc["p"] | 0u), (uint32_t)(doc["k"] | 0u),
-                                 (uint16_t)(doc["w"] | 0u)};
+          const scores::run r = {(uint32_t)(doc["p"] | 0u), (uint32_t)(doc["k"] | 0u), (uint16_t)(doc["w"] | 0u)};
           if (n < scores::HISTORY_N) {
             kept[n++] = r;
           } else {
