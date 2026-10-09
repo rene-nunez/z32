@@ -7,7 +7,7 @@
 #include "sim.h"
 
 // sim wave: zombie steering, spawn tables, quotas and per-kind stats. The wave
-// order (dithered runners) and the refill live here; step() only calls in.
+// order (dithered runners) and the refill live here; step() only calls in
 
 bool sim::_step_zombie(uint8_t z, float ddx, float ddy, float dt) {
   const float d = sqrtf(ddx * ddx + ddy * ddy);
@@ -17,18 +17,15 @@ bool sim::_step_zombie(uint8_t z, float ddx, float ddy, float dt) {
   const float spd = _zombie_speed(_s.zombies[z].kind);
   const float bx = _s.zombies[z].x, by = _s.zombies[z].y;
   // _move_entity takes references, so it has to get the real members, not copies
-  _move_entity(_s.zombies[z].x, _s.zombies[z].y, ddx / d * spd * dt, ddy / d * spd * dt,
-               ZOMBIE_SIZE);
+  _move_entity(_s.zombies[z].x, _s.zombies[z].y, ddx / d * spd * dt, ddy / d * spd * dt, ZOMBIE_SIZE);
   if (_s.zombies[z].x == bx && _s.zombies[z].y == by) {
     return false; // walled in: keep the last facing instead of flip-flopping
   }
-  _face_toward(_s.zombies[z].facing, _zface_want[z], _zface_cnt[z], _s.zombies[z].x - bx,
-               _s.zombies[z].y - by);
+  _face_toward(_s.zombies[z].facing, _zface_want[z], _zface_cnt[z], _s.zombies[z].x - bx, _s.zombies[z].y - by);
   return true;
 }
 
-void sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt,
-                         const uint16_t f[tilemap::ROWS][tilemap::COLS]) {
+void sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt, const uint16_t f[tilemap::ROWS][tilemap::COLS]) {
   const float zcx = _s.zombies[z].x + ZOMBIE_SIZE / 2.0f;
   const float zcy = _s.zombies[z].y + ZOMBIE_SIZE / 2.0f;
   const float sdx = pcx - zcx;
@@ -54,7 +51,7 @@ void sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt,
 
   if (here == 0) {
     // on the player's tile: close in directly. The standoff guard above stops
-    // the walk at contact range, so hits land without piling onto the centre.
+    // the walk at contact range, so hits land without piling onto the centre
     _step_zombie(z, pcx - zcx, pcy - zcy, dt);
     return;
   }
@@ -96,7 +93,6 @@ void sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt,
   }
 }
 
-
 void sim::_spawn_wave() {
   ++_s.wave;
   for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
@@ -117,10 +113,10 @@ void sim::_spawn_wave() {
     _s.zombies[i].active = false;
   }
 
-  // quota: wave+3 kills to clear, uncapped; at most MAX_ZOMBIES alive at once.
+  // quota: wave+3 kills to clear, uncapped; at most MAX_ZOMBIES alive at once
   // composition: the boss steals spawn idx 0 every 5th wave, then up to half the
   // quota (from wave 2) are runners spread evenly over the wave (dither, so the
-  // wave never opens with a runner wall), the rest normals. 10 alive max, always.
+  // wave never opens with a runner wall), the rest normals. 10 alive max, always
   _wave_quota = _wave_total(_s.wave);
   _wave_spawned = 0;
   const bool boss = _wave_boss(_s.wave);

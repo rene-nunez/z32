@@ -7,7 +7,7 @@
 #include "sim.h"
 
 // sim combat: weapon tables, fire pipeline, mags and reloads. Damage scales
-// with the owner's dmg_lvl, cadence with rpd_lvl; step() only calls in.
+// with the owner's dmg_lvl, cadence with rpd_lvl; step() only calls in
 
 uint8_t sim::_eff_dmg(uint8_t base, uint8_t lvl) {
   const float dmg = (float)base * (1.0f + 0.25f * (float)lvl);
@@ -57,14 +57,7 @@ uint8_t sim::_fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p)
   const float by = _s.players[p].y + PLAYER_SIZE / 2.0f;
   for (uint8_t i = 0; i < MAX_BULLETS; ++i) {
     if (!_s.bullets[i].active) {
-      _s.bullets[i] = {
-          bx,
-          by,
-          dx * bullet_speed,
-          dy * bullet_speed,
-          dmg,
-          true,
-      };
+      _s.bullets[i] = {bx, by, dx * bullet_speed, dy * bullet_speed, dmg, true};
       _last_shot[p] = now;
       return 1;
     }

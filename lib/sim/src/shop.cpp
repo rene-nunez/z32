@@ -7,7 +7,7 @@
 #include "sim.h"
 
 // sim shop: wallet, permanent levels, roulette and the display bonuses. Called
-// by game on INTERACT edges; exact points pay, denial stamps the denied event.
+// by game on INTERACT edges; exact points pay, denial stamps the denied event
 
 uint32_t sim::_kill_reward(actor_kind kind, uint16_t wave) {
   switch (kind) {
@@ -29,8 +29,7 @@ bool sim::buy_heal(uint32_t now, uint8_t p) {
     return false;
   }
   _s.points -= PRICE_HEAL; // exact points pay
-  _s.players[p].hp = (uint8_t)(_s.players[p].hp + 2 > PLAYER_HP_MAX ? PLAYER_HP_MAX
-                                                                   : _s.players[p].hp + 2);
+  _s.players[p].hp = (uint8_t)(_s.players[p].hp + 2 > PLAYER_HP_MAX ? PLAYER_HP_MAX : _s.players[p].hp + 2);
   _s.last_event = event::buy_heal;
   return true;
 }

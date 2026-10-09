@@ -7,10 +7,10 @@
 
 // The simulation: players, zombies, bullets, waves and points, in world px. It owns its
 // state and never touches the screen, the menus or the network, so the renderer, the panel
-// and the menus can only read it through view().
+// and the menus can only read it through view()
 //
 // F6 co-op: two players share one wallet; gun and buff levels are per player. Player 0 is local (host),
-// player 1 is the net peer (inactive in Solo). Zombies chase their nearest alive player.
+// player 1 is the net peer (inactive in Solo). Zombies chase their nearest alive player
 class sim {
   public:
     static constexpr uint8_t PLAYER_SIZE = 8;
@@ -45,7 +45,7 @@ class sim {
     };
 
     // shop: points are the spendable wallet. Heal is flat; damage and speed are
-    // permanent levels on the character (like HP) and each level costs more.
+    // permanent levels on the character (like HP) and each level costs more
     static constexpr uint32_t PRICE_HEAL = 100; // +2 HP
     static constexpr uint32_t PRICE_DMG = 150;  // damage +25%/level, base price
     static constexpr uint32_t PRICE_SPD = 150;  // speed +8%/level, base price
@@ -54,13 +54,12 @@ class sim {
     static constexpr uint32_t LVL_PRICE_STEP = 300; // extra cost per level owned
 
     // facing: 8-wind sector from dir_of(), 0=E 1=SE 2=S 3=SW 4=W 5=NW 6=N 7=NE
-    // (+y is south on the glass). Render folds it onto the stored art + hflip.
+    // (+y is south on the glass). Render folds it onto the stored art + hflip
     static uint8_t dir_of(float dx, float dy);
     // facing debounce: a new sector must repeat 2 frames (~66ms) to
     // apply, so border jitter never shows (noise never sticks,
     // real turns apply with no perceptible lag, held diagonals show)
-    static void _face_toward(uint8_t& facing, uint8_t& want, uint8_t& cnt, float dx,
-                             float dy);
+    static void _face_toward(uint8_t& facing, uint8_t& want, uint8_t& cnt, float dx, float dy);
     static constexpr uint8_t FACE_FRAMES = 2; // ~66ms: noise never shows, turns feel instant
 
     struct player_state {
@@ -74,7 +73,7 @@ class sim {
 
     // remote control for player 1, fed by game from the net each frame. Fire is a
     // level for autos (MP9/AR-15) and an edge for the rest; game derives it from
-    // the peer's bitmask accordingly. Interact/pause/reload are always edges.
+    // the peer's bitmask accordingly. Interact/pause/reload are always edges
     struct ctl {
       float jx, jy;
       bool fire;
@@ -110,8 +109,8 @@ class sim {
       shot bullets[MAX_BULLETS];
     };
 
-    // the only way in: a const ref, so nothing outside can move a zombie or spend a point.
-    // The renderer and the panel read it every frame, and it is the whole net-sync payload.
+    // the only way in: a const ref, so nothing outside can move a zombie or spend a point
+    // The renderer and the panel read it every frame, and it is the whole net-sync payload
     static const state& view() { return _s; }
 
     static void reset();
@@ -120,13 +119,13 @@ class sim {
     static bool step(uint32_t now); // false once nobody is left standing
     static bool revive(uint8_t p);  // partner lift: downed back to 3 HP
 
-    // net sync: host fills n (game stamps type+seq), client applies it wholesale.
+    // net sync: host fills n (game stamps type+seq), client applies it wholesale
     static void snapshot(net::game_state_msg& n);
     static void apply_snapshot(const net::game_state_msg& n);
 
     // shop, called by game on an INTERACT edge near a machine. Exact points pay:
     // points >= price succeeds. On denial last_event is denied. Heal lands on
-    // player p, and p's own gun/levels benefit only p; the wallet is shared.
+    // player p, and p's own gun/levels benefit only p; the wallet is shared
     static bool buy_heal(uint32_t now, uint8_t p = 0);
     static bool buy_damage(uint32_t now, uint8_t p = 0);
     static bool buy_speed(uint32_t now, uint8_t p = 0);
@@ -137,7 +136,6 @@ class sim {
 
     static uint32_t price_for(uint32_t base, uint8_t lvl); // base + STEP*lvl
     static bool auto_fire(weapon w); // hold-to-fire: MP9 + AR-15 only, rest is press-per-shot
-    static uint8_t mag_size(weapon w) { return _mag_size(w); } // rounds per mag, for the HUD
     // display bonuses for the panel/prompts: DMG +25/lvl, SPD +8/lvl, ROF the real
     // accumulated cooldown cut in % (multiplicative, L10 = 46)
     static uint8_t dmg_bonus(uint8_t lvl);
@@ -189,8 +187,7 @@ class sim {
     static bool _downed(uint8_t p); // active, bleeding out, needs a revive
     static void _move_entity(float& x, float& y, float dx, float dy, uint8_t size);
     static bool _step_zombie(uint8_t z, float ddx, float ddy, float dt);
-    static void _zombie_steer(uint8_t z, float pcx, float pcy, float dt,
-                              const uint16_t f[tilemap::ROWS][tilemap::COLS]);
+    static void _zombie_steer(uint8_t z, float pcx, float pcy, float dt, const uint16_t f[tilemap::ROWS][tilemap::COLS]);
     static void _spawn_wave();
     static void _respawn(uint8_t p);
     static void _do_fire(uint32_t now, uint8_t p);
@@ -213,7 +210,7 @@ class sim {
     static actor_kind _wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16_t total); // kind of spawn idx, runners spread evenly
     static void _spawn_into(uint8_t slot, actor_kind kind); // random >=100px spawn into a slot
     // roulette odds over r = rand % 100: SMG 30, pistol 10, shotgun 25, rifle 12,
-    // M16 13, sniper 10. SMG and shotgun hit more often; the pistol stays the booby prize.
+    // M16 13, sniper 10. SMG and shotgun hit more often; the pistol stays the booby prize
     static weapon _roll_weapon(uint8_t r);
     static uint8_t _fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p);
 };

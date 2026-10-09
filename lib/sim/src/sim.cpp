@@ -8,7 +8,7 @@
 
 // sim core: state, reset, players, the frame step and net snapshots. Wave,
 // combat and shop tables live in their own files; every static below is
-// defined once here and used across them.
+// defined once here and used across them
 
 sim::state sim::_s;
 uint32_t sim::_last_ms = 0;
@@ -63,17 +63,8 @@ void sim::reset() {
   _bleed_acc[0] = _bleed_acc[1] = 0;
   _p2ctl = {};
 
-  _s.players[0] = {
-      (float)tilemap::spawn_px - PLAYER_SIZE / 2.0f,
-      (float)tilemap::spawn_py - PLAYER_SIZE / 2.0f,
-      PLAYER_HP_MAX,
-      true,
-      false,
-      0,
-      2, // face south at spawn
-  };
-  _s.players[1] = {_s.players[0].x, _s.players[0].y, 0, false, false, 0,
-                   2}; // Solo: no peer yet
+  _s.players[0] = {(float)tilemap::spawn_px - PLAYER_SIZE / 2.0f, (float)tilemap::spawn_py - PLAYER_SIZE / 2.0f, PLAYER_HP_MAX, true, false, 0, 2}; // face south at spawn
+  _s.players[1] = {_s.players[0].x, _s.players[0].y, 0, false, false, 0, 2}; // Solo: no peer yet
 
   _path_tx[0] = _path_tx[1] = -1; // force fresh fields at the new spawn
   _path_ty[0] = _path_ty[1] = -1;
@@ -233,14 +224,8 @@ bool sim::step(uint32_t now) {
     }
   }
 
-  const float pcx[NUM_PLAYERS] = {
-      _s.players[0].x + PLAYER_SIZE / 2.0f,
-      _s.players[1].x + PLAYER_SIZE / 2.0f,
-  };
-  const float pcy[NUM_PLAYERS] = {
-      _s.players[0].y + PLAYER_SIZE / 2.0f,
-      _s.players[1].y + PLAYER_SIZE / 2.0f,
-  };
+  const float pcx[NUM_PLAYERS] = {_s.players[0].x + PLAYER_SIZE / 2.0f, _s.players[1].x + PLAYER_SIZE / 2.0f};
+  const float pcy[NUM_PLAYERS] = {_s.players[0].y + PLAYER_SIZE / 2.0f, _s.players[1].y + PLAYER_SIZE / 2.0f};
 
   for (uint8_t i = 0; i < MAX_BULLETS; ++i) {
     if (!_s.bullets[i].active) {
@@ -271,7 +256,7 @@ bool sim::step(uint32_t now) {
           ++_s.kills;
           _s.points += _kill_reward(_s.zombies[z].kind, _s.wave);
           if (_wave_spawned < _wave_quota) {
-            // refill inmediato en el slot liberado: la oleada dura la cuota entera
+            // immediate refill into the freed slot: the wave lasts the whole quota
             const bool boss = _wave_boss(_s.wave);
             const uint8_t runners = _wave_runners(_s.wave, _wave_quota);
             _spawn_into(z, _wave_kind(_wave_spawned, boss, runners, _wave_quota));
@@ -375,10 +360,8 @@ bool sim::step(uint32_t now) {
       const float push = (declump_dist - d) / 2.0f;
       const float nx = dx / d;
       const float ny = dy / d;
-      _move_entity(_s.zombies[i].x, _s.zombies[i].y, -nx * push, -ny * push,
-                   ZOMBIE_SIZE);
-      _move_entity(_s.zombies[j].x, _s.zombies[j].y, nx * push, ny * push,
-                   ZOMBIE_SIZE);
+      _move_entity(_s.zombies[i].x, _s.zombies[i].y, -nx * push, -ny * push, ZOMBIE_SIZE);
+      _move_entity(_s.zombies[j].x, _s.zombies[j].y, nx * push, ny * push, ZOMBIE_SIZE);
     }
   }
 
@@ -410,8 +393,8 @@ bool sim::step(uint32_t now) {
     any |= _s.zombies[i].active;
   }
   if (!any && _wave_spawned >= _wave_quota) {
-    // cuota agotada y mesa limpia: 5s silent breather, then the next wave.
-    // No prompt: the wave event (jingle + boss/roll banners) fires at spawn.
+    // quota spent and table clean: 3s silent breather, then the next wave
+    // No prompt: the wave event (jingle + boss/roll banners) fires at spawn
     if (_wave_break_until == 0) {
       _wave_break_until = now + WAVE_BREAK_MS;
     } else if (now >= _wave_break_until) {
