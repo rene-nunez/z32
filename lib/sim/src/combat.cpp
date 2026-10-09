@@ -33,7 +33,7 @@ uint32_t sim::_fire_cd(weapon w) {
     case weapon::smg: return 180;
     case weapon::shotgun: return 900;
     case weapon::rifle: return 350; // laser: fast mid punch, still below the MP9 hose
-    case weapon::m16: return 600;   // gap between bursts, rounds tick at burst_gap_ms
+    case weapon::m16: return 600; // gap between bursts, rounds tick at burst_gap_ms
     case weapon::sniper: return 1400;
     default: return 500; // pistol
   }

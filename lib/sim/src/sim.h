@@ -20,9 +20,9 @@ class sim {
     static constexpr uint8_t MAX_BULLETS = 8;
     static constexpr uint8_t NUM_PLAYERS = 2;
     static constexpr uint8_t PLAYER_HP_MAX = 10; // the panel draws one pip per point
-    static constexpr uint8_t REVIVE_HP = 3;     // back on your feet at 3 HP, heal up after
-    static constexpr uint8_t BLEED_SECS = 15;   // bleed-out window before death
-    static constexpr uint8_t MAX_LVL = 10;      // damage and speed cap here, pips per level
+    static constexpr uint8_t REVIVE_HP = 3; // back on your feet at 3 HP, heal up after
+    static constexpr uint8_t BLEED_SECS = 15; // bleed-out window before death
+    static constexpr uint8_t MAX_LVL = 10; // damage and speed cap here, pips per level
 
     enum class weapon : uint8_t { pistol, smg, shotgun, rifle, m16, sniper };
     enum class actor_kind : uint8_t { normal, runner, boss };
@@ -39,7 +39,7 @@ class sim {
       over,
       revive,
       buy_rpd, // appended last: earlier wire values never shift
-      reload,  // mag swap started (manual top-up or auto on empty)
+      reload, // mag swap started (manual top-up or auto on empty)
       reloaded, // mag full again, back in the fight
       empty // legacy dry click: auto-reload rescues now, never emitted
     };
@@ -47,9 +47,9 @@ class sim {
     // shop: points are the spendable wallet. Heal is flat; damage and speed are
     // permanent levels on the character (like HP) and each level costs more
     static constexpr uint32_t PRICE_HEAL = 100; // +2 HP
-    static constexpr uint32_t PRICE_DMG = 150;  // damage +25%/level, base price
-    static constexpr uint32_t PRICE_SPD = 150;  // speed +8%/level, base price
-    static constexpr uint32_t PRICE_RPD = 150;  // rapid -6% cooldown/level, base price
+    static constexpr uint32_t PRICE_DMG = 150; // damage +25%/level, base price
+    static constexpr uint32_t PRICE_SPD = 150; // speed +8%/level, base price
+    static constexpr uint32_t PRICE_RPD = 150; // rapid -6% cooldown/level, base price
     static constexpr uint32_t PRICE_ROLL = 100; // roulette: random weapon
     static constexpr uint32_t LVL_PRICE_STEP = 300; // extra cost per level owned
 
@@ -115,9 +115,9 @@ class sim {
 
     static void reset();
     static void set_p2_active(bool active); // Multi start on the host
-    static void set_p2(const ctl& c);       // fresh peer input, every host frame
+    static void set_p2(const ctl& c); // fresh peer input, every host frame
     static bool step(uint32_t now); // false once nobody is left standing
-    static bool revive(uint8_t p);  // partner lift: downed back to 3 HP
+    static bool revive(uint8_t p); // partner lift: downed back to 3 HP
 
     // net sync: host fills n (game stamps type+seq), client applies it wholesale
     static void snapshot(net::game_state_msg& n);
@@ -176,7 +176,7 @@ class sim {
     static uint8_t _face_want[NUM_PLAYERS], _face_cnt[NUM_PLAYERS]; // player debounce
     static uint8_t _zface_want[MAX_ZOMBIES], _zface_cnt[MAX_ZOMBIES]; // zombie debounce
     static uint32_t _bleed_acc[NUM_PLAYERS]; // ms banked toward the next bleed tick
-    static uint16_t _wave_quota;   // kills to clear this wave (wave+3, uncapped)
+    static uint16_t _wave_quota; // kills to clear this wave (wave+3, uncapped)
     static uint16_t _wave_spawned; // zombies spawned so far this wave (cap 10 alive)
     static uint32_t _wave_break_until; // millis() when the next wave may spawn, 0 = no break
     static constexpr uint32_t WAVE_BREAK_MS = 3000; // silent breather between waves (shop/heal/reload)
@@ -198,15 +198,15 @@ class sim {
     static uint8_t _base_dmg(weapon w);
     static float _fire_range(weapon w); // auto-aim reach: sniper sees further
     static uint8_t _eff_dmg(uint8_t base, uint8_t lvl); // base*(1+0.25*lvl), half-up, min 1
-    static float _spd_mult(uint8_t lvl);                // 1+0.08*lvl
-    static float _rpd_mult(uint8_t lvl);                // 0.94^lvl, 0.54 at max
+    static float _spd_mult(uint8_t lvl); // 1+0.08*lvl
+    static float _rpd_mult(uint8_t lvl); // 0.94^lvl, 0.54 at max
     static uint8_t _zombie_hp(actor_kind kind, uint16_t wave); // normal 2+w/2, runner 1+w/4, boss 20+w (capped 255)
-    static uint8_t _zombie_dmg(actor_kind kind);        // boss 3, rest 1
-    static float _zombie_speed(actor_kind kind);        // 40 / 80 / 30
+    static uint8_t _zombie_dmg(actor_kind kind); // boss 3, rest 1
+    static float _zombie_speed(actor_kind kind); // 40 / 80 / 30
     static uint32_t _kill_reward(actor_kind kind, uint16_t wave); // normal 10+2w, runner 15+2w, boss 150+10w
     static uint16_t _wave_total(uint16_t wave); // quota: wave+3, uncapped (cap is alive at once)
     static uint8_t _wave_runners(uint16_t wave, uint16_t total); // 0 on wave 1, else min(2w/3, half)
-    static bool _wave_boss(uint16_t wave);     // every 5th wave steals slot 0
+    static bool _wave_boss(uint16_t wave); // every 5th wave steals slot 0
     static actor_kind _wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16_t total); // kind of spawn idx, runners spread evenly
     static void _spawn_into(uint8_t slot, actor_kind kind); // random >=100px spawn into a slot
     // roulette odds over r = rand % 100: SMG 30, pistol 10, shotgun 25, rifle 12,
