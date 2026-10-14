@@ -116,6 +116,7 @@ int main() {
                            fx + fw - 1 >= sx + fw - MM_SCALE && fx + fw - 1 <= sx + fw - 1;
         if (!inside || !lines) {
           printf("FAIL frame %d,%d %dx%d inside=%d lines_in_strips=%d\n", fx, fy, fw, fh, inside, lines);
+          ++fails;
         }
       }
     }
@@ -197,42 +198,7 @@ int main() {
   }
   printf("walkable world rows never visible: %d\n", hidden);
 
-  // 5) run-length erase == per-pixel erase, every camera, every tile-aligned rect
-  int cases = 0;
-  for (int cy = 0; cy <= MAX_Y; cy += 17) {
-    for (int cx = 0; cx <= MAX_X; cx += 17) {
-      for (int ey = 0; ey + 8 < AH; ey += 5) {
-        for (int ex = 0; ex + 8 < AW; ex += 5) {
-          const int wx = cx + ex, wy = cy + ey;
-          uint16_t want[8][8], got[8][8];
-          for (int16_t dy = 0; dy < 8; ++dy) {          // per-pixel reference
-            for (int16_t dx = 0; dx < 8; ++dx)
-              want[dy][dx] = tilemap::color_at(wx + dx, wy + dy);
-          }
-          for (int16_t dy = 0; dy < 8; ++dy) {          // run-length impl
-            int16_t run_x = 0;
-            uint16_t run_col = tilemap::color_at(wx, wy + dy);
-            for (int16_t dx = 1; dx < 8; ++dx) {
-              const uint16_t col = tilemap::color_at(wx + dx, wy + dy);
-              if (col != run_col) {
-                for (int16_t i = run_x; i < dx; ++i) got[dy][i] = run_col;
-                run_x = dx;
-                run_col = col;
-              }
-            }
-            for (int16_t i = run_x; i < 8; ++i) got[dy][i] = run_col;
-          }
-          if (memcmp(want, got, sizeof(want)) != 0) {
-            if (fails < 5) printf("FAIL erase mismatch cam %d,%d rect %d,%d\n", cx, cy, ex, ey);
-            ++fails;
-          }
-          ++cases;
-        }
-      }
-    }
-  }
-  printf("erase run-length == per-pixel on %d rects across %d camera positions\n", cases,
-         (MAX_X + 1) * (MAX_Y + 1));
+  // 5) dropped: it reimplemented the render run-length instead of testing it.
 
   // 6) a bullet fired east dies on the west wall, and the border blocks it
   check(tilemap::solid_rect(1, 16 * tilemap::TILE, 4, 4), "bullet at x=1 is inside the border wall");
@@ -381,24 +347,7 @@ int main() {
     check(AH * SW * 2 <= 120000, "arena repaint payload");
   }
 
-  // 11) the menu must not repaint the whole panel every frame
-  {
-    // a full-screen fill is 320*240*2 bytes, ~31ms of SPI at 40MHz: done per frame it
-    // both blew the 33ms budget and tore against the scan-out (a line sweeping the panel)
-    const int full_bytes = SW * SH * 2;
-    const int spi_hz = 40000000;
-    const int full_ms = (int)((1000L * full_bytes * 8) / spi_hz);
-    // what a steady-state menu frame costs: the two cursor lines, 14 chars
-    // (longest item + '>') of 12x16 glyphs. Size-2 chrome costs ~4x the old size-1,
-    // still ~2ms against the 31ms full fill.
-    const int line_bytes = 14 * 12 * 16 * 2;
-    const int cursor_bytes = 2 * line_bytes;
-    printf("menu: full-screen fill %d bytes = %dms at 40MHz | steady frame %d bytes\n", full_bytes,
-           full_ms, cursor_bytes);
-    check(full_ms >= 30, "the full-screen fill model is off, re-check the SPI clock");
-    check(cursor_bytes * 10 < full_bytes, "a menu frame is too close to a full repaint");
-    check(cursor_bytes * 10 / (spi_hz / 8 / 1000) <= 33, "a menu frame blows the 33ms budget");
-  }
+  // 11) dropped: SPI timing model, not a code test.
 
   // 12) nothing may bleed into the hud strip or the panel
   {

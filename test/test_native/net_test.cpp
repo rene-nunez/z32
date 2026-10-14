@@ -1,6 +1,6 @@
 // Native bank for the F6 net wire format. Builds without Arduino: run
 // test/test_native/run.sh. Checks sizes against the 250B cap and the
-// quantizer round-trips (positions, angles, axes, flag packing).
+// quantizer round-trips (positions, angles, axes, flag packing, facing).
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -52,6 +52,13 @@ int main() {
   check((pf & net::PF_RELOADING) != 0, "reloading bit");
   check((uint8_t)((pf >> net::PF_DIR_SHIFT) & net::PF_DIR_MASK) == 0, "dir bits survive reload bit");
 
+  // facing: the 8-wind dir rides spare flag bits (no extra bytes); every value
+  // 0..7 must survive alongside the reload bit
+  for (uint8_t d = 0; d < 8; ++d) {
+    const uint8_t f = net::PF_ACTIVE | net::PF_RELOADING | (uint8_t)(d << net::PF_DIR_SHIFT);
+    check((uint8_t)((f >> net::PF_DIR_SHIFT) & net::PF_DIR_MASK) == d, "player facing round-trip");
+  }
+
   // positions: world 0..960 x 0..480, error under one quantum (0.25px)
   const float pxs[] = {0.0f, 1.3f, 159.9f, 480.0f, 959.75f};
   for (unsigned i = 0; i < sizeof(pxs) / sizeof(pxs[0]); ++i) {
@@ -93,25 +100,31 @@ int main() {
   check(net::qaxis(2.0f) == 127, "qaxis clamps high");
   check(net::qaxis(-2.0f) == -127, "qaxis clamps low");
 
-  // flag packing: kinds 0..2, dmgs 0..16 survive the shifts
+  // flag packing: kinds 0..2, dmgs 0..16 and facing 0..7 survive the shifts
   for (uint8_t k = 0; k < 3; ++k) {
-    const uint8_t f = net::ZF_ACTIVE | (uint8_t)(k << net::ZF_KIND_SHIFT);
-    check((f & net::ZF_ACTIVE) != 0, "zombie active bit");
-    check((uint8_t)((f >> net::ZF_KIND_SHIFT) & 0x03) == k, "zombie kind bits");
+    for (uint8_t d = 0; d < 8; ++d) {
+      const uint8_t f = net::ZF_ACTIVE | (uint8_t)(k << net::ZF_KIND_SHIFT) |
+                        (uint8_t)(d << net::ZF_DIR_SHIFT);
+      check((f & net::ZF_ACTIVE) != 0, "zombie active bit");
+      check((uint8_t)((f >> net::ZF_KIND_SHIFT) & 0x03) == k, "zombie kind bits");
+      check((uint8_t)((f >> net::ZF_DIR_SHIFT) & net::ZF_DIR_MASK) == d, "zombie facing bits");
+    }
   }
   for (uint8_t d = 0; d <= 16; ++d) {
     const uint8_t f = net::BF_ACTIVE | (uint8_t)(d << net::BF_DMG_SHIFT);
     check((uint8_t)((f >> net::BF_DMG_SHIFT) & 0x1F) == d, "bullet dmg bits");
   }
 
-  // chat callouts: 4B edge shouts, type first, ids 0..3, under the cap
+  // chat callouts (SAVE ME!/THX!/I'M OUT!/I'M BACK!): 4B edge shouts, type first,
+  // under the cap. Only the voluntary SAVE ME travels (wire id come); the rest
+  // derive locally from shared state, zero bytes. Solo never sends.
   net::chat_msg c;
   check(sizeof(net::chat_msg) == 4, "chat len 4");
   check(((const uint8_t*)&c)[0] == 0x20, "chat type byte");
   check(sizeof(net::chat_msg) <= 250, "chat under cap");
   check((uint8_t)net::chat_id::help == 0 && (uint8_t)net::chat_id::come == 1 &&
             (uint8_t)net::chat_id::thanks == 2 && (uint8_t)net::chat_id::ammo == 3,
-        "chat ids help/come/thanks/ammo");
+        "chat wire ids unchanged");
 
   if (fails == 0) {
     printf("all net checks passed\n");
