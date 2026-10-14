@@ -85,9 +85,10 @@ Host is authoritative: it simulates both players and broadcasts state at ~30Hz (
 
 Screen flow (`logo`/`team` show 2.5s each, FIRE skips):
 
-```
+```text
 logo - team - menu - mode - scores/waiting - playing - pause / game_over
-``` The `scores` screen shows your last runs as `{points, kills, wave}`: last 4 in RTC memory, mirrored to `/z32_recent.json` plus the append-only `/z32_log.jsonl` on microSD.
+```
+The `scores` screen shows your last runs as `{points, kills, wave}`: last 4 in RTC memory, mirrored to `/z32_recent.json` plus the append-only `/z32_log.jsonl` on microSD.
 
 A passive buzzer plays short non-blocking jingles for menu, shots, buys, roulette, damage, waves, reloads and game-over.
 
