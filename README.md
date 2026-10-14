@@ -1,33 +1,31 @@
 # z32
 
-ESP32 wave-based zombie video game with ESP-NOW multiplayer. Survive endless waves in a maze on a 2.4" TFT (ST7789 240x320), spend kill points on vending machines and a weapon roulette. Solo on one board, co-op on two.
+ESP32 wave-based zombie video game with ESP-NOW multiplayer. Survive endless waves, spend kill points on vending machines and a weapon roulette. Solo on one board, co-op on two.
 
 ## Hardware
 
-One set per player (co-op needs two identical sets):
+One set per player (multiplayer needs two identical sets):
 
-- ESP32 dev board, ST7789 240x320 TFT over SPI
+- ESP32 dev board, 2.4" ST7789 240x320 TFT Display over SPI
 - Analog joystick + 4 buttons (FIRE, RELOAD, INTERACT, PAUSE)
 - Passive buzzer, microSD card (shares the TFT SPI bus)
 
-All pins are in [include/pins.h](include/pins.h) (single source of truth; display timing in [include/tft_setup.h](include/tft_setup.h). ADC2 is not used for analog input (WiFi/ESP-NOW disables it).
+All pins are in [include/pins.h](include/pins.h) (single source of truth; display timing in [include/tft_setup.h](include/tft_setup.h)).
+
+![Wiring diagram](assets/wokwi-circuit-diagram.png)
 
 ## Installation
 
-Prereqs: [PlatformIO](https://platformio.org/) and ESP32 platform + a USB serial driver for your board. 
-
-Library deps (install automatically by platformio.ini):
-
-- TFT_eSPI
-- ArduinoJson
+You need [PlatformIO](https://platformio.org/) with the Espressif32 platform (see the [install guide](https://docs.platformio.org/en/latest/core/installation/index.html)) plus a USB serial driver for your board. Library deps ([`TFT_eSPI`](https://registry.platformio.org/libraries/bodmer/TFT_eSPI), [`ArduinoJson`](https://registry.platformio.org/libraries/bblanchon/ArduinoJson)) install automatically from [platformio.ini](platformio.ini).
 
 ```sh
 pio run -e host -t upload    # board 1
-pio run -e client -t upload  # board 2
+pio run -e client -t upload  # board 2, for multiplayer
 pio device monitor           # 115200 baud; boot prints ready role=host/client
 ```
 
-Each board's role is fixed at build time. Either board plays Solo alone.
+> [!IMPORTANT]
+> Hands off the joystick at boot: the stick calibrates its centre for ~200ms, and any touch then becomes drift for the whole run. Reboot to redo it.
 
 ## How to play
 
@@ -77,20 +75,38 @@ Levels are permanent per player; each machine shows its live price overhead.
 
 No runners on wave 1; afterwards up to `min(2·wave/3, quota/2)`, spread evenly. Every 5th wave a boss takes spawn slot 0. Spawns are always ≥100px away.
 
-**Downed & revive (co-op).** At 0 HP you go down, not out: 15s of bleed while your partner presses INTERACT to lift you back at 3 HP. Bleed out and you respawn next wave. Downed with no machines near, INTERACT shouts `SAVE ME!`.
+**Downed & revive (multiplayer).** At 0 HP you go down, not out: 15s of bleed while your partner presses INTERACT to lift you back at 3 HP. Bleed out and you respawn next wave. Downed with no machines near, INTERACT shouts `SAVE ME!`.
 
-## Co-op
+## Multiplayer
 
-Host is authoritative: it simulates both players and broadcasts state at ~30Hz (146B state + 5B input); the client sends inputs and mirrors. Pick Multi and the boards join via `waiting` (10s timeout or FIRE falls back to Solo). P2 shares the wallet/kills and joins with a fresh pistol. Pause can be requested from either board but is owned by the host; game-over mirrors to both.
+Host is authoritative: it simulates both players and broadcasts state at ~30Hz (146B state + 5B input); the client sends inputs and mirrors. No pairing step: each board carries a fixed custom MAC ([lib/network/src/network.h](lib/network/src/network.h)) and the build role picks the peer — just flash one board as `host`, the other as `client`, and pick Multi on both. They join via `waiting` (10s timeout or FIRE falls back to Solo). P2 shares the wallet/kills and joins with a fresh pistol. Pause can be requested from either board but is owned by the host; game-over mirrors to both.
+
+## Screens, scores & sound
+
+Screen flow (`logo`/`team` show 2.5s each, FIRE skips):
+
+```
+logo - team - menu - mode - scores/waiting - playing - pause / game_over
+``` The `scores` screen shows your last runs as `{points, kills, wave}`: last 4 in RTC memory, mirrored to `/z32_recent.json` plus the append-only `/z32_log.jsonl` on microSD.
+
+A passive buzzer plays short non-blocking jingles for menu, shots, buys, roulette, damage, waves, reloads and game-over.
+
+## Troubleshooting
+
+- **Player drifts on its own**: you touched the stick during the ~200ms boot calibration. Reboot hands-off.
+- **`waiting` never joins**: the other board must also pick Multi, in range. After 10s (or FIRE) you fall back to Solo.
+- **Client drops back to menu mid-run**: host quiet for 3s (`peer quiet 3000ms` on serial). Move the boards closer.
+- **`no sd, rtc only`**: no microSD detected; runs are kept in RTC memory only. Reseat the card (CS 22, shared TFT SPI bus).
+- **`delivery failed` spam**: the peer is out of ESP-NOW range.
 
 ## Development & tests
 
 ```sh
-pio run -e host | pio run -e client   # build per role
+pio run -e host | pio run -e client   # build per role (bare pio run = host)
 ./test/test_native/run.sh             # hardware-free checks (map + net wire)
 ```
 
-The serial console (115200) logs events only, e.g. run saves and co-op joins. `AGENTS.md` is the developer contract (pins, net format, module bounds).
+The serial console (115200) logs events only, e.g. run saves and multiplayer joins. `AGENTS.md` is the developer contract (pins, net format, module bounds).
 
 ## License
 
