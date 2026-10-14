@@ -6,13 +6,16 @@ ESP32 wave-based zombie video game with ESP-NOW multiplayer. Survive endless wav
 
 One set per player (multiplayer needs two identical sets):
 
-- ESP32 dev board, 2.4" ST7789 240x320 TFT Display over SPI
-- Analog joystick + 4 buttons (FIRE, RELOAD, INTERACT, PAUSE)
-- Passive buzzer, microSD card (shares the TFT SPI bus)
+- ESP32 dev board
+- 2.4" ST7789 240x320 TFT Display over SPI
+- Analog joystick
+- 4 buttons (FIRE, RELOAD, INTERACT, PAUSE)
+- Passive buzzer
+- MicroSD card (shares the TFT SPI bus)
 
-All pins are in [include/pins.h](include/pins.h) (single source of truth; display timing in [include/tft_setup.h](include/tft_setup.h)).
+See [`include/pins.h`](include/pins.h) for the full pinout and [`include/tft_setup.h`](include/tft_setup.h) for the display configuration.
 
-![Wiring diagram](assets/wokwi-circuit-diagram.png)
+![wokwi-circuit-diagram](assets/wokwi-circuit-diagram.png)
 
 ## Installation
 
@@ -75,7 +78,7 @@ Levels are permanent per player; each machine shows its live price overhead.
 
 No runners on wave 1; afterwards up to `min(2·wave/3, quota/2)`, spread evenly. Every 5th wave a boss takes spawn slot 0. Spawns are always ≥100px away.
 
-**Downed & revive (multiplayer).** At 0 HP you go down, not out: 15s of bleed while your partner presses INTERACT to lift you back at 3 HP. Bleed out and you respawn next wave. Downed with no machines near, INTERACT shouts `SAVE ME!`.
+**Downed, spectate & revive (multiplayer).** At 0 HP you go down, not out: 15s of bleed while your partner presses INTERACT to lift you back at 3 HP. Bleed out and you spectate your partner (camera, HUD and panel follow their gun and build) until you respawn next wave. Downed with no machines near, INTERACT shouts `SAVE ME!`.
 
 ## Multiplayer
 
@@ -88,6 +91,7 @@ Screen flow (`logo`/`team` show 2.5s each, FIRE skips):
 ```text
 logo - team - menu - mode - scores/waiting - playing - pause / game_over
 ```
+
 The `scores` screen shows your last runs as `{points, kills, wave}`: last 4 in RTC memory, mirrored to `/z32_recent.json` plus the append-only `/z32_log.jsonl` on microSD.
 
 A passive buzzer plays short non-blocking jingles for menu, shots, buys, roulette, damage, waves, reloads and game-over.
