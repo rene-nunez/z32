@@ -2,12 +2,15 @@
 
 ESP32 wave-based zombie video game with ESP-NOW multiplayer. Survive endless waves, spend kill points on vending machines and a weapon roulette. Solo on one board, co-op on two.
 
+![solo-gameplay](assets/solo-gameplay.png)
+![multiplayer-gameplay](assets/multiplayer-gameplay.png)
+
 ## Hardware
 
 One set per player (multiplayer needs two identical sets):
 
 - ESP32 dev board
-- 2.4" ST7789 240x320 TFT Display over SPI
+- 2.4" ST7789 240x320 TFT display over SPI
 - Analog joystick
 - 4 buttons (FIRE, RELOAD, INTERACT, PAUSE)
 - Passive buzzer
@@ -44,7 +47,7 @@ pio device monitor           # 115200 baud; boot prints ready role=host/client
 | RELOAD   | Top up a half-spent mag (empty mags reload on their own)      |
 | PAUSE    | Pause (Continue / Restart / Exit)                             |
 
-Aim auto-targets the nearest zombie in range (160px, 220px for the M82A1).
+Shots auto-target the nearest zombie in range (160px, 220px for the M82A1).
 
 **Shop.** Points are the shared wallet: kill, earn, spend. Stand by a machine (28px reach) and press INTERACT.
 
@@ -55,7 +58,7 @@ Aim auto-targets the nearest zombie in range (160px, 220px for the M82A1).
 | S Speed   | +8% speed per level, max 10         | 150 + 300 × level |
 | C Rapid   | −6% cooldown per level, max 10      | 150 + 300 × level |
 
-Levels are permanent per player; each machine shows its live price overhead.
+Levels are permanent per player; each machine shows its live price floating above.
 
 **Roulette (100).** Random weapon; only 1 of the 4 pads is active at a time (rotates every 3 waves from wave 3). New guns arrive with a full mag.
 
