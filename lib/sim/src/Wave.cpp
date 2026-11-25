@@ -9,25 +9,25 @@
 // sim wave: zombie steering, spawn tables, quotas and per-kind stats. The wave
 // order (dithered runners) and the refill live here; step() only calls in
 
-bool Sim::_step_zombie(uint8_t z, float ddx, float ddy, float dt) {
+bool Sim::step_zombie(uint8_t z, float ddx, float ddy, float dt) {
   const float d = sqrtf(ddx * ddx + ddy * ddy);
   if (d <= 0.5f) {
     return false;
   }
-  const float spd = _zombie_speed(_s.zombies[z].kind);
-  const float bx = _s.zombies[z].x, by = _s.zombies[z].y;
-  // _move_entity takes references, so it has to get the real members, not copies
-  _move_entity(_s.zombies[z].x, _s.zombies[z].y, ddx / d * spd * dt, ddy / d * spd * dt, ZOMBIE_SIZE);
-  if (_s.zombies[z].x == bx && _s.zombies[z].y == by) {
+  const float spd = speed_for(s.zombies[z].kind);
+  const float bx = s.zombies[z].x, by = s.zombies[z].y;
+  // move_entity takes references, so it has to get the real members, not copies
+  move_entity(s.zombies[z].x, s.zombies[z].y, ddx / d * spd * dt, ddy / d * spd * dt, ZOMBIE_SIZE);
+  if (s.zombies[z].x == bx && s.zombies[z].y == by) {
     return false; // walled in: keep the last facing instead of flip-flopping
   }
-  _face_toward(_s.zombies[z].facing, _zface_want[z], _zface_cnt[z], _s.zombies[z].x - bx, _s.zombies[z].y - by);
+  face_toward(s.zombies[z].facing, zface_want[z], zface_cnt[z], s.zombies[z].x - bx, s.zombies[z].y - by);
   return true;
 }
 
-void Sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt, const uint16_t f[Tilemap::ROWS][Tilemap::COLS]) {
-  const float zcx = _s.zombies[z].x + ZOMBIE_SIZE / 2.0f;
-  const float zcy = _s.zombies[z].y + ZOMBIE_SIZE / 2.0f;
+void Sim::zombie_steer(uint8_t z, float pcx, float pcy, float dt, const uint16_t f[Tilemap::ROWS][Tilemap::COLS]) {
+  const float zcx = s.zombies[z].x + ZOMBIE_SIZE / 2.0f;
+  const float zcy = s.zombies[z].y + ZOMBIE_SIZE / 2.0f;
   const float sdx = pcx - zcx;
   const float sdy = pcy - zcy;
   if (sdx * sdx + sdy * sdy <= contact_dist * contact_dist) {
@@ -52,11 +52,11 @@ void Sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt, const uint16_
   if (here == 0) {
     // on the player's tile: close in directly. The standoff guard above stops
     // the walk at contact range, so hits land without piling onto the centre
-    _step_zombie(z, pcx - zcx, pcy - zcy, dt);
+    step_zombie(z, pcx - zcx, pcy - zcy, dt);
     return;
   }
   if (here == Tilemap::UNREACHABLE) { // walled off from the player: straight chase as a fallback
-    _step_zombie(z, pcx - zcx, pcy - zcy, dt);
+    step_zombie(z, pcx - zcx, pcy - zcy, dt);
     return;
   }
 
@@ -87,50 +87,50 @@ void Sim::_zombie_steer(uint8_t z, float pcx, float pcy, float dt, const uint16_
     // aim at the centre of the chosen tile, so a diagonal reads as drift not a shuffle
     const float tx_c = (float)(ztx + nbr_x[best]) * Tilemap::TILE + Tilemap::TILE / 2.0f;
     const float ty_c = (float)(zty + nbr_y[best]) * Tilemap::TILE + Tilemap::TILE / 2.0f;
-    if (_step_zombie(z, tx_c - zcx, ty_c - zcy, dt)) {
+    if (step_zombie(z, tx_c - zcx, ty_c - zcy, dt)) {
       return;
     }
   }
 }
 
-void Sim::_spawn_wave() {
-  ++_s.wave;
+void Sim::spawn_wave() {
+  ++s.wave;
   for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
-    if (!_s.players[p].active || _s.players[p].hp > 0) {
+    if (!s.players[p].active || s.players[p].hp > 0) {
       continue;
     }
-    if (_s.players[p].downed) {
-      _s.players[p].downed = false; // held on till the wave broke: up at revive HP
-      _s.players[p].bleed = 0;
-      _s.players[p].hp = REVIVE_HP;
-      _bleed_acc[p] = 0;
+    if (s.players[p].downed) {
+      s.players[p].downed = false; // held on till the wave broke: up at revive HP
+      s.players[p].bleed = 0;
+      s.players[p].hp = REVIVE_HP;
+      bleed_acc[p] = 0;
     } else {
-      _respawn(p); // the bled-out rejoin every wave
-      _s.players[p].hp = REVIVE_HP; // ...back at 3 HP, not full
+      respawn(p); // the bled-out rejoin every wave
+      s.players[p].hp = REVIVE_HP; // ...back at 3 HP, not full
     }
   }
   for (uint8_t i = 0; i < MAX_ZOMBIES; ++i) {
-    _s.zombies[i].active = false;
+    s.zombies[i].active = false;
   }
 
   // quota: wave+3 kills to clear, uncapped; at most MAX_ZOMBIES alive at once
   // composition: the boss steals spawn idx 0 every 5th wave, then up to half the
   // quota (from wave 2) are runners spread evenly over the wave (dither, so the
   // wave never opens with a runner wall), the rest normals. 10 alive max, always
-  _wave_quota = _wave_total(_s.wave);
-  _wave_spawned = 0;
-  const bool boss = _wave_boss(_s.wave);
-  const uint8_t runners = _wave_runners(_s.wave, _wave_quota);
+  wave_quota = wave_total(s.wave);
+  wave_spawned = 0;
+  const bool boss = wave_boss(s.wave);
+  const uint8_t runners = wave_runners(s.wave, wave_quota);
 
-  const uint8_t initial = _wave_quota > MAX_ZOMBIES ? MAX_ZOMBIES : (uint8_t)_wave_quota;
+  const uint8_t initial = wave_quota > MAX_ZOMBIES ? MAX_ZOMBIES : (uint8_t)wave_quota;
   for (uint8_t i = 0; i < initial; ++i) {
-    _spawn_into(i, _wave_kind(_wave_spawned, boss, runners, _wave_quota));
-    ++_wave_spawned;
+    spawn_into(i, wave_kind(wave_spawned, boss, runners, wave_quota));
+    ++wave_spawned;
   }
-  _s.last_event = event::wave;
+  s.last_event = event::wave;
 }
 
-Sim::actor_kind Sim::_wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16_t total) {
+Sim::actor_kind Sim::wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16_t total) {
   if (boss && idx == 0) {
     return actor_kind::boss;
   }
@@ -143,12 +143,12 @@ Sim::actor_kind Sim::_wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16
   return actor_kind::normal;
 }
 
-void Sim::_spawn_into(uint8_t slot, actor_kind kind) {
-  const float px0 = _s.players[0].x + PLAYER_SIZE / 2.0f;
-  const float py0 = _s.players[0].y + PLAYER_SIZE / 2.0f;
-  const float px1 = _s.players[1].x + PLAYER_SIZE / 2.0f;
-  const float py1 = _s.players[1].y + PLAYER_SIZE / 2.0f;
-  const bool p1_out = _alive(1);
+void Sim::spawn_into(uint8_t slot, actor_kind kind) {
+  const float px0 = s.players[0].x + PLAYER_SIZE / 2.0f;
+  const float py0 = s.players[0].y + PLAYER_SIZE / 2.0f;
+  const float px1 = s.players[1].x + PLAYER_SIZE / 2.0f;
+  const float py1 = s.players[1].y + PLAYER_SIZE / 2.0f;
+  const bool p1_out = alive(1);
   const uint16_t total = (uint16_t)(Tilemap::COLS * Tilemap::ROWS);
   const int16_t off = (int16_t)((Tilemap::TILE - ZOMBIE_SIZE) / 2);
 
@@ -174,18 +174,18 @@ void Sim::_spawn_into(uint8_t slot, actor_kind kind) {
     if (close && k + 1 < total) {
       continue; // too close to a player, keep looking
     }
-    _s.zombies[slot] = { x, y, _zombie_hp(kind, _s.wave), true, kind, 2 };
-    _zface_want[slot] = 2;
-    _zface_cnt[slot] = 0;
+    s.zombies[slot] = { x, y, zombie_hp(kind, s.wave), true, kind, 2 };
+    zface_want[slot] = 2;
+    zface_cnt[slot] = 0;
     break;
   }
 }
 
-uint16_t Sim::_wave_total(uint16_t wave) {
+uint16_t Sim::wave_total(uint16_t wave) {
   return wave + 3u; // quota, uncapped: the alive cap is enforced at spawn time
 }
 
-uint8_t Sim::_wave_runners(uint16_t wave, uint16_t total) {
+uint8_t Sim::wave_runners(uint16_t wave, uint16_t total) {
   if (wave < 2) {
     return 0; // gentle start: wave 1 is all normals
   }
@@ -196,11 +196,11 @@ uint8_t Sim::_wave_runners(uint16_t wave, uint16_t total) {
   return (uint8_t)runners;
 }
 
-bool Sim::_wave_boss(uint16_t wave) {
+bool Sim::wave_boss(uint16_t wave) {
   return wave % 5u == 0u;
 }
 
-uint8_t Sim::_zombie_hp(actor_kind kind, uint16_t wave) {
+uint8_t Sim::zombie_hp(actor_kind kind, uint16_t wave) {
   switch (kind) {
     case actor_kind::runner: return (uint8_t)(1u + wave / 4u); // 2 hits from w4, 3 from w8
     case actor_kind::boss: { // 25 at w5, 30 at w10, capped: hp rides one byte
@@ -211,12 +211,12 @@ uint8_t Sim::_zombie_hp(actor_kind kind, uint16_t wave) {
   }
 }
 
-uint8_t Sim::_zombie_dmg(actor_kind kind) {
+uint8_t Sim::zombie_dmg(actor_kind kind) {
   // the tank mauls (one-shots a freshly revived 3HP player), the rest scratch
   return (kind == actor_kind::boss) ? 3 : 1;
 }
 
-float Sim::_zombie_speed(actor_kind kind) {
+float Sim::speed_for(actor_kind kind) {
   switch (kind) {
     case actor_kind::runner: return runner_speed;
     case actor_kind::boss: return boss_speed;

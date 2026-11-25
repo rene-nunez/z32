@@ -25,7 +25,7 @@ static void check(bool ok, const char* what) {
   }
 }
 
-// mirror of Game::_cell_cam
+// mirror of Game::cell_cam
 static int16_t cell_cam(int16_t p, int16_t step, int16_t max_cam) {
   int16_t cam = (int16_t)((p / step) * step);
   if (cam < 0) cam = 0;
@@ -357,7 +357,7 @@ int main() {
         for (int ey = 0; ey + 8 < Tilemap::WORLD_H; ++ey += 5) {
           for (int ex = 0; ex + 8 < Tilemap::WORLD_W; ++ex += 5) {
             const int wx = cx + ex, wy = cy + ey;
-            // _fill_world_box clip box, verbatim
+            // fill_world_box clip box, verbatim
             const int x0 = wx - cx, y0 = wy - cy + HUD;
             const int cx0 = x0 > 0 ? x0 : 0;
             const int cy0 = y0 > HUD ? y0 : HUD;
@@ -420,7 +420,7 @@ int main() {
     check(solid_reached == 0, "the field leaked a distance onto a wall");
     check(max_d < 255, "the field needs more than uint8_t");
 
-    // mirror of Game::_zombie_steer: pick the lowest-distance neighbour, aim at its centre
+    // mirror of Game::zombie_steer: pick the lowest-distance neighbour, aim at its centre
     const int nx[8] = {1, -1, 0, 0, 1, 1, -1, -1}, ny[8] = {0, 0, 1, -1, 1, -1, 1, -1};
     int stuck = 0, longest = 0, samples = 0;
     for (int r = 0; r < Tilemap::ROWS; r += 1) {

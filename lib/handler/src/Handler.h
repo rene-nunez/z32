@@ -21,8 +21,8 @@ class Handler {
       std::function<void(const uint8_t*, size_t)> callback;
     };
 
-    handler_entry _handlers[MAX_HANDLERS] = {};
-    size_t _handler_count = 0;
+    handler_entry handlers[MAX_HANDLERS] = {};
+    size_t handler_count = 0;
 
-    void _dispatch(const uint8_t* data, int len);
+    void dispatch(const uint8_t* data, int len);
 };

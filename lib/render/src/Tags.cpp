@@ -15,14 +15,14 @@
 // price-level change (buys). The paint runs every frame instead: actor/prompt erases
 // can clobber tag pixels without staling them, and repainting identical text is a
 // no-op (text only ever shrinks on a buy, which always stales the erase first)
-static int16_t _tags_cx = -1, _tags_cy = -1; // camera the tags were last erased for
-static uint8_t _tags_dmg = 0xFF, _tags_spd = 0xFF; // levels the tags were last erased for
-static uint8_t _tags_rpd = 0xFF;
-static uint16_t _tags_roll = 0xFFFF; // active roulette pad the tags were last erased for
+static int16_t tags_cx = -1, tags_cy = -1; // camera the tags were last erased for
+static uint8_t tags_dmg = 0xFF, tags_spd = 0xFF; // levels the tags were last erased for
+static uint8_t tags_rpd = 0xFF;
+static uint16_t tags_roll = 0xFFFF; // active roulette pad the tags were last erased for
 // active wheel pad: row-major scan order, hash(wave/3) % pads (3-wave epochs from
-// wave 3: waves 1-2, 3-5, 6-8, ...). Mirrors Game::_roulette_active off the synced
+// wave 3: waves 1-2, 3-5, 6-8, ...). Mirrors Game::roulette_active off the synced
 // wave, so tags follow the wheel with no extra net bytes
-static uint8_t _roll_active(uint8_t n) {
+static uint8_t roll_active(uint8_t n) {
   if (n == 0) {
     return 0;
   }
@@ -34,47 +34,47 @@ static uint8_t _roll_active(uint8_t n) {
   const uint32_t h = (e * 1103515245u + 12345u) & 0x7FFFFFFFu;
   return (uint8_t)((h >> 16u) % n);
 }
-// shop tag anchors are world-fixed (machines parse once from constexpr _art), so the
+// shop tag anchors are world-fixed (machines parse once from constexpr art), so the
 // 60x30 scan runs once and every frame reuses the cached centres. 0=H 1=D 2=S 3=C,
-// 4..=roulette pads in row-major scan order (same order Game::_scan_shops uses,
+// 4..=roulette pads in row-major scan order (same order Game::scan_shops uses,
 // so the active index agrees on both sides)
-struct _tag_anchor {
+struct tag_anchor {
   int16_t cx; // block centre, world px
   int16_t wy; // tag top, world px (8px glyph + 2px gap above the block)
   bool found;
 };
 static constexpr uint8_t TAG_PADS = 6; // roulette pad anchor slots (4 on the shipped map)
-static _tag_anchor _tag_anchors[4 + TAG_PADS];
-static bool _tag_anchors_done = false;
+static tag_anchor tag_anchors[4 + TAG_PADS];
+static bool tag_anchors_done = false;
 
 // stale when the camera moved since the last erase, a price level changed, or terrain
 // is still rebuilding under the tags (progressive repaint paints over them, so the
 // erase must keep up). Runs in clear(), at the old camera, so the erase lands on last
 // frame's pixels. Caches update only on erase: steady frames keep comparing against
 // the last erase position
-bool Render::_tags_stale() {
+bool Render::tags_stale() {
   const Sim::state& v = Sim::view();
   // roulette pads found so far (anchors fill on first paint); the active pad rotates
   // with the wave, so a rotation must erase the old tag even if the camera sat still
   uint8_t rn = 0;
   for (uint8_t i = 4; i < 4 + TAG_PADS; ++i) {
-    if (_tag_anchors_done && _tag_anchors[i].found) {
+    if (tag_anchors_done && tag_anchors[i].found) {
       ++rn;
     }
   }
   // before the first scan rn reads 0: fall back to comparing the wave itself
-  const uint16_t roll = (rn > 0) ? _roll_active(rn) : v.wave;
+  const uint16_t roll = (rn > 0) ? roll_active(rn) : v.wave;
   // tags price the focus build: each board sees its own next-level cost
-  const uint8_t f = (_focus < Sim::NUM_PLAYERS) ? _focus : 0;
-  if (_paint_y < ARENA_H || _cam_x != _tags_cx || _cam_y != _tags_cy ||
-      v.dmg_lvl[f] != _tags_dmg || v.spd_lvl[f] != _tags_spd || v.rpd_lvl[f] != _tags_rpd ||
-      roll != _tags_roll) {
-    _tags_cx = _cam_x;
-    _tags_cy = _cam_y;
-    _tags_dmg = v.dmg_lvl[f];
-    _tags_spd = v.spd_lvl[f];
-    _tags_rpd = v.rpd_lvl[f];
-    _tags_roll = roll;
+  const uint8_t f = (focus_player < Sim::NUM_PLAYERS) ? focus_player : 0;
+  if (paint_y < ARENA_H || camera_x != tags_cx || camera_y != tags_cy ||
+      v.dmg_lvl[f] != tags_dmg || v.spd_lvl[f] != tags_spd || v.rpd_lvl[f] != tags_rpd ||
+      roll != tags_roll) {
+    tags_cx = camera_x;
+    tags_cy = camera_y;
+    tags_dmg = v.dmg_lvl[f];
+    tags_spd = v.spd_lvl[f];
+    tags_rpd = v.rpd_lvl[f];
+    tags_roll = roll;
     return true;
   }
   return false;
@@ -86,10 +86,10 @@ bool Render::_tags_stale() {
 // erase always covers the widest tag (8 chars): a buy can shrink the text and a
 // tight erase would strand the old pixels for a frame. Only the wave-active
 // roulette pad paints its tag; dead pads stay silent (game prompts NO LUCK HERE)
-void Render::_shop_labels(bool erase) {
+void Render::shop_labels(bool erase) {
   char dmg_buf[12], spd_buf[12], rpd_buf[12];
   const Sim::state& v = Sim::view();
-  const uint8_t f = (_focus < Sim::NUM_PLAYERS) ? _focus : 0;
+  const uint8_t f = (focus_player < Sim::NUM_PLAYERS) ? focus_player : 0;
   if (v.dmg_lvl[f] >= Sim::MAX_LVL) {
     snprintf(dmg_buf, sizeof(dmg_buf), "DMG MAX");
   } else {
@@ -108,13 +108,13 @@ void Render::_shop_labels(bool erase) {
   const uint8_t want[4] = {Tilemap::VENDING, Tilemap::V_DMG, Tilemap::V_SPD, Tilemap::V_RPD};
   const char* text[4] = {"HEAL 100", dmg_buf, spd_buf, rpd_buf};
   const uint16_t col[4] = {Colour::green, Colour::red, Display::rgb565(60, 130, 230), Colour::orange};
-  if (!_tag_anchors_done) {
-    _tag_anchors_done = true;
+  if (!tag_anchors_done) {
+    tag_anchors_done = true;
     for (uint8_t i = 0; i < 4 + TAG_PADS; ++i) {
-      _tag_anchors[i].found = false;
+      tag_anchors[i].found = false;
     }
     for (uint8_t ti = 0; ti < 4; ++ti) {
-      for (uint8_t r = 0; r < Tilemap::ROWS && !_tag_anchors[ti].found; ++r) {
+      for (uint8_t r = 0; r < Tilemap::ROWS && !tag_anchors[ti].found; ++r) {
         for (uint8_t c = 0; c < Tilemap::COLS; ++c) {
           if (Tilemap::tiles[r][c] != want[ti]) {
             continue;
@@ -126,9 +126,9 @@ void Render::_shop_labels(bool erase) {
           if (r > 0 && Tilemap::tiles[r - 1][c] == want[ti]) {
             continue;
           }
-          _tag_anchors[ti].cx = (int16_t)c * Tilemap::TILE + Tilemap::TILE;
-          _tag_anchors[ti].wy = (int16_t)r * Tilemap::TILE - 10; // 8px glyph + 2px gap
-          _tag_anchors[ti].found = true;
+          tag_anchors[ti].cx = (int16_t)c * Tilemap::TILE + Tilemap::TILE;
+          tag_anchors[ti].wy = (int16_t)r * Tilemap::TILE - 10; // 8px glyph + 2px gap
+          tag_anchors[ti].found = true;
           break;
         }
       }
@@ -145,28 +145,28 @@ void Render::_shop_labels(bool erase) {
         if (r > 0 && Tilemap::tiles[r - 1][c] == Tilemap::ROULETTE) {
           continue;
         }
-        _tag_anchors[4 + rn].cx = (int16_t)c * Tilemap::TILE + Tilemap::TILE;
-        _tag_anchors[4 + rn].wy = (int16_t)r * Tilemap::TILE - 10;
-        _tag_anchors[4 + rn].found = true;
+        tag_anchors[4 + rn].cx = (int16_t)c * Tilemap::TILE + Tilemap::TILE;
+        tag_anchors[4 + rn].wy = (int16_t)r * Tilemap::TILE - 10;
+        tag_anchors[4 + rn].found = true;
         ++rn;
       }
     }
   }
   uint8_t roll_n = 0;
   for (uint8_t i = 4; i < 4 + TAG_PADS; ++i) {
-    if (_tag_anchors[i].found) {
+    if (tag_anchors[i].found) {
       ++roll_n;
     }
   }
-  const uint8_t act = (uint8_t)(4 + _roll_active(roll_n));
+  const uint8_t act = (uint8_t)(4 + roll_active(roll_n));
   for (uint8_t ti = 0; ti < 4 + TAG_PADS; ++ti) {
-    if (!_tag_anchors[ti].found) {
+    if (!tag_anchors[ti].found) {
       continue;
     }
     const bool is_roll = ti >= 4;
     if (erase) {
       // erase every pad (active moved => old tag must clear even off-camera logic aside)
-      _erase_world_area(_tag_anchors[ti].cx - _tag_max_w / 2, _tag_anchors[ti].wy, _tag_max_w, 8);
+      erase_world_area(tag_anchors[ti].cx - tag_max_w / 2, tag_anchors[ti].wy, tag_max_w, 8);
       continue;
     }
     if (is_roll && ti != act) {
@@ -180,12 +180,12 @@ void Render::_shop_labels(bool erase) {
     }
     // the block centre never moves, so erase and draw share it; only the
     // width differs (erase always covers the widest tag, see above)
-    const int16_t cx = _tag_anchors[ti].cx;
-    const int16_t wy = _tag_anchors[ti].wy;
+    const int16_t cx = tag_anchors[ti].cx;
+    const int16_t wy = tag_anchors[ti].wy;
     const int16_t tw = (int16_t)len * 6; // size-1 glyphs are 6px wide
     const int16_t wx = cx - tw / 2;
-    const int16_t sx = wx - _cam_x;
-    const int16_t sy = wy - _cam_y + HUD_H;
+    const int16_t sx = wx - camera_x;
+    const int16_t sy = wy - camera_y + HUD_H;
     if (sx < 0 || sy < HUD_H || sx + tw > (int16_t)Display::width() ||
         sy + 8 > ARENA_BOTTOM) {
       continue; // partially off-arena: skip rather than bleed into hud/panel

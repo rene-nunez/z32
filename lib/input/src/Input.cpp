@@ -3,20 +3,20 @@
 #include "Input.h"
 #include "pins.h"
 
-constexpr float _deadzone = 0.3f;
-constexpr float _smoothing = 0.5f;
-constexpr uint32_t _debounce_ms = 50;
-constexpr uint8_t _calib_n = 20;
+constexpr float deadzone = 0.3f;
+constexpr float smoothing = 0.5f;
+constexpr uint32_t debounce_ms = 50;
+constexpr uint8_t calib_n = 20;
 
-float Input::_jx = 0.0f;
-float Input::_jy = 0.0f;
-uint16_t Input::_cx = 2047; // calibrated rest centre, per board (pots differ)
-uint16_t Input::_cy = 2047;
+float Input::stick_x = 0.0f;
+float Input::stick_y = 0.0f;
+uint16_t Input::cx = 2047; // calibrated rest centre, per board (pots differ)
+uint16_t Input::cy = 2047;
 
-Input::_button Input::_fire;
-Input::_button Input::_reload;
-Input::_button Input::_interact;
-Input::_button Input::_pause;
+Input::button Input::fire;
+Input::button Input::reload;
+Input::button Input::interact;
+Input::button Input::pause;
 
 bool Input::begin() {
   pinMode(JOY_X, INPUT);
@@ -31,81 +31,81 @@ bool Input::begin() {
   // hands off during the logo or the centre learns an offset (same 200ms window)
   uint32_t sx = 0, sy = 0;
 
-  for (uint8_t i = 0; i < _calib_n; ++i) {
+  for (uint8_t i = 0; i < calib_n; ++i) {
     sx += analogRead(JOY_X);
     sy += analogRead(JOY_Y);
     delay(10);
   }
 
-  _cx = (uint16_t)(sx / _calib_n);
-  _cy = (uint16_t)(sy / _calib_n);
+  cx = (uint16_t)(sx / calib_n);
+  cy = (uint16_t)(sy / calib_n);
 
   return true;
 }
 
 void Input::update() {
-  _jx = _jx * _smoothing + _axis(JOY_X) * (1.0f - _smoothing);
-  _jy = _jy * _smoothing + _axis(JOY_Y) * (1.0f - _smoothing);
+  stick_x = stick_x * smoothing + axis(JOY_X) * (1.0f - smoothing);
+  stick_y = stick_y * smoothing + axis(JOY_Y) * (1.0f - smoothing);
 
-  _poll_button(_fire, BTN_FIRE);
-  _poll_button(_reload, BTN_RELOAD);
-  _poll_button(_interact, BTN_INTERACT);
-  _poll_button(_pause, BTN_PAUSE);
+  poll_button(fire, BTN_FIRE);
+  poll_button(reload, BTN_RELOAD);
+  poll_button(interact, BTN_INTERACT);
+  poll_button(pause, BTN_PAUSE);
 }
 
 float Input::jx() {
-  return _jx;
+  return stick_x;
 }
 
 float Input::jy() {
-  return _jy;
+  return stick_y;
 }
 
 bool Input::fire_pressed() {
-  return _fire.edge;
+  return fire.edge;
 }
 
 bool Input::fire_down() {
-  return _fire.level;
+  return fire.level;
 }
 
 bool Input::reload_pressed() {
-  return _reload.edge;
+  return reload.edge;
 }
 
 bool Input::reload_down() {
-  return _reload.level;
+  return reload.level;
 }
 
 bool Input::interact_pressed() {
-  return _interact.edge;
+  return interact.edge;
 }
 
 bool Input::interact_down() {
-  return _interact.level;
+  return interact.level;
 }
 
 bool Input::pause_pressed() {
-  return _pause.edge;
+  return pause.edge;
 }
 
 bool Input::pause_down() {
-  return _pause.level;
+  return pause.level;
 }
 
-float Input::_axis(uint8_t pin) {
-  const uint16_t c = (pin == JOY_X) ? _cx : _cy;
+float Input::axis(uint8_t pin) {
+  const uint16_t c = (pin == JOY_X) ? cx : cy;
   const float span = (float)((c > 2047) ? (4095 - c) : c); // headroom to the rail
   const float v = (span > 0.0f) ? (float)((int)analogRead(pin) - (int)c) / span : 0.0f;
 
-  if (v > -_deadzone && v < _deadzone) {
+  if (v > -deadzone && v < deadzone) {
     return 0.0f;
   }
 
-  return v > 0.0f ? (v - _deadzone) / (1.0f - _deadzone) : (v + _deadzone) / (1.0f - _deadzone);
+  return v > 0.0f ? (v - deadzone) / (1.0f - deadzone) : (v + deadzone) / (1.0f - deadzone);
 }
 
-void Input::_poll_button(Input::_button& b, uint8_t pin) {
+void Input::poll_button(Input::button& b, uint8_t pin) {
   const bool raw = (digitalRead(pin) == LOW); // active low, pull-up
   b.edge = false;
 
@@ -115,7 +115,7 @@ void Input::_poll_button(Input::_button& b, uint8_t pin) {
     return;
   }
 
-  if (raw != b.level && (uint32_t)(millis() - b.since) >= _debounce_ms) {
+  if (raw != b.level && (uint32_t)(millis() - b.since) >= debounce_ms) {
     b.level = raw;
     b.edge = raw;
   }

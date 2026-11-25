@@ -17,7 +17,7 @@ namespace Tilemap {
   constexpr uint8_t V_SPD = 5; // speed vending machine (2x2, blue)
   constexpr uint8_t V_RPD = 6; // rapid vending machine (2x2, orange)
 
-  // note: 'P' in _art is the player spawn; it parses straight to FLOOR
+  // note: 'P' in art is the player spawn; it parses straight to FLOOR
 
   // the 2x2 prize wheel rotates on 4 pads (north, east, centre, SE): only the wave-active pad sells, the rest are dead furniture.
   // Active pad is hash(wave/3) % pads (3-wave epochs from wave 3: waves 1-2, 3-5, ...) in row-major scan order, derived from the synced wave,
@@ -25,7 +25,7 @@ namespace Tilemap {
 
   // Legend: # wall . grass H heal D damage S speed C rapid R roulette
   // P spawn
-  constexpr char _art[ROWS][COLS + 1] = {
+  constexpr char art[ROWS][COLS + 1] = {
     "############################################################",
     "#..........................................................#",
     "#..........................................................#",

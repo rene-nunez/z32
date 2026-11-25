@@ -20,23 +20,23 @@ class Input {
     static bool pause_down();
 
   private:
-    struct _button {
+    struct button {
       bool raw = false;
       bool level = false;
       bool edge = false;
       uint32_t since = 0;
     };
 
-    static float _jx;
-    static float _jy;
-    static uint16_t _cx;
-    static uint16_t _cy;
+    static float stick_x;
+    static float stick_y;
+    static uint16_t cx;
+    static uint16_t cy;
 
-    static _button _fire;
-    static _button _reload;
-    static _button _interact;
-    static _button _pause;
+    static button fire;
+    static button reload;
+    static button interact;
+    static button pause;
 
-    static float _axis(uint8_t pin);
-    static void _poll_button(_button& b, uint8_t pin);
+    static float axis(uint8_t pin);
+    static void poll_button(button& b, uint8_t pin);
 };

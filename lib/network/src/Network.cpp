@@ -5,16 +5,16 @@
 
 #include "Network.h"
 
-uint8_t Network::_role = 0xFF;
-uint8_t Network::_peer_mac[6] = {0};
-std::function<void(const uint8_t*, int)> Network::_rx_callback;
+uint8_t Network::local_role = 0xFF;
+uint8_t Network::remote_mac[6] = {0};
+std::function<void(const uint8_t*, int)> Network::rx_callback;
 
 bool Network::begin(uint8_t role) {
-  _role = role;
+  local_role = role;
 
   const uint8_t* own_mac = (role == ROLE_HOST) ? MAC_HOST : MAC_CLIENT;
   const uint8_t* peer_mac = (role == ROLE_HOST) ? MAC_CLIENT : MAC_HOST;
-  memcpy(_peer_mac, peer_mac, sizeof(_peer_mac));
+  memcpy(remote_mac, peer_mac, sizeof(remote_mac));
 
   WiFi.mode(WIFI_STA);
   delay(100);
@@ -34,10 +34,10 @@ bool Network::begin(uint8_t role) {
     return false;
   }
 
-  esp_now_register_send_cb(_on_sent);
-  esp_now_register_recv_cb(_on_received);
+  esp_now_register_send_cb(on_sent);
+  esp_now_register_recv_cb(on_received);
 
-  if (!_add_peer()) {
+  if (!add_peer()) {
     Serial.println("[network] peer add failed, resetting...");
     return false;
   }
@@ -47,29 +47,29 @@ bool Network::begin(uint8_t role) {
 }
 
 bool Network::send(const uint8_t* data, size_t len) {
-  return esp_now_send(_peer_mac, data, len) == ESP_OK;
+  return esp_now_send(remote_mac, data, len) == ESP_OK;
 }
 
 void Network::on_receive(std::function<void(const uint8_t*, int)> callback) {
-  _rx_callback = callback;
+  rx_callback = callback;
 }
 
-bool Network::_add_peer() {
+bool Network::add_peer() {
   esp_now_peer_info_t peer = {};
-  memcpy(peer.peer_addr, _peer_mac, sizeof(peer.peer_addr));
+  memcpy(peer.peer_addr, remote_mac, sizeof(peer.peer_addr));
   peer.channel = WIFI_CHANNEL;
   peer.ifidx = WIFI_IF_STA;
   peer.encrypt = false;
   return esp_now_add_peer(&peer) == ESP_OK;
 }
 
-void Network::_on_sent(const uint8_t* mac, esp_now_send_status_t status) {
+void Network::on_sent(const uint8_t* mac, esp_now_send_status_t status) {
   (void)mac;
   (void)status; // single drops are routine at ~30Hz; a dead peer surfaces via quiet-drop
 }
 
-void Network::_on_received(const uint8_t* mac, const uint8_t* data, int len) {
-  if (_rx_callback) {
-    _rx_callback(data, len);
+void Network::on_received(const uint8_t* mac, const uint8_t* data, int len) {
+  if (rx_callback) {
+    rx_callback(data, len);
   }
 }

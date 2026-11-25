@@ -8,7 +8,7 @@ namespace Tilemap {
   uint16_t field[ROWS][COLS];
   uint16_t field2[ROWS][COLS];
 
-  static bool _walkable_tile(uint8_t t) {
+  static bool walkable_tile(uint8_t t) {
     return t == FLOOR;
   }
 
@@ -18,7 +18,7 @@ namespace Tilemap {
 
     for (uint8_t r = 0; r < ROWS; ++r) {
       for (uint8_t c = 0; c < COLS; ++c) {
-        const char ch = _art[r][c];
+        const char ch = art[r][c];
         uint8_t t = FLOOR;
         switch (ch) {
           case '#':
@@ -62,7 +62,7 @@ namespace Tilemap {
       return true;
     }
 
-    return !_walkable_tile(tiles[ty][tx]);
+    return !walkable_tile(tiles[ty][tx]);
   }
 
   bool solid_rect(int16_t x, int16_t y, uint8_t w, uint8_t h) {
@@ -112,7 +112,7 @@ namespace Tilemap {
   }
 
   // scale an rgb565 colour by num/den with clamping
-  static uint16_t _shade(uint16_t col, uint8_t num, uint8_t den) {
+  static uint16_t shade(uint16_t col, uint8_t num, uint8_t den) {
     uint16_t r = (uint16_t)((col >> 11) & 0x1F);
     uint16_t g = (uint16_t)((col >> 5) & 0x3F);
     uint16_t b = (uint16_t)(col & 0x1F);
@@ -172,7 +172,7 @@ namespace Tilemap {
           if (gx >= 25 && gx <= 30 && gy >= 19 && gy <= 24) {
             return Display::rgb565(10, 20, 25); // pickup flap
           }
-          return _shade(base, 3, 4); // side panel
+          return shade(base, 3, 4); // side panel
         }
         if (gy == 12 || gy == 18 || gy == 24) {
           return Display::rgb565(200, 220, 230); // shelf rails
@@ -237,7 +237,7 @@ namespace Tilemap {
       }
       default: {
         if (px == 0 || px == 15 || py == 0 || py == 15) {
-          return _shade(base, 4, 5); // 1px darker edge on plain solids
+          return shade(base, 4, 5); // 1px darker edge on plain solids
         }
 
         return base;
@@ -245,11 +245,11 @@ namespace Tilemap {
     }
   }
 
-  static const int8_t _step_x[4] = {1, -1, 0, 0};
-  static const int8_t _step_y[4] = {0, 0, 1, -1};
-  static uint16_t _queue[COLS * ROWS];
+  static const int8_t step_x[4] = {1, -1, 0, 0};
+  static const int8_t step_y[4] = {0, 0, 1, -1};
+  static uint16_t queue[COLS * ROWS];
 
-  void _build_into(uint16_t f[ROWS][COLS], int16_t tx, int16_t ty) {
+  void build_into(uint16_t f[ROWS][COLS], int16_t tx, int16_t ty) {
     for (uint8_t r = 0; r < ROWS; ++r) {
       for (uint8_t c = 0; c < COLS; ++c) {
         f[r][c] = UNREACHABLE;
@@ -261,29 +261,29 @@ namespace Tilemap {
 
     uint16_t head = 0, tail = 0; // each tile is queued at most once, so tail <= COLS * ROWS
     f[ty][tx] = 0;
-    _queue[tail++] = (uint16_t)(ty * COLS + tx);
+    queue[tail++] = (uint16_t)(ty * COLS + tx);
 
     while (head < tail) {
-      const uint16_t idx = _queue[head++];
+      const uint16_t idx = queue[head++];
       const int16_t cx = (int16_t)(idx % COLS), cy = (int16_t)(idx / COLS);
       const uint16_t nd = (uint16_t)(f[cy][cx] + 1);
 
       for (uint8_t k = 0; k < 4; ++k) {
-        const int16_t nx = (int16_t)(cx + _step_x[k]), ny = (int16_t)(cy + _step_y[k]);
+        const int16_t nx = (int16_t)(cx + step_x[k]), ny = (int16_t)(cy + step_y[k]);
         if (nx < 0 || nx >= (int16_t)COLS || ny < 0 || ny >= (int16_t)ROWS) continue;
         if (f[ny][nx] != UNREACHABLE || solid(nx, ny)) continue;
         f[ny][nx] = nd;
-        _queue[tail++] = (uint16_t)(ny * COLS + nx);
+        queue[tail++] = (uint16_t)(ny * COLS + nx);
       }
     }
   }
 
   void build_field(int16_t tx, int16_t ty) {
-    _build_into(field, tx, ty);
+    build_into(field, tx, ty);
   }
 
   void build_field2(int16_t tx, int16_t ty) {
-    _build_into(field2, tx, ty);
+    build_into(field2, tx, ty);
   }
 
   uint16_t dist_at(int16_t wx, int16_t wy) {

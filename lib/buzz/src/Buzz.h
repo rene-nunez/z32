@@ -18,13 +18,13 @@ class Buzz {
     static void stop();
 
   private:
-    static constexpr uint8_t _ch = 0;
-    static constexpr uint8_t _duty = 128;
+    static constexpr uint8_t ch = 0;
+    static constexpr uint8_t duty = 128;
 
-    static const note* _seq; // null = idle
-    static uint8_t _n;
-    static uint8_t _i;
-    static uint32_t _until;
+    static const note* seq; // null = idle
+    static uint8_t n;
+    static uint8_t i;
+    static uint32_t until;
 
-    static void _start_note(uint8_t i, uint32_t now);
+    static void start_note(uint8_t i, uint32_t now);
 };

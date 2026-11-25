@@ -59,7 +59,7 @@ class Sim {
     // facing debounce: a new sector must repeat 2 frames (~66ms) to
     // apply, so border jitter never shows (noise never sticks,
     // real turns apply with no perceptible lag, held diagonals show)
-    static void _face_toward(uint8_t& facing, uint8_t& want, uint8_t& cnt, float dx, float dy);
+    static void face_toward(uint8_t& facing, uint8_t& want, uint8_t& cnt, float dx, float dy);
     static constexpr uint8_t FACE_FRAMES = 2; // ~66ms: noise never shows, turns feel instant
 
     struct player_state {
@@ -111,7 +111,7 @@ class Sim {
 
     // the only way in: a const ref, so nothing outside can move a zombie or spend a point
     // The renderer and the panel read it every frame, and it is the whole net-sync payload
-    static const state& view() { return _s; }
+    static const state& view() { return s; }
 
     static void reset();
     static void set_p2_active(bool active); // Multi start on the host
@@ -167,50 +167,50 @@ class Sim {
 
     // host-local runtime state, deliberately outside the view: the frame clock, the fire and
     // damage cooldowns and the tiles the BFS fields were last built for are not peer state
-    static state _s;
-    static uint32_t _last_ms, _last_damage[NUM_PLAYERS], _last_shot[NUM_PLAYERS];
-    static uint8_t _burst_left[NUM_PLAYERS]; // M16 rounds still owed this burst
-    static uint32_t _burst_next[NUM_PLAYERS]; // millis() when the next burst round fires
-    static uint32_t _last_aim[NUM_PLAYERS]; // last fire time: aim holds facing briefly
+    static state s;
+    static uint32_t last_ms, last_damage[NUM_PLAYERS], last_shot[NUM_PLAYERS];
+    static uint8_t burst_left[NUM_PLAYERS]; // M16 rounds still owed this burst
+    static uint32_t burst_next[NUM_PLAYERS]; // millis() when the next burst round fires
+    static uint32_t last_aim[NUM_PLAYERS]; // last fire time: aim holds facing briefly
     static constexpr uint32_t AIM_HOLD_MS = 500;
-    static uint8_t _face_want[NUM_PLAYERS], _face_cnt[NUM_PLAYERS]; // player debounce
-    static uint8_t _zface_want[MAX_ZOMBIES], _zface_cnt[MAX_ZOMBIES]; // zombie debounce
-    static uint32_t _bleed_acc[NUM_PLAYERS]; // ms banked toward the next bleed tick
-    static uint16_t _wave_quota; // kills to clear this wave (wave+3, uncapped)
-    static uint16_t _wave_spawned; // zombies spawned so far this wave (cap 10 alive)
-    static uint32_t _wave_break_until; // millis() when the next wave may spawn, 0 = no break
+    static uint8_t face_want[NUM_PLAYERS], face_cnt[NUM_PLAYERS]; // player debounce
+    static uint8_t zface_want[MAX_ZOMBIES], zface_cnt[MAX_ZOMBIES]; // zombie debounce
+    static uint32_t bleed_acc[NUM_PLAYERS]; // ms banked toward the next bleed tick
+    static uint16_t wave_quota; // kills to clear this wave (wave+3, uncapped)
+    static uint16_t wave_spawned; // zombies spawned so far this wave (cap 10 alive)
+    static uint32_t wave_break_until; // millis() when the next wave may spawn, 0 = no break
     static constexpr uint32_t WAVE_BREAK_MS = 3000; // silent breather between waves (shop/heal/reload)
-    static int16_t _path_tx[NUM_PLAYERS], _path_ty[NUM_PLAYERS];
-    static ctl _p2ctl;
+    static int16_t path_tx[NUM_PLAYERS], path_ty[NUM_PLAYERS];
+    static ctl p2ctl;
 
-    static bool _alive(uint8_t p); // active, standing, shooting
-    static bool _downed(uint8_t p); // active, bleeding out, needs a revive
-    static void _move_entity(float& x, float& y, float dx, float dy, uint8_t size);
-    static bool _step_zombie(uint8_t z, float ddx, float ddy, float dt);
-    static void _zombie_steer(uint8_t z, float pcx, float pcy, float dt, const uint16_t f[Tilemap::ROWS][Tilemap::COLS]);
-    static void _spawn_wave();
-    static void _respawn(uint8_t p);
-    static void _do_fire(uint32_t now, uint8_t p);
-    static bool _fire_single(uint32_t now, uint8_t p); // aim + spawn one round, true if it left
-    static uint32_t _fire_cd(weapon w);
-    static uint8_t _mag_size(weapon w); // rounds per mag: 15 / 30 / 8 / 30 / 30 / 10
-    static uint32_t _reload_ms(weapon w); // swap time: 1s, sniper 2s, shotgun 1.5s
-    static uint8_t _base_dmg(weapon w);
-    static float _fire_range(weapon w); // auto-aim reach: sniper sees further
-    static uint8_t _eff_dmg(uint8_t base, uint8_t lvl); // base*(1+0.25*lvl), half-up, min 1
-    static float _spd_mult(uint8_t lvl); // 1+0.08*lvl
-    static float _rpd_mult(uint8_t lvl); // 0.94^lvl, 0.54 at max
-    static uint8_t _zombie_hp(actor_kind kind, uint16_t wave); // normal 2+w/2, runner 1+w/4, boss 20+w (capped 255)
-    static uint8_t _zombie_dmg(actor_kind kind); // boss 3, rest 1
-    static float _zombie_speed(actor_kind kind); // 40 / 80 / 30
-    static uint32_t _kill_reward(actor_kind kind, uint16_t wave); // normal 10+2w, runner 15+2w, boss 150+10w
-    static uint16_t _wave_total(uint16_t wave); // quota: wave+3, uncapped (cap is alive at once)
-    static uint8_t _wave_runners(uint16_t wave, uint16_t total); // 0 on wave 1, else min(2w/3, half)
-    static bool _wave_boss(uint16_t wave); // every 5th wave steals slot 0
-    static actor_kind _wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16_t total); // kind of spawn idx, runners spread evenly
-    static void _spawn_into(uint8_t slot, actor_kind kind); // random >=100px spawn into a slot
+    static bool alive(uint8_t p); // active, standing, shooting
+    static bool downed(uint8_t p); // active, bleeding out, needs a revive
+    static void move_entity(float& x, float& y, float dx, float dy, uint8_t size);
+    static bool step_zombie(uint8_t z, float ddx, float ddy, float dt);
+    static void zombie_steer(uint8_t z, float pcx, float pcy, float dt, const uint16_t f[Tilemap::ROWS][Tilemap::COLS]);
+    static void spawn_wave();
+    static void respawn(uint8_t p);
+    static void do_fire(uint32_t now, uint8_t p);
+    static bool fire_single(uint32_t now, uint8_t p); // aim + spawn one round, true if it left
+    static uint32_t fire_cd(weapon w);
+    static uint8_t mag_size(weapon w); // rounds per mag: 15 / 30 / 8 / 30 / 30 / 10
+    static uint32_t reload_ms(weapon w); // swap time: 1s, sniper 2s, shotgun 1.5s
+    static uint8_t base_dmg(weapon w);
+    static float weapon_range(weapon w); // auto-aim reach: sniper sees further
+    static uint8_t eff_dmg(uint8_t base, uint8_t lvl); // base*(1+0.25*lvl), half-up, min 1
+    static float spd_mult(uint8_t lvl); // 1+0.08*lvl
+    static float rpd_mult(uint8_t lvl); // 0.94^lvl, 0.54 at max
+    static uint8_t zombie_hp(actor_kind kind, uint16_t wave); // normal 2+w/2, runner 1+w/4, boss 20+w (capped 255)
+    static uint8_t zombie_dmg(actor_kind kind); // boss 3, rest 1
+    static float speed_for(actor_kind kind); // 40 / 80 / 30
+    static uint32_t kill_reward(actor_kind kind, uint16_t wave); // normal 10+2w, runner 15+2w, boss 150+10w
+    static uint16_t wave_total(uint16_t wave); // quota: wave+3, uncapped (cap is alive at once)
+    static uint8_t wave_runners(uint16_t wave, uint16_t total); // 0 on wave 1, else min(2w/3, half)
+    static bool wave_boss(uint16_t wave); // every 5th wave steals slot 0
+    static actor_kind wave_kind(uint16_t idx, bool boss, uint8_t runners, uint16_t total); // kind of spawn idx, runners spread evenly
+    static void spawn_into(uint8_t slot, actor_kind kind); // random >=100px spawn into a slot
     // roulette odds over r = rand % 100: SMG 30, pistol 10, shotgun 25, rifle 12,
     // M16 13, sniper 10. SMG and shotgun hit more often; the pistol stays the booby prize
-    static weapon _roll_weapon(uint8_t r);
-    static uint8_t _fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p);
+    static weapon roll_weapon(uint8_t r);
+    static uint8_t fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p);
 };
