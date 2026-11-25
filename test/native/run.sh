@@ -1,7 +1,4 @@
 #!/bin/sh
-# Native checks for the tilemap/world invariants and the net wire format. No hardware
-# and no Arduino needed; binaries land in $TMPDIR so the tree stays clean. The dir is
-# deliberately outside PlatformIO's test_ suite naming.
 set -eu
 cd "$(dirname "$0")/../.."
 

@@ -1,4 +1,4 @@
-// Native checks for the F6 wire format: run test/native/run.sh (no Arduino).
+// Native checks for the F6 wire format.
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>

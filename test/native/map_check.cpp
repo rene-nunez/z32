@@ -1,5 +1,4 @@
-// Native checks for the map/camera invariants: run test/native/run.sh (no Arduino).
-// Includes the real Map.cpp and stubs the one Display symbol it uses.
+// Native map/camera checks: includes the real Map.cpp, stubs Display::rgb565.
 #include <cstdint>
 #include <cstdio>
 #include <set>
