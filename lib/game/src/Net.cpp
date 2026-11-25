@@ -1,21 +1,14 @@
 #include <Arduino.h>
-#include <cmath>
 
-#include <driver/rtc_io.h>
-#include <esp_sleep.h>
-#include <esp_system.h>
 
 #include <Buzz.h>
 #include <Display.h>
-#include <Map.h>
 #include <Panel.h>
 #include <Render.h>
 #include <Screens.h>
-#include <Scores.h>
 #include <Sim.h>
 
 #include "Game.h"
-#include "pins.h"
 
 // game net: ESP-NOW handlers, snapshot broadcast, client input shipping and the
 // per-board playing frames. Host simulates, client mirrors; solo stays silent

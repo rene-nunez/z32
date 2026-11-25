@@ -1,21 +1,12 @@
-#include <Arduino.h>
-#include <cmath>
+#include <cstdio>
 
-#include <driver/rtc_io.h>
-#include <esp_sleep.h>
-#include <esp_system.h>
-
-#include <Buzz.h>
 #include <Display.h>
 #include <Map.h>
 #include <Panel.h>
 #include <Render.h>
-#include <Screens.h>
-#include <Scores.h>
 #include <Sim.h>
 
 #include "Game.h"
-#include "pins.h"
 
 // game shop: machine scan, proximity, INTERACT buys, revive lifts and the prompt
 // order. Runs after Sim::step, owns no screen: results ride hint_buf/the strip

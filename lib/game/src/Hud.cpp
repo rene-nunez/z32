@@ -1,21 +1,12 @@
 #include <Arduino.h>
-#include <cmath>
 
-#include <driver/rtc_io.h>
-#include <esp_sleep.h>
-#include <esp_system.h>
 
 #include <Buzz.h>
 #include <Display.h>
-#include <Map.h>
-#include <Panel.h>
 #include <Render.h>
-#include <Screens.h>
-#include <Scores.h>
 #include <Sim.h>
 
 #include "Game.h"
-#include "pins.h"
 
 // game hud: the 10px strip, the prompt/callout priority slots, boss watch and
 // the buzz dispatch. Text only, never state: buys already moved the wallet

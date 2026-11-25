@@ -1,4 +1,4 @@
-#include <Arduino.h>
+#include <cstdio>
 #include <cstring>
 
 #include <Display.h>

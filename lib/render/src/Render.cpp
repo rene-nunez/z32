@@ -1,6 +1,5 @@
-#include <Arduino.h>
 #include <cstdio>
-#include <pgmspace.h>
+#include <cstring>
 
 #include <Display.h>
 #include <Map.h>

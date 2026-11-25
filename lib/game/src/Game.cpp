@@ -1,9 +1,7 @@
 #include <Arduino.h>
-#include <cmath>
 
 #include <driver/rtc_io.h>
 #include <esp_sleep.h>
-#include <esp_system.h>
 
 #include <Buzz.h>
 #include <Display.h>

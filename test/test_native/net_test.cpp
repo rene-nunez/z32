@@ -3,7 +3,6 @@
 // quantizer round-trips (positions, angles, axes, flag packing, facing).
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
 
 #include <Net_state.h>
 

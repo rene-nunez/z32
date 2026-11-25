@@ -3,8 +3,6 @@
 // the real Display header, and only supplies the one display symbol map.cpp uses.
 #include <cstdint>
 #include <cstdio>
-#include <cstring>
-#include <cstdlib>
 #include <set>
 #include <vector>
 #include <utility>

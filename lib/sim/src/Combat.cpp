@@ -1,8 +1,6 @@
 #include <Arduino.h>
 #include <cmath>
 
-#include <Input.h>
-#include <Map.h>
 
 #include "Sim.h"
 
