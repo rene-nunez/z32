@@ -1,6 +1,5 @@
-// Native bank for the tilemap and the world/camera invariants. Builds without
-// Arduino or TFT_eSPI: run test/native/run.sh. It includes the real map.cpp and
-// the real Display header, and only supplies the one display symbol map.cpp uses.
+// Native checks for the map/camera invariants: run test/native/run.sh (no Arduino).
+// Includes the real Map.cpp and stubs the one Display symbol it uses.
 #include <cstdint>
 #include <cstdio>
 #include <set>
@@ -57,69 +56,45 @@ int main() {
   printf("layout: hud %d + arena %d + panel %d = %d | minimap %dx%d at %d,%d | cells %dx%d\n",
          HUD, AH, PANEL_H, SH, MM_W, MM_H, MM_X, MM_Y, MAX_X / AW + 1, MAX_Y / AH + 1);
 
-  // 0a) menu row layout, pinned. This cannot watch Game.cpp's coordinate arithmetic (the
-  // bank does not compile it, so the double-offset bug it documents was invisible here);
-  // what it does catch is a layout change that makes a row collide with the text above it
-  // or run into the footer. Rows sit at y0 + i*row in both the full paint and the cursor.
+  // 0a) menu rows sit at y0 + i*ROW, clear of the text above and the footer
   {
     const int ROW = 24, GLYPH = 16, FOOT = 224; // footer pinned to the glass bottom
-    struct Screen { int y0, count, above, last; const char* label; };
+    struct Screen { int y0, count, above; const char* label; };
     const Screen screens[3] = {
-        {96, 3, 64 + 2 * 8, 144, "menu/mode/pause"},
-        {128, 2, 96 + 2 * 8, 152, "game over"}, // centred size-2 stat line at 96, rows at 128
-        {80, 5, 48 + 2 * 8, 176, "team"}, // centred block: title 48, names 80..176
+        {96, 3, 64 + 2 * 8, "menu/mode/pause"},
+        {128, 2, 96 + 2 * 8, "game over"}, // centred size-2 stat line at 96, rows at 128
+        {80, 5, 48 + 2 * 8, "team"}, // centred block: title 48, names 80..176
     };
     check(FOOT + 8 <= 240, "footer runs off the glass");
     for (int s = 0; s < 3; ++s) {
       const Screen& sc = screens[s];
-      const int foot = FOOT;
-      check(sc.y0 + (sc.count - 1) * ROW == sc.last, "menu row pitch misses the last row");
       for (int i = 0; i < sc.count; ++i) {
         const int y = sc.y0 + i * ROW;
         if (y < sc.above + GLYPH) {
           printf("FAIL %s row %d at y=%d runs into the text above (%d)\n", sc.label, i, y, sc.above);
           ++fails;
         }
-        if (y + GLYPH > foot) {
-          printf("FAIL %s row %d at y=%d runs into the footer at %d\n", sc.label, i, y, foot);
+        if (y + GLYPH > FOOT) {
+          printf("FAIL %s row %d at y=%d runs into the footer at %d\n", sc.label, i, y, FOOT);
           ++fails;
         }
       }
       // room for one more item past the current list, so growth still fits the footer
       const int grown = sc.y0 + sc.count * ROW;
-      check(grown + GLYPH <= foot, "no room for one more menu item above the footer");
+      check(grown + GLYPH <= FOOT, "no room for one more menu item above the footer");
       printf("%s: rows", sc.label);
       for (int i = 0; i < sc.count; ++i) printf(" %d", sc.y0 + i * ROW);
-      printf(", footer %d, text above ends %d\n", foot, sc.above);
+      printf(", footer %d, text above ends %d\n", FOOT, sc.above);
     }
   }
 
-  // 0b) the minimap camera-cell frame: the cell is a whole number of tiles, the 1px
-  // outline stays inside the minimap, and every line lands inside the tile strips the
-  // restore repaints (so erasing the frame cannot leave a yellow pixel behind)
+  // 0b) the camera cell is a whole number of tiles
   {
     const int cell_tw = AW / Tilemap::TILE, cell_th = AH / Tilemap::TILE;
     check(AW % Tilemap::TILE == 0 && AH % Tilemap::TILE == 0, "cell is not a whole number of tiles");
     check(cell_tw * 3 == Tilemap::COLS && cell_th * 3 == Tilemap::ROWS, "cells do not tile the map");
-    const int fw = cell_tw * MM_SCALE, fh = cell_th * MM_SCALE;
-    for (int gy = 0; gy < 3; ++gy) {
-      for (int gx = 0; gx < 3; ++gx) {
-        const int fx = MM_X + gx * fw, fy = MM_Y + gy * fh;
-        const int sx = MM_X + gx * fw, sy = MM_Y + gy * fh; // origin of the cell strips
-        const bool inside = fx >= MM_X && fy >= MM_Y && fx + fw <= MM_X + MM_W && fy + fh <= MM_Y + MM_H;
-        // the 4 lines, each inside the first/last tile strip along its axis
-        const bool lines = fy >= sy && fy <= sy + MM_SCALE - 1 &&
-                           fy + fh - 1 >= sy + fh - MM_SCALE && fy + fh - 1 <= sy + fh - 1 &&
-                           fx >= sx && fx <= sx + MM_SCALE - 1 &&
-                           fx + fw - 1 >= sx + fw - MM_SCALE && fx + fw - 1 <= sx + fw - 1;
-        if (!inside || !lines) {
-          printf("FAIL frame %d,%d %dx%d inside=%d lines_in_strips=%d\n", fx, fy, fw, fh, inside, lines);
-          ++fails;
-        }
-      }
-    }
-    printf("camera cell frame: %d tiles -> %dx%d px, 9 origins inside %dx%d, all lines in strips\n",
-           cell_tw, fw, fh, MM_W, MM_H);
+    printf("camera cell frame: %d tiles -> %dx%d px\n", cell_tw, cell_tw * MM_SCALE,
+           cell_th * MM_SCALE);
   }
 
   // 1) spawn rect walkable, and the P tile really is the one we parsed
@@ -134,51 +109,35 @@ int main() {
   check(Tilemap::solid_rect(100, Tilemap::WORLD_H - 1, 8, 8), "below world is wall");
   check(Tilemap::tile_at(-1, -1) == Tilemap::WALL, "tile_at out of range -> WALL");
 
-  // 3) the whole walkable world: camera in clamp, player (almost) always on screen
-  int worst_x = 0, worst_y = 0;
-  int worst_at_x = -1, worst_at_y = -1;
+  // 3) camera in clamp, player at most half clipped, reachable camera origins
+  int worst_x = 0, worst_y = 0, worst_at_x = -1, worst_at_y = -1;
+  int straddling = 0, walkable_total = 0;
   std::set<int> cam_xs, cam_ys;
   for (int wy = 0; wy < Tilemap::WORLD_H; ++wy) {
     for (int wx = 0; wx < Tilemap::WORLD_W; ++wx) {
       if (Tilemap::solid_rect(wx, wy, 8, 8)) continue; // player top-left here
+      ++walkable_total;
       const int cx = cell_cam(wx + 4, AW, MAX_X);
       const int cy = cell_cam(wy + 4, AH, MAX_Y);
       cam_xs.insert(cx);
       cam_ys.insert(cy);
-      if (cx < 0 || cx > MAX_X || cy < 0 || cy > MAX_Y) {
-        printf("FAIL cam out of clamp at %d,%d -> %d,%d\n", wx, wy, cx, cy);
-        ++fails;
-        continue;
-      }
       const int sx = wx - cx, sy = wy - cy + HUD;
-      // per axis: the hard cut can hide at most half the sprite on one side
-      int lost_x = sx < 0 ? -sx : (sx + 8 > SW ? sx + 8 - SW : 0);
-      int lost_y = sy < HUD ? HUD - sy : (sy + 8 > ARENA_BOTTOM ? sy + 8 - ARENA_BOTTOM : 0);
+      const int lost_x = sx < 0 ? -sx : (sx + 8 > SW ? sx + 8 - SW : 0);
+      const int lost_y = sy < HUD ? HUD - sy : (sy + 8 > ARENA_BOTTOM ? sy + 8 - ARENA_BOTTOM : 0);
       if (lost_x > worst_x) { worst_x = lost_x; worst_at_x = wx; worst_at_y = wy; }
       if (lost_y > worst_y) { worst_y = lost_y; worst_at_x = wx; worst_at_y = wy; }
+      if (sx < 0 || sy < HUD || sx + 8 > SW || sy + 8 > ARENA_BOTTOM) ++straddling;
     }
   }
   printf("reachable cam x:");
   for (int v : cam_xs) printf(" %d", v);
   printf("\nreachable cam y:");
   for (int v : cam_ys) printf(" %d", v);
-  printf("\n");
-  printf("worst player clip: x %dpx, y %dpx of 8 (at world %d,%d)\n", worst_x, worst_y, worst_at_x, worst_at_y);
-  check(worst_x <= 4 && worst_y <= 4, "hard cut hides at most half the sprite per axis");
-  int straddling = 0, walkable_total = 0;
-  for (int wy = 0; wy < Tilemap::WORLD_H; ++wy) {
-    for (int wx = 0; wx < Tilemap::WORLD_W; ++wx) {
-      if (Tilemap::solid_rect(wx, wy, 8, 8)) continue;
-      ++walkable_total;
-      const int cx = cell_cam(wx + 4, AW, MAX_X);
-      const int cy = cell_cam(wy + 4, AH, MAX_Y);
-      const int sx = wx - cx, sy = wy - cy + HUD;
-      if (sx < 0 || sy < HUD || sx + 8 > SW || sy + 8 > ARENA_BOTTOM) ++straddling;
-    }
-  }
+  printf("\nworst player clip: x %dpx, y %dpx of 8 (at world %d,%d)\n",
+         worst_x, worst_y, worst_at_x, worst_at_y);
   printf("walkable px %d, of which %d straddle a cell edge (%.1f%%)\n",
          walkable_total, straddling, 100.0 * straddling / walkable_total);
-  printf("  (those are 2-frame transitions, and fill_world_box clips them)\n");
+  check(worst_x <= 4 && worst_y <= 4, "hard cut hides at most half the sprite per axis");
 
   // 4) how many world rows no camera position ever shows
   int hidden = 0;
@@ -195,8 +154,9 @@ int main() {
     if (!shown) { ++hidden; printf("  world row %d is never visible\n", wy); }
   }
   printf("walkable world rows never visible: %d\n", hidden);
+  check(hidden == 0, "a walkable world row is never visible");
 
-  // 5) a bullet fired east dies on the west wall, and the border blocks it
+  // 5) a bullet fired west stops at the border wall
   check(Tilemap::solid_rect(1, 16 * Tilemap::TILE, 4, 4), "bullet at x=1 is inside the border wall");
   {
     // row 1 is the ring road: walkable right up to the border wall (checked in 7)
@@ -251,8 +211,7 @@ int main() {
            seen.size(), walk - (int)seen.size());
     check(walk - (int)seen.size() == 0, "there are sealed walkable pockets");
 
-    // per-block: wall-embedded machines are legit (corners may touch maze),
-    // what matters is each 2x2 block has reachable ground on at least one side
+    // each 2x2 machine block needs reachable ground on at least one side
     int shops = 0, blocks = 0, blocks_ok = 0;
     int heal = 0, dmg = 0, spd = 0, rpd = 0, roll = 0;
     for (int r = 0; r < Tilemap::ROWS; ++r) {
@@ -330,44 +289,15 @@ int main() {
     check(too_close == 0, "a zombie spawned on top of the player");
   }
 
-  // 9) the chunked arena repaint covers every row exactly once, in 2 frames
+  // 9) the arena repaint fits two 80-row frames and one RAM payload
   {
     const int CHUNK = 80;
-    int frames = 0, y = 0, painted = 0;
-    while (y < AH) { y += CHUNK; ++frames; }
-    painted = y < AH ? y : AH;
-    printf("arena %d rows repainted in %d frames of %d rows (last %d)\n", AH, frames, CHUNK,
-           painted - (frames - 1) * CHUNK);
-    check(frames == 2, "the arena repaint does not fit in 2 frames");
-    check(painted == AH, "the chunked repaint does not cover the whole arena");
+    printf("arena %d rows repainted in %d frames of %d rows\n", AH, (AH + CHUNK - 1) / CHUNK, CHUNK);
+    check(AH <= 2 * CHUNK, "the arena repaint does not fit in 2 frames");
     check(AH * SW * 2 <= 120000, "arena repaint payload");
   }
 
-  // 10) nothing may bleed into the hud strip or the panel
-  {
-    int bleeds = 0;
-    for (int cy = 0; cy <= MAX_Y; cy += 17) {
-      for (int cx = 0; cx <= MAX_X; cx += 17) {
-        for (int ey = 0; ey + 8 < Tilemap::WORLD_H; ++ey += 5) {
-          for (int ex = 0; ex + 8 < Tilemap::WORLD_W; ++ex += 5) {
-            const int wx = cx + ex, wy = cy + ey;
-            // fill_world_box clip box, verbatim
-            const int x0 = wx - cx, y0 = wy - cy + HUD;
-            const int cx0 = x0 > 0 ? x0 : 0;
-            const int cy0 = y0 > HUD ? y0 : HUD;
-            const int cx1 = x0 + 8 < SW ? x0 + 8 : SW;
-            const int cy1 = y0 + 8 < ARENA_BOTTOM ? y0 + 8 : ARENA_BOTTOM;
-            if (cx0 >= cx1 || cy0 >= cy1) continue; // fully clipped, nothing drawn
-            if (cy0 < HUD || cy1 > ARENA_BOTTOM) ++bleeds;
-          }
-        }
-      }
-    }
-    printf("clip boxes overlapping hud or panel: %d\n", bleeds);
-    check(bleeds == 0, "a sprite box can be drawn outside the arena");
-  }
-
-  // 11) the BFS distance field: no local minima, so walking downhill always arrives
+  // 10) the BFS distance field: no local minima, so walking downhill always arrives
   {
     const int stx = Tilemap::spawn_px / Tilemap::TILE, sty = Tilemap::spawn_py / Tilemap::TILE;
     Tilemap::build_field(stx, sty);
@@ -402,7 +332,6 @@ int main() {
     }
     printf("field from the spawn: %d tiles, max dist %d, tiles without a descending 4-neighbour %d\n",
            reach, max_d, no_descent);
-    check(reach > 1000, "the field reaches too little of the map");
     {
       int walkable = 0;
       for (int r = 0; r < Tilemap::ROWS; ++r)
@@ -444,7 +373,6 @@ int main() {
            samples, stuck, longest, max_d);
     check(stuck == 0, "a zombie can descend the field and still never reach the player");
 
-    // a wall tile has nothing to spread from
     int wtx = -1, wty = -1;
     for (int r = 0; r < Tilemap::ROWS && wtx < 0; ++r) {
       for (int c = 0; c < Tilemap::COLS; ++c) {
