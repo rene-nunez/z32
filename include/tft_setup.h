@@ -4,7 +4,8 @@
 
 #define ST7789_DRIVER
 #define TFT_INVERSION_OFF
-#define TFT_RGB_ORDER TFT_BGR // This glass is BGR
+// The display we are using is BGR
+#define TFT_RGB_ORDER TFT_BGR
 #define TFT_WIDTH 240
 #define TFT_HEIGHT 320
 #define LOAD_GLCD
