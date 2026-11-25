@@ -198,12 +198,10 @@ int main() {
   }
   printf("walkable world rows never visible: %d\n", hidden);
 
-  // 5) dropped: it reimplemented the render run-length instead of testing it.
-
-  // 6) a bullet fired east dies on the west wall, and the border blocks it
+  // 5) a bullet fired east dies on the west wall, and the border blocks it
   check(Tilemap::solid_rect(1, 16 * Tilemap::TILE, 4, 4), "bullet at x=1 is inside the border wall");
   {
-    // row 1 is the ring road: walkable right up to the border wall (checked in 8)
+    // row 1 is the ring road: walkable right up to the border wall (checked in 7)
     const float lane = (float)(Tilemap::TILE) + 8.0f;
     check(!Tilemap::solid_rect(60, (int16_t)(lane - 2.0f), 4, 4), "ring road lane is walkable");
     float bx = 60.0f, by = lane;
@@ -215,7 +213,7 @@ int main() {
     check(died && bx < 20, "bullet travelling west stops at the border wall");
   }
 
-  // 7) every tile kind renders a distinct minimap colour
+  // 6) every tile kind renders a distinct minimap colour
   {
     int distinct = 0;
     uint16_t seen[16];
@@ -228,7 +226,7 @@ int main() {
     check(distinct == 7, "each tile kind has its own colour");
   }
 
-  // 8) flood fill from the spawn: no sealed walkable pocket, ring lanes are
+  // 7) flood fill from the spawn: no sealed walkable pocket, ring lanes are
   //    open, every vending machine and the roulette touch reachable ground
   {
     const int stx = Tilemap::spawn_px / Tilemap::TILE, sty = Tilemap::spawn_py / Tilemap::TILE;
@@ -307,7 +305,7 @@ int main() {
     check(ring_open, "the 2-tile ring road is broken (no kiting loop)");
   }
 
-  // 9) the spawn scan always finds a walkable tile >= 100px from the player
+  // 8) the spawn scan always finds a walkable tile >= 100px from the player
   {
     const int total = Tilemap::COLS * Tilemap::ROWS;
     const int px = Tilemap::spawn_px, py = Tilemap::spawn_py;
@@ -334,7 +332,7 @@ int main() {
     check(too_close == 0, "a zombie spawned on top of the player");
   }
 
-  // 10) the chunked arena repaint covers every row exactly once, in 2 frames
+  // 9) the chunked arena repaint covers every row exactly once, in 2 frames
   {
     const int CHUNK = 80;
     int frames = 0, y = 0, painted = 0;
@@ -347,9 +345,7 @@ int main() {
     check(AH * SW * 2 <= 120000, "arena repaint payload");
   }
 
-  // 11) dropped: SPI timing model, not a code test.
-
-  // 12) nothing may bleed into the hud strip or the panel
+  // 10) nothing may bleed into the hud strip or the panel
   {
     int bleeds = 0;
     for (int cy = 0; cy <= MAX_Y; cy += 17) {
@@ -373,7 +369,7 @@ int main() {
     check(bleeds == 0, "a sprite box can be drawn outside the arena");
   }
 
-  // 13) the BFS distance field: no local minima, so walking downhill always arrives
+  // 11) the BFS distance field: no local minima, so walking downhill always arrives
   {
     const int stx = Tilemap::spawn_px / Tilemap::TILE, sty = Tilemap::spawn_py / Tilemap::TILE;
     Tilemap::build_field(stx, sty);

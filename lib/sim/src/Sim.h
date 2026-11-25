@@ -40,8 +40,7 @@ class Sim {
       revive,
       buy_rpd, // appended last: earlier wire values never shift
       reload, // mag swap started (manual top-up or auto on empty)
-      reloaded, // mag full again, back in the fight
-      empty // legacy dry click: auto-reload rescues now, never emitted
+      reloaded // mag full again, back in the fight
     };
 
     // shop: points are the spendable wallet. Heal is flat; damage and speed are
@@ -77,8 +76,6 @@ class Sim {
     struct ctl {
       float jx, jy;
       bool fire;
-      bool interact;
-      bool pause;
       bool reload;
     };
 

@@ -20,7 +20,6 @@ class Panel {
     static constexpr uint8_t mm_scale = 2;
     static constexpr uint8_t panel_h = 70;
     static constexpr int16_t mm_w = (int16_t)Tilemap::COLS * mm_scale;
-    static constexpr int16_t mm_h = (int16_t)Tilemap::ROWS * mm_scale;
     static constexpr int16_t mm_gap = 4;
     static constexpr int16_t mm_y = Render::ARENA_BOTTOM + 5;
 

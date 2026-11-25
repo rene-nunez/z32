@@ -135,7 +135,6 @@ void Game::update_playing_host() {
   } else {
     in_prev = in_buttons; // stale: hold levels so the next packet re-edges cleanly
   }
-  c.pause = false; // pause travels via p2_pause_edge, sim never sees it
   Sim::set_p2(c);
 
   if (Input::pause_pressed() || p2_pause_edge) {

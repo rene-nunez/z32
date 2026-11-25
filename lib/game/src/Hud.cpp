@@ -80,7 +80,6 @@ void Game::fire_buzz() {
     case Sim::event::revive: Buzz::play(Buzz::jingle::buy); break; // a lift, not a purchase
     case Sim::event::roulette: Buzz::play(Buzz::jingle::roulette); break;
     case Sim::event::denied: Buzz::play(Buzz::jingle::denied); break;
-    case Sim::event::empty: Buzz::play(Buzz::jingle::denied); break; // legacy dry (auto rescues now)
     case Sim::event::reload: Buzz::play(Buzz::jingle::reload); break; // mag swap
     case Sim::event::hurt: Buzz::play(Buzz::jingle::hurt); break;
     case Sim::event::wave: Buzz::play(Buzz::jingle::wave); break;
