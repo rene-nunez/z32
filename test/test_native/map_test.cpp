@@ -1,6 +1,6 @@
 // Native bank for the tilemap and the world/camera invariants. Builds without
 // Arduino or TFT_eSPI: run test/test_native/run.sh. It includes the real map.cpp and
-// the real display header, and only supplies the one display symbol map.cpp uses.
+// the real Display header, and only supplies the one display symbol map.cpp uses.
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -9,13 +9,13 @@
 #include <vector>
 #include <utility>
 
-#include <display.h>
+#include <Display.h>
 
-uint16_t display::rgb565(uint8_t r, uint8_t g, uint8_t b) {
+uint16_t Display::rgb565(uint8_t r, uint8_t g, uint8_t b) {
   return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 }
 
-#include "../../lib/map/src/map.cpp"
+#include "../../lib/map/src/Map.cpp"
 
 static int fails = 0;
 static void check(bool ok, const char* what) {
@@ -25,7 +25,7 @@ static void check(bool ok, const char* what) {
   }
 }
 
-// mirror of game::_cell_cam
+// mirror of Game::_cell_cam
 static int16_t cell_cam(int16_t p, int16_t step, int16_t max_cam) {
   int16_t cam = (int16_t)((p / step) * step);
   if (cam < 0) cam = 0;
@@ -34,21 +34,21 @@ static int16_t cell_cam(int16_t p, int16_t step, int16_t max_cam) {
 }
 
 int main() {
-  tilemap::init();
+  Tilemap::init();
   const int16_t SW = 320, SH = 240, HUD = 10;
   const int16_t PANEL_H = 70, AH = 160;
   const int16_t ARENA_BOTTOM = HUD + AH;
   const int16_t AW = SW;
-  const int16_t MAX_X = tilemap::WORLD_W - AW, MAX_Y = tilemap::WORLD_H - AH;
+  const int16_t MAX_X = Tilemap::WORLD_W - AW, MAX_Y = Tilemap::WORLD_H - AH;
   const int16_t MM_SCALE = 2;
-  const int16_t MM_W = tilemap::COLS * MM_SCALE, MM_H = tilemap::ROWS * MM_SCALE;
+  const int16_t MM_W = Tilemap::COLS * MM_SCALE, MM_H = Tilemap::ROWS * MM_SCALE;
   const int16_t MM_Y = ARENA_BOTTOM + 5, MM_GAP = 4;
   const int16_t MM_X = SW - MM_W - MM_GAP;
 
-  printf("world %ux%u  arena %dx%d  cam max %d,%d\n", tilemap::WORLD_W, tilemap::WORLD_H,
+  printf("world %ux%u  arena %dx%d  cam max %d,%d\n", Tilemap::WORLD_W, Tilemap::WORLD_H,
          AW, AH, MAX_X, MAX_Y);
-  printf("spawn %u,%u  tile %u,%u\n", tilemap::spawn_px, tilemap::spawn_py,
-         tilemap::spawn_px / tilemap::TILE, tilemap::spawn_py / tilemap::TILE);
+  printf("spawn %u,%u  tile %u,%u\n", Tilemap::spawn_px, Tilemap::spawn_py,
+         Tilemap::spawn_px / Tilemap::TILE, Tilemap::spawn_py / Tilemap::TILE);
 
   // 0) screen layout adds up, minimap fits the panel, camera tiles the world 3x3
   check(HUD + AH + PANEL_H == SH, "hud + arena + panel != screen height");
@@ -100,9 +100,9 @@ int main() {
   // outline stays inside the minimap, and every line lands inside the tile strips the
   // restore repaints (so erasing the frame cannot leave a yellow pixel behind)
   {
-    const int cell_tw = AW / tilemap::TILE, cell_th = AH / tilemap::TILE;
-    check(AW % tilemap::TILE == 0 && AH % tilemap::TILE == 0, "cell is not a whole number of tiles");
-    check(cell_tw * 3 == tilemap::COLS && cell_th * 3 == tilemap::ROWS, "cells do not tile the map");
+    const int cell_tw = AW / Tilemap::TILE, cell_th = AH / Tilemap::TILE;
+    check(AW % Tilemap::TILE == 0 && AH % Tilemap::TILE == 0, "cell is not a whole number of tiles");
+    check(cell_tw * 3 == Tilemap::COLS && cell_th * 3 == Tilemap::ROWS, "cells do not tile the map");
     const int fw = cell_tw * MM_SCALE, fh = cell_th * MM_SCALE;
     for (int gy = 0; gy < 3; ++gy) {
       for (int gx = 0; gx < 3; ++gx) {
@@ -125,24 +125,24 @@ int main() {
   }
 
   // 1) spawn rect walkable, and the P tile really is the one we parsed
-  const int px = tilemap::spawn_px - 4;
-  const int py = tilemap::spawn_py - 4;
-  check(!tilemap::solid_rect(px, py, 8, 8), "spawn rect is not inside a wall");
-  check(tilemap::tile_at(px + 1, py + 1) == tilemap::FLOOR, "spawn tile is floor");
+  const int px = Tilemap::spawn_px - 4;
+  const int py = Tilemap::spawn_py - 4;
+  check(!Tilemap::solid_rect(px, py, 8, 8), "spawn rect is not inside a wall");
+  check(Tilemap::tile_at(px + 1, py + 1) == Tilemap::FLOOR, "spawn tile is floor");
 
   // 2) out of world == wall
-  check(tilemap::solid_rect(-1, 100, 8, 8), "left of world is wall");
-  check(tilemap::solid_rect(tilemap::WORLD_W - 1, 100, 8, 8), "right of world is wall");
-  check(tilemap::solid_rect(100, tilemap::WORLD_H - 1, 8, 8), "below world is wall");
-  check(tilemap::tile_at(-1, -1) == tilemap::WALL, "tile_at out of range -> WALL");
+  check(Tilemap::solid_rect(-1, 100, 8, 8), "left of world is wall");
+  check(Tilemap::solid_rect(Tilemap::WORLD_W - 1, 100, 8, 8), "right of world is wall");
+  check(Tilemap::solid_rect(100, Tilemap::WORLD_H - 1, 8, 8), "below world is wall");
+  check(Tilemap::tile_at(-1, -1) == Tilemap::WALL, "tile_at out of range -> WALL");
 
   // 3) the whole walkable world: camera in clamp, player (almost) always on screen
   int worst_x = 0, worst_y = 0;
   int worst_at_x = -1, worst_at_y = -1;
   std::set<int> cam_xs, cam_ys;
-  for (int wy = 0; wy < tilemap::WORLD_H; ++wy) {
-    for (int wx = 0; wx < tilemap::WORLD_W; ++wx) {
-      if (tilemap::solid_rect(wx, wy, 8, 8)) continue; // player top-left here
+  for (int wy = 0; wy < Tilemap::WORLD_H; ++wy) {
+    for (int wx = 0; wx < Tilemap::WORLD_W; ++wx) {
+      if (Tilemap::solid_rect(wx, wy, 8, 8)) continue; // player top-left here
       const int cx = cell_cam(wx + 4, AW, MAX_X);
       const int cy = cell_cam(wy + 4, AH, MAX_Y);
       cam_xs.insert(cx);
@@ -168,9 +168,9 @@ int main() {
   printf("worst player clip: x %dpx, y %dpx of 8 (at world %d,%d)\n", worst_x, worst_y, worst_at_x, worst_at_y);
   check(worst_x <= 4 && worst_y <= 4, "hard cut hides at most half the sprite per axis");
   int straddling = 0, walkable_total = 0;
-  for (int wy = 0; wy < tilemap::WORLD_H; ++wy) {
-    for (int wx = 0; wx < tilemap::WORLD_W; ++wx) {
-      if (tilemap::solid_rect(wx, wy, 8, 8)) continue;
+  for (int wy = 0; wy < Tilemap::WORLD_H; ++wy) {
+    for (int wx = 0; wx < Tilemap::WORLD_W; ++wx) {
+      if (Tilemap::solid_rect(wx, wy, 8, 8)) continue;
       ++walkable_total;
       const int cx = cell_cam(wx + 4, AW, MAX_X);
       const int cy = cell_cam(wy + 4, AH, MAX_Y);
@@ -184,10 +184,10 @@ int main() {
 
   // 4) how many world rows no camera position ever shows
   int hidden = 0;
-  for (int wy = 0; wy < tilemap::WORLD_H; ++wy) {
+  for (int wy = 0; wy < Tilemap::WORLD_H; ++wy) {
     bool walkable = false;
-    for (int wx = 0; wx < tilemap::WORLD_W; ++wx) {
-      if (!tilemap::solid_rect(wx, wy, 8, 8)) { walkable = true; break; }
+    for (int wx = 0; wx < Tilemap::WORLD_W; ++wx) {
+      if (!Tilemap::solid_rect(wx, wy, 8, 8)) { walkable = true; break; }
     }
     if (!walkable) continue;
     bool shown = false;
@@ -201,16 +201,16 @@ int main() {
   // 5) dropped: it reimplemented the render run-length instead of testing it.
 
   // 6) a bullet fired east dies on the west wall, and the border blocks it
-  check(tilemap::solid_rect(1, 16 * tilemap::TILE, 4, 4), "bullet at x=1 is inside the border wall");
+  check(Tilemap::solid_rect(1, 16 * Tilemap::TILE, 4, 4), "bullet at x=1 is inside the border wall");
   {
     // row 1 is the ring road: walkable right up to the border wall (checked in 8)
-    const float lane = (float)(tilemap::TILE) + 8.0f;
-    check(!tilemap::solid_rect(60, (int16_t)(lane - 2.0f), 4, 4), "ring road lane is walkable");
+    const float lane = (float)(Tilemap::TILE) + 8.0f;
+    check(!Tilemap::solid_rect(60, (int16_t)(lane - 2.0f), 4, 4), "ring road lane is walkable");
     float bx = 60.0f, by = lane;
     bool died = false;
     for (int i = 0; i < 400 && !died; ++i) {
       bx -= 4.0f;
-      if (tilemap::solid_rect((int16_t)bx, (int16_t)by, 4, 4)) died = true;
+      if (Tilemap::solid_rect((int16_t)bx, (int16_t)by, 4, 4)) died = true;
     }
     check(died && bx < 20, "bullet travelling west stops at the border wall");
   }
@@ -221,8 +221,8 @@ int main() {
     uint16_t seen[16];
     for (int t = 0; t <= 6; ++t) {
       bool dup = false;
-      for (int i = 0; i < distinct; ++i) dup |= (seen[i] == tilemap::color(t));
-      if (!dup) seen[distinct++] = tilemap::color(t);
+      for (int i = 0; i < distinct; ++i) dup |= (seen[i] == Tilemap::color(t));
+      if (!dup) seen[distinct++] = Tilemap::color(t);
     }
     printf("distinct tile colours for tiles 0..6: %d\n", distinct);
     check(distinct == 7, "each tile kind has its own colour");
@@ -231,7 +231,7 @@ int main() {
   // 8) flood fill from the spawn: no sealed walkable pocket, ring lanes are
   //    open, every vending machine and the roulette touch reachable ground
   {
-    const int stx = tilemap::spawn_px / tilemap::TILE, sty = tilemap::spawn_py / tilemap::TILE;
+    const int stx = Tilemap::spawn_px / Tilemap::TILE, sty = Tilemap::spawn_py / Tilemap::TILE;
     std::set<std::pair<int, int> > seen;
     std::vector<std::pair<int, int> > q;
     q.push_back(std::make_pair(sty, stx)); // (row, col)
@@ -241,17 +241,17 @@ int main() {
       const int dr[4] = {1, -1, 0, 0}, dc[4] = {0, 0, 1, -1};
       for (int k = 0; k < 4; ++k) {
         const int nr = r + dr[k], nc = c + dc[k];
-        if (nr < 0 || nc < 0 || nr >= tilemap::ROWS || nc >= tilemap::COLS) continue;
-        if (tilemap::solid(nc, nr)) continue;
+        if (nr < 0 || nc < 0 || nr >= Tilemap::ROWS || nc >= Tilemap::COLS) continue;
+        if (Tilemap::solid(nc, nr)) continue;
         if (seen.insert(std::make_pair(nr, nc)).second) q.push_back(std::make_pair(nr, nc));
       }
     }
     int walk = 0;
-    for (int r = 0; r < tilemap::ROWS; ++r)
-      for (int c = 0; c < tilemap::COLS; ++c)
-        if (!tilemap::solid(c, r)) ++walk;
+    for (int r = 0; r < Tilemap::ROWS; ++r)
+      for (int c = 0; c < Tilemap::COLS; ++c)
+        if (!Tilemap::solid(c, r)) ++walk;
     printf("walkable tiles %d/%d (%.0f%%), reachable %zu, orphans %d\n", walk,
-           tilemap::COLS * tilemap::ROWS, 100.0 * walk / (tilemap::COLS * tilemap::ROWS),
+           Tilemap::COLS * Tilemap::ROWS, 100.0 * walk / (Tilemap::COLS * Tilemap::ROWS),
            seen.size(), walk - (int)seen.size());
     check(walk - (int)seen.size() == 0, "there are sealed walkable pockets");
 
@@ -259,22 +259,22 @@ int main() {
     // what matters is each 2x2 block has reachable ground on at least one side
     int shops = 0, blocks = 0, blocks_ok = 0;
     int heal = 0, dmg = 0, spd = 0, rpd = 0, roll = 0;
-    for (int r = 0; r < tilemap::ROWS; ++r) {
-      for (int c = 0; c < tilemap::COLS; ++c) {
-        const uint8_t t = tilemap::tile_at(c * tilemap::TILE, r * tilemap::TILE);
-        if (t != tilemap::VENDING && t != tilemap::V_DMG && t != tilemap::V_SPD &&
-            t != tilemap::V_RPD && t != tilemap::ROULETTE) {
+    for (int r = 0; r < Tilemap::ROWS; ++r) {
+      for (int c = 0; c < Tilemap::COLS; ++c) {
+        const uint8_t t = Tilemap::tile_at(c * Tilemap::TILE, r * Tilemap::TILE);
+        if (t != Tilemap::VENDING && t != Tilemap::V_DMG && t != Tilemap::V_SPD &&
+            t != Tilemap::V_RPD && t != Tilemap::ROULETTE) {
           continue;
         }
         ++shops;
-        if (t == tilemap::VENDING) ++heal;
-        else if (t == tilemap::V_DMG) ++dmg;
-        else if (t == tilemap::V_SPD) ++spd;
-        else if (t == tilemap::V_RPD) ++rpd;
+        if (t == Tilemap::VENDING) ++heal;
+        else if (t == Tilemap::V_DMG) ++dmg;
+        else if (t == Tilemap::V_SPD) ++spd;
+        else if (t == Tilemap::V_RPD) ++rpd;
         else ++roll;
         // top-left tile of the 2x2 block only, so each machine counts once
-        if (c > 0 && tilemap::tile_at((c - 1) * tilemap::TILE, r * tilemap::TILE) == t) continue;
-        if (r > 0 && tilemap::tile_at(c * tilemap::TILE, (r - 1) * tilemap::TILE) == t) continue;
+        if (c > 0 && Tilemap::tile_at((c - 1) * Tilemap::TILE, r * Tilemap::TILE) == t) continue;
+        if (r > 0 && Tilemap::tile_at(c * Tilemap::TILE, (r - 1) * Tilemap::TILE) == t) continue;
         ++blocks;
         const int dr[4] = {1, -1, 0, 0}, dc[4] = {0, 0, 1, -1};
         bool ok = false;
@@ -296,30 +296,30 @@ int main() {
           "shops must be 2x2 (H/D/S/C x1, roll x4)");
 
     int ring_open = 1;
-    for (int c = 1; c < tilemap::COLS - 1; ++c) {
-      if (tilemap::solid(c, 1) || tilemap::solid(c, 2) ||
-          tilemap::solid(c, tilemap::ROWS - 2) || tilemap::solid(c, tilemap::ROWS - 3)) ring_open = 0;
+    for (int c = 1; c < Tilemap::COLS - 1; ++c) {
+      if (Tilemap::solid(c, 1) || Tilemap::solid(c, 2) ||
+          Tilemap::solid(c, Tilemap::ROWS - 2) || Tilemap::solid(c, Tilemap::ROWS - 3)) ring_open = 0;
     }
-    for (int r = 1; r < tilemap::ROWS - 1; ++r) {
-      if (tilemap::solid(1, r) || tilemap::solid(2, r) ||
-          tilemap::solid(tilemap::COLS - 2, r) || tilemap::solid(tilemap::COLS - 3, r)) ring_open = 0;
+    for (int r = 1; r < Tilemap::ROWS - 1; ++r) {
+      if (Tilemap::solid(1, r) || Tilemap::solid(2, r) ||
+          Tilemap::solid(Tilemap::COLS - 2, r) || Tilemap::solid(Tilemap::COLS - 3, r)) ring_open = 0;
     }
     check(ring_open, "the 2-tile ring road is broken (no kiting loop)");
   }
 
   // 9) the spawn scan always finds a walkable tile >= 100px from the player
   {
-    const int total = tilemap::COLS * tilemap::ROWS;
-    const int px = tilemap::spawn_px, py = tilemap::spawn_py;
+    const int total = Tilemap::COLS * Tilemap::ROWS;
+    const int px = Tilemap::spawn_px, py = Tilemap::spawn_py;
     int placed = 0, too_close = 0;
     for (int start = 0; start < total; start += 7) {
       bool found = false;
       for (int k = 0; k < total; ++k) {
         const int idx = (start + k) % total;
-        const int tx = idx % tilemap::COLS, ty = idx / tilemap::COLS;
-        if (tilemap::solid(tx, ty)) continue;
-        const int x = tx * tilemap::TILE + (tilemap::TILE - 6) / 2;
-        const int y = ty * tilemap::TILE + (tilemap::TILE - 6) / 2;
+        const int tx = idx % Tilemap::COLS, ty = idx / Tilemap::COLS;
+        if (Tilemap::solid(tx, ty)) continue;
+        const int x = tx * Tilemap::TILE + (Tilemap::TILE - 6) / 2;
+        const int y = ty * Tilemap::TILE + (Tilemap::TILE - 6) / 2;
         const int dx = x - px, dy = y - py;
         if (dx * dx + dy * dy < 100 * 100 && k + 1 < total) continue;
         if (dx * dx + dy * dy < 100 * 100) ++too_close;
@@ -354,8 +354,8 @@ int main() {
     int bleeds = 0;
     for (int cy = 0; cy <= MAX_Y; cy += 17) {
       for (int cx = 0; cx <= MAX_X; cx += 17) {
-        for (int ey = 0; ey + 8 < tilemap::WORLD_H; ++ey += 5) {
-          for (int ex = 0; ex + 8 < tilemap::WORLD_W; ++ex += 5) {
+        for (int ey = 0; ey + 8 < Tilemap::WORLD_H; ++ey += 5) {
+          for (int ex = 0; ex + 8 < Tilemap::WORLD_W; ++ex += 5) {
             const int wx = cx + ex, wy = cy + ey;
             // _fill_world_box clip box, verbatim
             const int x0 = wx - cx, y0 = wy - cy + HUD;
@@ -375,33 +375,33 @@ int main() {
 
   // 13) the BFS distance field: no local minima, so walking downhill always arrives
   {
-    const int stx = tilemap::spawn_px / tilemap::TILE, sty = tilemap::spawn_py / tilemap::TILE;
-    tilemap::build_field(stx, sty);
-    check(tilemap::field[sty][stx] == 0, "the field does not start at 0 on the target tile");
-    check(tilemap::dist_at(tilemap::spawn_px, tilemap::spawn_py) == 0, "dist_at != 0 on the spawn");
-    check(tilemap::dist_at(-1, 100) == tilemap::UNREACHABLE, "dist_at left of world");
-    check(tilemap::dist_at(100, -1) == tilemap::UNREACHABLE, "dist_at above world");
-    check(tilemap::dist_at(tilemap::WORLD_W, 100) == tilemap::UNREACHABLE, "dist_at right of world");
-    check(tilemap::dist_at(100, tilemap::WORLD_H) == tilemap::UNREACHABLE, "dist_at below world");
+    const int stx = Tilemap::spawn_px / Tilemap::TILE, sty = Tilemap::spawn_py / Tilemap::TILE;
+    Tilemap::build_field(stx, sty);
+    check(Tilemap::field[sty][stx] == 0, "the field does not start at 0 on the target tile");
+    check(Tilemap::dist_at(Tilemap::spawn_px, Tilemap::spawn_py) == 0, "dist_at != 0 on the spawn");
+    check(Tilemap::dist_at(-1, 100) == Tilemap::UNREACHABLE, "dist_at left of world");
+    check(Tilemap::dist_at(100, -1) == Tilemap::UNREACHABLE, "dist_at above world");
+    check(Tilemap::dist_at(Tilemap::WORLD_W, 100) == Tilemap::UNREACHABLE, "dist_at right of world");
+    check(Tilemap::dist_at(100, Tilemap::WORLD_H) == Tilemap::UNREACHABLE, "dist_at below world");
 
     const int dr[4] = {1, -1, 0, 0}, dc[4] = {0, 0, 1, -1};
     int reach = 0, max_d = 0, no_descent = 0, solid_reached = 0;
-    for (int r = 0; r < tilemap::ROWS; ++r) {
-      for (int c = 0; c < tilemap::COLS; ++c) {
-        const uint16_t d = tilemap::field[r][c];
-        if (tilemap::solid(c, r)) {
-          if (d != tilemap::UNREACHABLE) ++solid_reached;
+    for (int r = 0; r < Tilemap::ROWS; ++r) {
+      for (int c = 0; c < Tilemap::COLS; ++c) {
+        const uint16_t d = Tilemap::field[r][c];
+        if (Tilemap::solid(c, r)) {
+          if (d != Tilemap::UNREACHABLE) ++solid_reached;
           continue;
         }
-        if (d == tilemap::UNREACHABLE) continue;
+        if (d == Tilemap::UNREACHABLE) continue;
         ++reach;
         if ((int)d > max_d) max_d = d;
         if (d == 0) continue;
         bool down = false;
         for (int k = 0; k < 4; ++k) {
           const int nr = r + dr[k], nc = c + dc[k];
-          if (nr < 0 || nr >= tilemap::ROWS || nc < 0 || nc >= tilemap::COLS) continue;
-          if (tilemap::field[nr][nc] == d - 1) { down = true; break; }
+          if (nr < 0 || nr >= Tilemap::ROWS || nc < 0 || nc >= Tilemap::COLS) continue;
+          if (Tilemap::field[nr][nc] == d - 1) { down = true; break; }
         }
         if (!down) ++no_descent;
       }
@@ -411,38 +411,38 @@ int main() {
     check(reach > 1000, "the field reaches too little of the map");
     {
       int walkable = 0;
-      for (int r = 0; r < tilemap::ROWS; ++r)
-        for (int c = 0; c < tilemap::COLS; ++c)
-          if (!tilemap::solid(c, r)) ++walkable;
+      for (int r = 0; r < Tilemap::ROWS; ++r)
+        for (int c = 0; c < Tilemap::COLS; ++c)
+          if (!Tilemap::solid(c, r)) ++walkable;
       check(reach == walkable, "the field does not reach every walkable tile");
     }
     check(no_descent == 0, "the field has a local minimum, a zombie would stall there");
     check(solid_reached == 0, "the field leaked a distance onto a wall");
     check(max_d < 255, "the field needs more than uint8_t");
 
-    // mirror of game::_zombie_steer: pick the lowest-distance neighbour, aim at its centre
+    // mirror of Game::_zombie_steer: pick the lowest-distance neighbour, aim at its centre
     const int nx[8] = {1, -1, 0, 0, 1, 1, -1, -1}, ny[8] = {0, 0, 1, -1, 1, -1, 1, -1};
     int stuck = 0, longest = 0, samples = 0;
-    for (int r = 0; r < tilemap::ROWS; r += 1) {
-      for (int c = 0; c < tilemap::COLS; ++c) {
+    for (int r = 0; r < Tilemap::ROWS; r += 1) {
+      for (int c = 0; c < Tilemap::COLS; ++c) {
         if ((r * 7 + c * 13) % 9) continue; // deterministic sample of tiles
-        if (tilemap::solid(c, r) || tilemap::field[r][c] == tilemap::UNREACHABLE) continue;
+        if (Tilemap::solid(c, r) || Tilemap::field[r][c] == Tilemap::UNREACHABLE) continue;
         ++samples;
         int cr = r, cc = c, steps = 0;
-        while (tilemap::field[cr][cc] > 0 && steps <= max_d + 2) {
+        while (Tilemap::field[cr][cc] > 0 && steps <= max_d + 2) {
           int best = -1;
-          uint16_t best_d = tilemap::field[cr][cc];
+          uint16_t best_d = Tilemap::field[cr][cc];
           for (int k = 0; k < 8; ++k) {
             const int tr = cr + ny[k], tc = cc + nx[k];
-            if (tr < 0 || tr >= tilemap::ROWS || tc < 0 || tc >= tilemap::COLS) continue;
-            if (tilemap::field[tr][tc] < best_d) { best_d = tilemap::field[tr][tc]; best = k; }
+            if (tr < 0 || tr >= Tilemap::ROWS || tc < 0 || tc >= Tilemap::COLS) continue;
+            if (Tilemap::field[tr][tc] < best_d) { best_d = Tilemap::field[tr][tc]; best = k; }
           }
           if (best < 0) break;
           cr += ny[best];
           cc += nx[best];
           ++steps;
         }
-        if (tilemap::field[cr][cc] != 0) ++stuck;
+        if (Tilemap::field[cr][cc] != 0) ++stuck;
         if (steps > longest) longest = steps;
       }
     }
@@ -452,17 +452,17 @@ int main() {
 
     // a wall tile has nothing to spread from
     int wtx = -1, wty = -1;
-    for (int r = 0; r < tilemap::ROWS && wtx < 0; ++r) {
-      for (int c = 0; c < tilemap::COLS; ++c) {
-        if (tilemap::solid(c, r)) { wtx = c; wty = r; break; }
+    for (int r = 0; r < Tilemap::ROWS && wtx < 0; ++r) {
+      for (int c = 0; c < Tilemap::COLS; ++c) {
+        if (Tilemap::solid(c, r)) { wtx = c; wty = r; break; }
       }
     }
     int wall_leaks = 0;
     if (wtx >= 0) {
-      tilemap::build_field(wtx, wty);
-      for (int rr = 0; rr < tilemap::ROWS; ++rr)
-        for (int cc = 0; cc < tilemap::COLS; ++cc)
-          if (tilemap::field[rr][cc] != tilemap::UNREACHABLE) ++wall_leaks;
+      Tilemap::build_field(wtx, wty);
+      for (int rr = 0; rr < Tilemap::ROWS; ++rr)
+        for (int cc = 0; cc < Tilemap::COLS; ++cc)
+          if (Tilemap::field[rr][cc] != Tilemap::UNREACHABLE) ++wall_leaks;
     }
     check(wtx >= 0 && wall_leaks == 0, "build_field on a wall must leave everything UNREACHABLE");
     printf("build_field on a wall tile %d,%d: %d tiles reachable, no hang\n", wtx, wty, wall_leaks);

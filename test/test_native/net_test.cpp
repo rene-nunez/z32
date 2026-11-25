@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include <net_state.h>
+#include <Net_state.h>
 
 static int fails = 0;
 static void check(bool ok, const char* what) {
@@ -16,14 +16,14 @@ static void check(bool ok, const char* what) {
 }
 
 int main() {
-  check(sizeof(net::game_state_msg) == 146, "state len 146");
-  check(net::STATE_LEN == 146, "STATE_LEN 146");
-  check(sizeof(net::player_input_msg) == 5, "input len 5");
-  check(sizeof(net::game_state_msg) <= 250, "state under cap");
+  check(sizeof(Net::game_state_msg) == 146, "state len 146");
+  check(Net::STATE_LEN == 146, "STATE_LEN 146");
+  check(sizeof(Net::player_input_msg) == 5, "input len 5");
+  check(sizeof(Net::game_state_msg) <= 250, "state under cap");
 
   // type byte first, so handlers dispatch from data[0]
-  net::game_state_msg s;
-  net::player_input_msg in;
+  Net::game_state_msg s;
+  Net::player_input_msg in;
   check(((const uint8_t*)&s)[0] == 0x02, "state type byte");
   check(((const uint8_t*)&in)[0] == 0x10, "input type byte");
 
@@ -48,21 +48,21 @@ int main() {
   s.ammo[0] = 15;
   s.ammo[1] = 0;
   check(s.ammo[0] == 15 && s.ammo[1] == 0, "ammo per player");
-  const uint8_t pf = net::PF_ACTIVE | net::PF_RELOADING;
-  check((pf & net::PF_RELOADING) != 0, "reloading bit");
-  check((uint8_t)((pf >> net::PF_DIR_SHIFT) & net::PF_DIR_MASK) == 0, "dir bits survive reload bit");
+  const uint8_t pf = Net::PF_ACTIVE | Net::PF_RELOADING;
+  check((pf & Net::PF_RELOADING) != 0, "reloading bit");
+  check((uint8_t)((pf >> Net::PF_DIR_SHIFT) & Net::PF_DIR_MASK) == 0, "dir bits survive reload bit");
 
   // facing: the 8-wind dir rides spare flag bits (no extra bytes); every value
   // 0..7 must survive alongside the reload bit
   for (uint8_t d = 0; d < 8; ++d) {
-    const uint8_t f = net::PF_ACTIVE | net::PF_RELOADING | (uint8_t)(d << net::PF_DIR_SHIFT);
-    check((uint8_t)((f >> net::PF_DIR_SHIFT) & net::PF_DIR_MASK) == d, "player facing round-trip");
+    const uint8_t f = Net::PF_ACTIVE | Net::PF_RELOADING | (uint8_t)(d << Net::PF_DIR_SHIFT);
+    check((uint8_t)((f >> Net::PF_DIR_SHIFT) & Net::PF_DIR_MASK) == d, "player facing round-trip");
   }
 
   // positions: world 0..960 x 0..480, error under one quantum (0.25px)
   const float pxs[] = {0.0f, 1.3f, 159.9f, 480.0f, 959.75f};
   for (unsigned i = 0; i < sizeof(pxs) / sizeof(pxs[0]); ++i) {
-    const float back = net::uqpos(net::qpos(pxs[i]));
+    const float back = Net::uqpos(Net::qpos(pxs[i]));
     float err = back - pxs[i];
     if (err < 0) {
       err = -err;
@@ -71,14 +71,14 @@ int main() {
     snprintf(what, sizeof(what), "qpos round-trip %f", (double)pxs[i]);
     check(err <= 0.25f, what);
   }
-  check(net::qpos(959.75f) < 65535u, "qpos fits u16 at world edge");
+  check(Net::qpos(959.75f) < 65535u, "qpos fits u16 at world edge");
 
   // angles: sweep the circle, decoded heading must stay within one step
   for (int d = 0; d < 360; d += 7) {
     const float t = (float)d * 3.14159265f / 180.0f;
     float dx = cosf(t), dy = sinf(t);
     float ox, oy;
-    net::uqangle(net::qangle(dx, dy), ox, oy);
+    Net::uqangle(Net::qangle(dx, dy), ox, oy);
     const float dot = dx * ox + dy * oy; // 1.0 = exact
     char what[48];
     snprintf(what, sizeof(what), "qangle round-trip %d deg", d);
@@ -88,7 +88,7 @@ int main() {
   // axes: -1..1 maps to -127..127 and back within one step
   const float axs[] = {-1.0f, -0.5f, 0.0f, 0.33f, 1.0f};
   for (unsigned i = 0; i < sizeof(axs) / sizeof(axs[0]); ++i) {
-    const float back = net::uqaxis(net::qaxis(axs[i]));
+    const float back = Net::uqaxis(Net::qaxis(axs[i]));
     float err = back - axs[i];
     if (err < 0) {
       err = -err;
@@ -97,33 +97,33 @@ int main() {
     snprintf(what, sizeof(what), "qaxis round-trip %f", (double)axs[i]);
     check(err <= 1.0f / 127.0f + 1e-6f, what);
   }
-  check(net::qaxis(2.0f) == 127, "qaxis clamps high");
-  check(net::qaxis(-2.0f) == -127, "qaxis clamps low");
+  check(Net::qaxis(2.0f) == 127, "qaxis clamps high");
+  check(Net::qaxis(-2.0f) == -127, "qaxis clamps low");
 
   // flag packing: kinds 0..2, dmgs 0..16 and facing 0..7 survive the shifts
   for (uint8_t k = 0; k < 3; ++k) {
     for (uint8_t d = 0; d < 8; ++d) {
-      const uint8_t f = net::ZF_ACTIVE | (uint8_t)(k << net::ZF_KIND_SHIFT) |
-                        (uint8_t)(d << net::ZF_DIR_SHIFT);
-      check((f & net::ZF_ACTIVE) != 0, "zombie active bit");
-      check((uint8_t)((f >> net::ZF_KIND_SHIFT) & 0x03) == k, "zombie kind bits");
-      check((uint8_t)((f >> net::ZF_DIR_SHIFT) & net::ZF_DIR_MASK) == d, "zombie facing bits");
+      const uint8_t f = Net::ZF_ACTIVE | (uint8_t)(k << Net::ZF_KIND_SHIFT) |
+                        (uint8_t)(d << Net::ZF_DIR_SHIFT);
+      check((f & Net::ZF_ACTIVE) != 0, "zombie active bit");
+      check((uint8_t)((f >> Net::ZF_KIND_SHIFT) & 0x03) == k, "zombie kind bits");
+      check((uint8_t)((f >> Net::ZF_DIR_SHIFT) & Net::ZF_DIR_MASK) == d, "zombie facing bits");
     }
   }
   for (uint8_t d = 0; d <= 16; ++d) {
-    const uint8_t f = net::BF_ACTIVE | (uint8_t)(d << net::BF_DMG_SHIFT);
-    check((uint8_t)((f >> net::BF_DMG_SHIFT) & 0x1F) == d, "bullet dmg bits");
+    const uint8_t f = Net::BF_ACTIVE | (uint8_t)(d << Net::BF_DMG_SHIFT);
+    check((uint8_t)((f >> Net::BF_DMG_SHIFT) & 0x1F) == d, "bullet dmg bits");
   }
 
   // chat callouts (SAVE ME!/THX!/I'M OUT!/I'M BACK!): 4B edge shouts, type first,
   // under the cap. Only the voluntary SAVE ME travels (wire id come); the rest
   // derive locally from shared state, zero bytes. Solo never sends.
-  net::chat_msg c;
-  check(sizeof(net::chat_msg) == 4, "chat len 4");
+  Net::chat_msg c;
+  check(sizeof(Net::chat_msg) == 4, "chat len 4");
   check(((const uint8_t*)&c)[0] == 0x20, "chat type byte");
-  check(sizeof(net::chat_msg) <= 250, "chat under cap");
-  check((uint8_t)net::chat_id::help == 0 && (uint8_t)net::chat_id::come == 1 &&
-            (uint8_t)net::chat_id::thanks == 2 && (uint8_t)net::chat_id::ammo == 3,
+  check(sizeof(Net::chat_msg) <= 250, "chat under cap");
+  check((uint8_t)Net::chat_id::help == 0 && (uint8_t)Net::chat_id::come == 1 &&
+            (uint8_t)Net::chat_id::thanks == 2 && (uint8_t)Net::chat_id::ammo == 3,
         "chat wire ids unchanged");
 
   if (fails == 0) {
