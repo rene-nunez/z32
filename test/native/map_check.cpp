@@ -1,5 +1,5 @@
 // Native bank for the tilemap and the world/camera invariants. Builds without
-// Arduino or TFT_eSPI: run test/test_native/run.sh. It includes the real map.cpp and
+// Arduino or TFT_eSPI: run test/native/run.sh. It includes the real map.cpp and
 // the real Display header, and only supplies the one display symbol map.cpp uses.
 #include <cstdint>
 #include <cstdio>

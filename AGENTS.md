@@ -23,7 +23,7 @@ Gameplay numbers (prices, stats, waves) live in README.md; code truth is the
 ## Layout
 
 - `include/` — `pins.h`, `tft_setup.h` (ST7789 + `TFT_INVERSION_OFF` + `TFT_RGB_ORDER TFT_BGR`, panel BGR)
-- `lib/network` — raw ESP-NOW, no message logic; `lib/protocol` — `msg_type` + packed structs (`Net_state.h`: `game_state` 146B + `player_input` 5B + `chat` 4B, Arduino-free so `test_native` checks sizes/round-trips; facing rides spare flag bits); `lib/handler` — typed routing/dispatch
+- `lib/network` — raw ESP-NOW, no message logic; `lib/protocol` — `msg_type` + packed structs (`Net_state.h`: `game_state` 146B + `player_input` 5B + `chat` 4B, Arduino-free so `native/` checks sizes/round-trips; facing rides spare flag bits); `lib/handler` — typed routing/dispatch
 - `lib/display` — `Display` + `Colour` (+`push_image` one-burst RAM blits); only TFT_eSPI user
 - `lib/input` — joystick ADC1 + buttons (debounce + edge); centre calibrated at boot (~200ms, hands off); deadzone 0.3
 - `lib/map` — `Tilemap` 60x30 maze, BFS `field`/`field2`; `lib/sim` — owns state, never touches screen/menus/network/sound (emits `last_event`); `lib/sprites` — header-only PROGMEM RGB565 art, pulled only via the `Sprites.h` fan-out; `lib/render` — camera + terrain + actors + prompt strip, reads `Sim::view()` + `Tilemap`; `lib/panel` — bottom strip + minimap; `lib/buzz` — jingles fired from `last_event`; `lib/scores` — RTC last-4 + `/z32_recent.json` + `/z32_log.jsonl`; `lib/screens` — `id` enum + item tables + chrome; `lib/game` — state machine, only place calling Sim + Render + Panel + Screens + Buzz together
@@ -36,11 +36,11 @@ Gameplay numbers (prices, stats, waves) live in README.md; code truth is the
 - arena 320x160, camera clamped to an exact 3x3 grid, hard-cut by cell; repaint 80 rows/frame; 33ms frame budget, target-paced via `delay()` so a heavy frame never triggers catch-up
 - menus paint on entry + cursor lines only; items size 2 at `y0 + i*24`; wrap via `Screens::count`; `static_assert` one table row per `Screens::id`; entering `playing` calls `Screens::invalidate()`
 - erase is terrain-exact; frame order `Render::clear()` → `Sim::step()` → `Render::update_camera()` → `Render::draw()` owned by `Game`; arena fills clip to `[10,170)`
-- `test_native` never compiles Game/Sim/Render/Panel/Screens (need Arduino); menu geometry verified on glass
+- `native/` never compiles Game/Sim/Render/Panel/Screens (need Arduino); menu geometry verified on glass
 
 ## Sim contracts
 
-- `art` rows exactly `COLS`; map pins: 1230 walkable, 0 orphans, 8/8 machine blocks reachable, BFS max 76, 0 local minima (all in `run.sh`)
+- `art` rows exactly `COLS`; map pins: 1230 walkable, 0 orphans, 8/8 machine blocks reachable, BFS max 76, 0 local minima (all in `test/native/run.sh`)
 - `solid_rect` gates movement per axis (X then Y); bullets die on non-walkable; spawns walkable, ≥100px away
 - BFS `field` rebuilds only when the player's tile changes; steer descends the nearest alive player's field (direct chase on UNREACHABLE, standoff ring at contact, one declump pass at 7px); pass `float&` members to `move_entity`
 - API: `view()` / `reset()` / `step(now)->bool` (death = nobody standing) / `set_p2` / `revive(p)`; points zeroed only in `reset()`; silent 3s break between waves (host-only); MP9/AR-15 hold-to-fire, rest edge (cadence limits, no wire change)
@@ -49,7 +49,7 @@ Gameplay numbers (prices, stats, waves) live in README.md; code truth is the
 
 ## Tests
 
-- `./test/test_native/run.sh` builds `map_test.cpp` + `net_test.cpp` with plain `g++` (bins to `$TMPDIR`); `test_ignore = test_native` keeps `pio test` off it
+- `./test/native/run.sh` builds `map_check.cpp` + `net_check.cpp` with plain `g++` (bins to `$TMPDIR`); the dir lacks the `test_` prefix, so PlatformIO does not collect it; `pio test` is not used here
 
 ## Roadmap
 

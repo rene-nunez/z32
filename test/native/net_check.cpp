@@ -1,5 +1,5 @@
 // Native bank for the F6 net wire format. Builds without Arduino: run
-// test/test_native/run.sh. Checks sizes against the 250B cap and the
+// test/native/run.sh. Checks sizes against the 250B cap and the
 // quantizer round-trips (positions, angles, axes, flag packing, facing).
 #include <cstdint>
 #include <cstdio>

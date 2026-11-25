@@ -111,7 +111,7 @@ A passive buzzer plays short non-blocking jingles for menu, shots, buys, roulett
 
 ```sh
 pio run -e host | pio run -e client   # build per role (bare pio run = host)
-./test/test_native/run.sh             # hardware-free checks (map + net wire)
+./test/native/run.sh             # hardware-free checks (map + net wire)
 ```
 
 The serial console (115200) logs events only, e.g. run saves and multiplayer joins. `AGENTS.md` is the developer contract (pins, net format, module bounds).
