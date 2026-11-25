@@ -1,7 +1,7 @@
 # AGENTS.md
 
 Gameplay numbers (prices, stats, waves) live in README.md; code truth is the
-`lib/sim/src/Sim.h` constants. This file is the dev contract only.
+`lib/sim/Sim.h` constants. This file is the dev contract only.
 
 ## Style
 
@@ -12,7 +12,7 @@ Gameplay numbers (prices, stats, waves) live in README.md; code truth is the
 - packed structs (`__attribute__((packed))`); first field is always `type`
 - 250 bytes/msg max; frequent state must be binary, not JSON
 - host is authoritative (runs game logic, sends state); client sends inputs
-- fixed custom MACs in `lib/network/src/Network.h`; role picks the peer
+- fixed custom MACs in `lib/network/Network.h`; role picks the peer
 - role comes from build: `pio run -e host` | `-e client` (flag `DEVICE_ROLE`, validated in `src/main.cpp`)
 
 ## Pins
@@ -28,7 +28,7 @@ Gameplay numbers (prices, stats, waves) live in README.md; code truth is the
 - `lib/input` — joystick ADC1 + buttons (debounce + edge); centre calibrated at boot (~200ms, hands off); deadzone 0.3
 - `lib/map` — `Tilemap` 60x30 maze, BFS `field`/`field2`; `lib/sim` — owns state, never touches screen/menus/network/sound (emits `last_event`); `lib/sprites` — header-only PROGMEM RGB565 art, pulled only via the `Sprites.h` fan-out; `lib/render` — camera + terrain + actors + prompt strip, reads `Sim::view()` + `Tilemap`; `lib/panel` — bottom strip + minimap; `lib/buzz` — jingles fired from `last_event`; `lib/scores` — RTC last-4 + `/z32_recent.json` + `/z32_log.jsonl`; `lib/screens` — `id` enum + item tables + chrome; `lib/game` — state machine, only place calling Sim + Render + Panel + Screens + Buzz together
 - `src/main.cpp` — `Game::begin(DEVICE_ROLE)` + `Game::update()`
-- LDF `chain`; every `lib/*/src/*.cpp` always compiles — a lib's external deps must surface in its public header (`Render.h` includes `Sprites.h`). Cross-lib `<>`, same-dir `""`. TFT config repo-wide via `[env]` `-D USER_SETUP_LOADED` + `-include tft_setup.h`. Filenames case-sensitive on Linux.
+- LDF `chain`; every `lib/*/*.cpp` always compiles — a lib's external deps must surface in its public header (`Render.h` includes `Sprites.h`). Cross-lib `<>`, same-dir `""`. TFT config repo-wide via `[env]` `-D USER_SETUP_LOADED` + `-include tft_setup.h`. Filenames case-sensitive on Linux.
 
 ## Display
 
@@ -57,4 +57,4 @@ Gameplay numbers (prices, stats, waves) live in README.md; code truth is the
 
 ## Add a message
 
-- add `msg_type` in `lib/protocol/src/Protocol.h`, packed struct with `type` first, `on_message(type, cb)` in `lib/game/src/Game.cpp`, send via `handler.send(&msg, sizeof(msg))`
+- add `msg_type` in `lib/protocol/Protocol.h`, packed struct with `type` first, `on_message(type, cb)` in `lib/game/Game.cpp`, send via `handler.send(&msg, sizeof(msg))`

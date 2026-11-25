@@ -85,7 +85,7 @@ No runners on wave 1; afterwards up to `min(2·wave/3, quota/2)`, spread evenly.
 
 ## Multiplayer
 
-Host is authoritative: it simulates both players and broadcasts state at ~30Hz (146B state + 5B input); the client sends inputs and mirrors. No pairing step: each board carries a fixed custom MAC ([lib/network/src/Network.h](lib/network/src/Network.h)) and the build role picks the peer — just flash one board as `host`, the other as `client`, and pick Multi on both. They join via `waiting` (10s timeout or FIRE falls back to Solo). P2 shares the wallet/kills and joins with a fresh pistol. Pause can be requested from either board but is owned by the host; game-over mirrors to both.
+Host is authoritative: it simulates both players and broadcasts state at ~30Hz (146B state + 5B input); the client sends inputs and mirrors. No pairing step: each board carries a fixed custom MAC ([lib/network/Network.h](lib/network/Network.h)) and the build role picks the peer — just flash one board as `host`, the other as `client`, and pick Multi on both. They join via `waiting` (10s timeout or FIRE falls back to Solo). P2 shares the wallet/kills and joins with a fresh pistol. Pause can be requested from either board but is owned by the host; game-over mirrors to both.
 
 ## Screens, scores & sound
 

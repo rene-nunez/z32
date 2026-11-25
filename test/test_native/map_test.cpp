@@ -13,7 +13,7 @@ uint16_t Display::rgb565(uint8_t r, uint8_t g, uint8_t b) {
   return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 }
 
-#include "../../lib/map/src/Map.cpp"
+#include "../../lib/map/Map.cpp"
 
 static int fails = 0;
 static void check(bool ok, const char* what) {

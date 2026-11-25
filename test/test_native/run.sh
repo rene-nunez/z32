@@ -10,11 +10,11 @@ cd "$(dirname "$0")/../.."
 flags="-O2 -std=c++17 -Wall"
 
 out="${TMPDIR:-/tmp}/z32_map_test"
-g++ $flags -I lib/display/src -o "$out" test/test_native/map_test.cpp
+g++ $flags -I lib/display -o "$out" test/test_native/map_test.cpp
 "$out"
 
 net="${TMPDIR:-/tmp}/z32_net_test"
-g++ $flags -I lib/protocol/src -o "$net" test/test_native/net_test.cpp
+g++ $flags -I lib/protocol -o "$net" test/test_native/net_test.cpp
 "$net"
 
 echo "native tests ok"
