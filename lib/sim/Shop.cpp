@@ -1,16 +1,14 @@
-#include <Arduino.h>
+// Wallet, permanent levels, roulette and bonuses
 
+#include <Arduino.h>
 
 #include "Sim.h"
 
-// sim shop: wallet, permanent levels, roulette and the display bonuses. Called
-// by game on INTERACT edges; exact points pay, denial stamps the denied event
-
 uint32_t Sim::kill_reward(actor_kind kind, uint16_t wave) {
   switch (kind) {
-    case actor_kind::runner: return runner_reward + 2u * (uint32_t)wave; // +5 over a normal
-    case actor_kind::boss: return 150u + 10u * (uint32_t)wave; // 200 at w5, 250 at w10
-    default: return 10u + 2u * (uint32_t)wave; // base income with a mild wave slope
+    case actor_kind::runner: return runner_reward + 2u * (uint32_t)wave;
+    case actor_kind::boss: return 150u + 10u * (uint32_t)wave;
+    default: return 10u + 2u * (uint32_t)wave;
   }
 }
 
@@ -22,10 +20,10 @@ bool Sim::buy_heal(uint32_t now, uint8_t p) {
   (void)now;
   if (p >= NUM_PLAYERS || !alive(p) || s.players[p].hp >= PLAYER_HP_MAX ||
       s.points < PRICE_HEAL) {
-    s.last_event = event::denied; // full HP, broke, or no such player
+    s.last_event = event::denied;
     return false;
   }
-  s.points -= PRICE_HEAL; // exact points pay
+  s.points -= PRICE_HEAL;
   s.players[p].hp = (uint8_t)(s.players[p].hp + 2 > PLAYER_HP_MAX ? PLAYER_HP_MAX : s.players[p].hp + 2);
   s.last_event = event::buy_heal;
   return true;
@@ -38,7 +36,7 @@ bool Sim::buy_damage(uint32_t now, uint8_t p) {
     return false;
   }
   if (s.dmg_lvl[p] >= MAX_LVL) {
-    s.last_event = event::denied; // capped, like a full HP bar
+    s.last_event = event::denied;
     return false;
   }
   const uint32_t price = price_for(PRICE_DMG, s.dmg_lvl[p]);
@@ -47,7 +45,7 @@ bool Sim::buy_damage(uint32_t now, uint8_t p) {
     return false;
   }
   s.points -= price;
-  ++s.dmg_lvl[p]; // permanent, part of that player's build
+  ++s.dmg_lvl[p];
   s.last_event = event::buy_dmg;
   return true;
 }
@@ -59,7 +57,7 @@ bool Sim::buy_speed(uint32_t now, uint8_t p) {
     return false;
   }
   if (s.spd_lvl[p] >= MAX_LVL) {
-    s.last_event = event::denied; // capped, like a full HP bar
+    s.last_event = event::denied;
     return false;
   }
   const uint32_t price = price_for(PRICE_SPD, s.spd_lvl[p]);
@@ -68,7 +66,7 @@ bool Sim::buy_speed(uint32_t now, uint8_t p) {
     return false;
   }
   s.points -= price;
-  ++s.spd_lvl[p]; // permanent, part of that player's build
+  ++s.spd_lvl[p];
   s.last_event = event::buy_spd;
   return true;
 }
@@ -80,7 +78,7 @@ bool Sim::buy_rapid(uint32_t now, uint8_t p) {
     return false;
   }
   if (s.rpd_lvl[p] >= MAX_LVL) {
-    s.last_event = event::denied; // capped, like a full HP bar
+    s.last_event = event::denied;
     return false;
   }
   const uint32_t price = price_for(PRICE_RPD, s.rpd_lvl[p]);
@@ -89,7 +87,7 @@ bool Sim::buy_rapid(uint32_t now, uint8_t p) {
     return false;
   }
   s.points -= price;
-  ++s.rpd_lvl[p]; // permanent, part of that player's build
+  ++s.rpd_lvl[p];
   s.last_event = event::buy_rpd;
   return true;
 }
@@ -106,8 +104,8 @@ bool Sim::roll_roulette(uint32_t now, uint8_t p) {
   }
   s.points -= PRICE_ROLL;
   s.guns[p] = roll_weapon((uint8_t)(esp_random() % 100u));
-  s.ammo[p] = mag_size(s.guns[p]); // fresh gun, full mag
-  s.reload_end[p] = 0; // the swap interrupts a reload, like a burst
+  s.ammo[p] = mag_size(s.guns[p]);
+  s.reload_end[p] = 0;
   burst_left[p] = 0;
   s.last_event = event::roulette;
   return true;
@@ -148,14 +146,13 @@ const char* Sim::gun_name_p(uint8_t p) {
 }
 
 uint8_t Sim::dmg_bonus(uint8_t lvl) {
-  return (uint8_t)(25u * lvl); // +25%/level, +250% at max
+  return (uint8_t)(25u * lvl);
 }
 
 uint8_t Sim::spd_bonus(uint8_t lvl) {
-  return (uint8_t)(8u * lvl); // +8%/level, +80% at max
+  return (uint8_t)(8u * lvl);
 }
 
 uint8_t Sim::rpd_cut(uint8_t lvl) {
-  // the real accumulated cooldown cut in %: L1 6, L5 27, L10 46
   return (uint8_t)((1.0f - rpd_mult(lvl)) * 100.0f + 0.5f);
 }

@@ -1,3 +1,5 @@
+// Raw ESP-NOW transport; no message logic
+
 #include <Arduino.h>
 #include <cstring>
 #include <esp_wifi.h>
@@ -42,7 +44,6 @@ bool Network::begin(uint8_t role) {
     return false;
   }
 
-  // role is reported once by game at boot ([game] ready role=...)
   return true;
 }
 
@@ -65,7 +66,7 @@ bool Network::add_peer() {
 
 void Network::on_sent(const uint8_t* mac, esp_now_send_status_t status) {
   (void)mac;
-  (void)status; // single drops are routine at ~30Hz; a dead peer surfaces via quiet-drop
+  (void)status;
 }
 
 void Network::on_received(const uint8_t* mac, const uint8_t* data, int len) {

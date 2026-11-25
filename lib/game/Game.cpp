@@ -1,3 +1,5 @@
+// Game core: boot, frame pacing and menu dispatch
+
 #include <Arduino.h>
 
 #include <driver/rtc_io.h>
@@ -14,9 +16,6 @@
 
 #include "Game.h"
 #include "pins.h"
-
-// game core: boot, frame dispatch, menus and shared state. Shop/net/hud live in
-// their own files; every static below is defined once here and used across them
 
 Handler Game::handler;
 uint32_t Game::tick = 0;
@@ -86,7 +85,7 @@ uint8_t Game::hud_ammo = 0xFF;
 uint8_t Game::hud_shown = 0xFF;
 bool Game::hud_first = true;
 
-constexpr uint16_t Game::mate_p2col; // class constexpr, defined once for net/shop/hud
+constexpr uint16_t Game::mate_p2col;
 
 bool Game::begin(uint8_t role) {
   Serial.begin(115200);
@@ -133,7 +132,7 @@ bool Game::begin(uint8_t role) {
   last_frame_ms = intro_ms0;
 
   Screens::paint(scr, sel);
-  Buzz::play(Buzz::jingle::intro); // fanfare over the logo screen
+  Buzz::play(Buzz::jingle::intro);
 
   Serial.printf("[game] ready role=%s\n", role == ROLE_HOST ? "host" : "client");
   return true;
@@ -141,7 +140,7 @@ bool Game::begin(uint8_t role) {
 
 void Game::update() {
   Input::update();
-  Buzz::update(millis()); // the note sequencer runs on every screen
+  Buzz::update(millis());
 
   switch (scr) {
     case Screens::id::logo: update_logo(); break;
@@ -155,7 +154,6 @@ void Game::update() {
     case Screens::id::waiting: update_waiting(); break;
   }
 
-  // target-paced: a heavy frame pushes the next one out, it never catches up
   const uint32_t spent = millis() - last_frame_ms;
   if (spent < frame_ms) {
     delay(frame_ms - spent);
@@ -172,26 +170,25 @@ int8_t Game::nav_edge() {
 
 void Game::start_game(bool multi) {
   net_multi = multi;
-  // solo always frames player 1; multi frames the local board (host P1, client P2)
   Render::set_focus((multi && handler.role() == ROLE_CLIENT) ? 1 : 0);
   seq_out = 0;
-  in_prev = in_buttons; // hold levels so a held PAUSE/FIRE does not phantom-edge on entry
+  in_prev = in_buttons;
   in_jx = in_jy = 0.0f;
   rx_ready = false;
-  cli_mirror = false; // a fresh run owns the arena again, never the pause chrome
-  cli_pause_logged = false; // a fresh run re-arms the pause-from-peer line
-  cli_was_down0 = cli_was_down1 = false; // no rise edge on the join frame
-  cli_was_dead0 = cli_was_dead1 = false; // no BACK edge on the join frame
-  cli_shouted0 = cli_shouted1 = false; // HELP shows on the next down
-  was_down0 = was_down1 = false; // no fall/death edge on the join frame
-  was_dead0 = was_dead1 = false; // no BACK edge on the join frame
-  shouted0 = shouted1 = false; // HELP shows on the next down
+  cli_mirror = false;
+  cli_pause_logged = false;
+  cli_was_down0 = cli_was_down1 = false;
+  cli_was_dead0 = cli_was_dead1 = false;
+  cli_shouted0 = cli_shouted1 = false;
+  was_down0 = was_down1 = false;
+  was_dead0 = was_dead1 = false;
+  shouted0 = shouted1 = false;
   cli_wave = 0;
-  cli_last_rx = millis(); // grace window so a fresh client is not instantly "quiet"
+  cli_last_rx = millis();
   p2_interact = p2_pause_edge = false;
   Sim::reset();
   if (multi && handler.role() == ROLE_HOST) {
-    Sim::set_p2_active(true); // the client never steps, it follows snapshots
+    Sim::set_p2_active(true);
   }
   scan_shops();
   hint_until = 0;
@@ -201,9 +198,9 @@ void Game::start_game(bool multi) {
   chat_buf[0] = '\0';
   chat_pip = false;
   Panel::init();
-  hud_first = true; // the menu chrome covered the HUD strip: wipe+repaint it fully
+  hud_first = true;
   Render::update_camera();
-  Render::repaint(); // forced: the game over screen cleared the arena and the camera may not move
+  Render::repaint();
   scr = Screens::id::playing;
   Screens::invalidate();
 }
@@ -216,8 +213,7 @@ void Game::enter_menu() {
 
 void Game::enter_game_over() {
   const Sim::state& v = Sim::view();
-  // each board stores the run on its own card off the same shared state
-  Scores::add_run(v.kills, v.points, v.wave); // fold the run: wallet at death, kills, wave
+  Scores::add_run(v.kills, v.points, v.wave);
   scr = Screens::id::game_over;
   sel = 0;
 }
@@ -227,37 +223,35 @@ void Game::sleep() {
   Display::backlight(false);
 
   rtc_gpio_pullup_en((gpio_num_t)BTN_PAUSE);
-  esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN_PAUSE, 0); // LOW = pressed
+  esp_sleep_enable_ext0_wakeup((gpio_num_t)BTN_PAUSE, 0);
 
   Serial.println("[game] sleeping...");
   Serial.flush();
   esp_deep_sleep_start();
 }
 
-// the wrap reads the count from the screen itself, so adding an item cannot leave a
-// hardcoded modulus behind
 void Game::nav_step() {
   const int8_t e = nav_edge();
   const uint8_t n = Screens::count(scr);
   if (e && n > 0) {
     sel = (uint8_t)((sel + n + e) % n);
-    Buzz::play(Buzz::jingle::menu); // cursor tick on every menu move
+    Buzz::play(Buzz::jingle::menu);
   }
 }
 
 void Game::update_logo() {
   if (Input::fire_pressed() || millis() - intro_ms0 >= intro_ms) {
-    scr = Screens::id::team; // timed or skippable, then the team screen
+    scr = Screens::id::team;
     sel = 0;
     intro_ms0 = millis();
-    Buzz::play(Buzz::jingle::intro); // re-fire: a skip still hears it from the top
+    Buzz::play(Buzz::jingle::intro);
   }
   Screens::paint(scr, sel);
 }
 
 void Game::update_team() {
   if (Input::fire_pressed() || Input::pause_pressed() || millis() - intro_ms0 >= intro_ms) {
-    enter_menu(); // timed like the logo, FIRE/PAUSE skip it
+    enter_menu();
   }
   Screens::paint(scr, sel);
 }
@@ -265,7 +259,7 @@ void Game::update_team() {
 void Game::update_menu() {
   nav_step();
   if (Input::fire_pressed()) {
-    Buzz::play(Buzz::jingle::menu); // confirm blip (inaudible on Exit, it sleeps)
+    Buzz::play(Buzz::jingle::menu);
     switch (sel) {
       case 0:
         scr = Screens::id::mode;
@@ -275,7 +269,7 @@ void Game::update_menu() {
         scr = Screens::id::scores;
         sel = 0;
         break;
-      default: // Exit
+      default:
         sleep();
         break;
     }
@@ -287,10 +281,10 @@ void Game::update_mode() {
   nav_step();
   if (Input::fire_pressed()) {
     Buzz::play(Buzz::jingle::menu);
-    if (sel == 2) { // Back
+    if (sel == 2) {
       enter_menu();
     } else if (sel == 0) {
-      start_game(false); // Solo: local run, the radio stays silent
+      start_game(false);
     } else {
       scr = Screens::id::waiting;
       sel = 0;
@@ -313,25 +307,23 @@ void Game::update_waiting() {
     wait_last_hb = now;
   }
   if (Input::pause_pressed()) {
-    enter_menu(); // bail out
+    enter_menu();
     return;
   }
   if (Input::fire_pressed()) {
     Buzz::play(Buzz::jingle::menu);
-    start_game(false); // tired of waiting: play solo
+    start_game(false);
     return;
   }
   if (handler.role() == ROLE_CLIENT) {
-    // the client joins off a live snapshot (host map), never off a bare heartbeat,
-    // so it lands straight into the running frame instead of an empty reset
     if (rx_ready) {
-      const Net::game_state_msg snap = rx_state; // copy: start_game clears the flag
+      const Net::game_state_msg snap = rx_state;
       rx_ready = false;
       peer_seen = false;
       Buzz::play(Buzz::jingle::wave);
       Serial.println("[net] joined multi role=client");
       start_game(true);
-      Sim::apply_snapshot(snap); // start from the live frame, not the reset one
+      Sim::apply_snapshot(snap);
       cli_last_rx = millis();
       return;
     }
@@ -339,11 +331,11 @@ void Game::update_waiting() {
     peer_seen = false;
     Buzz::play(Buzz::jingle::wave);
     Serial.println("[net] joined multi role=host");
-    start_game(true); // peer showed up (a client also joins mid-run off snapshots)
+    start_game(true);
     return;
   }
   if (now - wait_since >= wait_ms) {
-    Buzz::play(Buzz::jingle::denied); // nobody out there
+    Buzz::play(Buzz::jingle::denied);
     Serial.println("[net] waiting timeout, solo");
     enter_menu();
     return;
@@ -362,7 +354,6 @@ void Game::update_scores() {
 }
 
 void Game::update_playing() {
-  // solo is always a local sim on both boards (silent radio); only multi + client mirrors
   if (!net_multi) {
     update_playing_host();
     return;
@@ -376,9 +367,6 @@ void Game::update_playing() {
 
 void Game::update_pause() {
   nav_step();
-  // the client keeps shipping inputs while frozen, so derive its PAUSE edge here too:
-  // otherwise nobody converts levels to an edge while the host sits in pause and the
-  // client can never resume
   if (net_multi && handler.role() == ROLE_HOST) {
     const bool lvl = (in_buttons & Net::pause_bit) != 0;
     p2_pause_edge = lvl && ((in_prev & Net::pause_bit) == 0);
@@ -388,35 +376,33 @@ void Game::update_pause() {
     p2_pause_edge = false;
     scr = Screens::id::playing;
     Screens::invalidate();
-    Panel::init(); hud_first = true; // the pause menu covered the panel and the minimap
-    Render::repaint(); // clear leftover pause menu
+    Panel::init(); hud_first = true;
+    Render::repaint();
   } else if (Input::fire_pressed()) {
     Buzz::play(Buzz::jingle::menu);
     switch (sel) {
-      case 0: // Continue
+      case 0:
         scr = Screens::id::playing;
         Screens::invalidate();
-        Panel::init(); hud_first = true; // the pause menu covered the panel and the minimap
-        Render::repaint(); // clear leftover pause menu
+        Panel::init(); hud_first = true;
+        Render::repaint();
         break;
-      case 1: // Restart
-        start_game(net_multi); // a co-op pause restarts co-op
+      case 1:
+        start_game(net_multi);
         break;
-      default: // Exit to Menu
+      default:
         enter_menu();
         break;
     }
   }
   Screens::paint(scr, sel);
   if (net_multi && handler.role() == ROLE_HOST) {
-    broadcast(); // frozen sim keeps flowing so the client holds the frame
+    broadcast();
   }
 }
 
 void Game::update_game_over() {
-  // solo on either board is a local Game over; only a multi client mirrors the host
   if (net_multi && handler.role() == ROLE_CLIENT) {
-    // full mirror like the pause chrome: the host owns the cursor, we only paint it
     if (rx_ready) {
       Sim::apply_snapshot(rx_state);
       rx_ready = false;
@@ -426,24 +412,24 @@ void Game::update_game_over() {
         anyone |= Sim::view().players[p].active && Sim::view().players[p].hp > 0;
       }
       if (anyone) {
-        const Net::game_state_msg snap = rx_state; // copy: start_game clears the flag
-        start_game(true); // host restarted: re-init chrome, snapshots fill the sim
-        Sim::apply_snapshot(snap); // paint live values on frame 1, never the reset Sim
+        const Net::game_state_msg snap = rx_state;
+        start_game(true);
+        Sim::apply_snapshot(snap);
         return;
       }
     }
     if (Input::fire_pressed()) {
-      Buzz::play(Buzz::jingle::menu); // feedback only, the host drives restart
+      Buzz::play(Buzz::jingle::menu);
     }
     if (millis() - cli_last_rx >= cli_quiet_ms) {
       net_multi = false;
       Serial.println("[net] peer quiet 3000ms, back to menu");
-      enter_menu(); // host left: drop to menu
+      enter_menu();
       return;
     }
     uint8_t s = rx_state.sel;
     if (s >= Screens::count(Screens::id::game_over)) {
-      s = 0; // corrupt cursor never blanks the chrome (paint guards sel too)
+      s = 0;
     }
     sel = s;
     Screens::paint(scr, sel);
@@ -460,6 +446,6 @@ void Game::update_game_over() {
   }
   Screens::paint(scr, sel);
   if (net_multi) {
-    broadcast(); // the over event keeps flowing until the host restarts or exits
+    broadcast();
   }
 }

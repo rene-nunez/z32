@@ -1,24 +1,21 @@
+// Weapons, fire cadence, magazines and reloads
+
 #include <Arduino.h>
 #include <cmath>
 
-
 #include "Sim.h"
-
-// sim combat: weapon tables, fire pipeline, mags and reloads. Damage scales
-// with the owner's dmg_lvl, cadence with rpd_lvl; step() only calls in
 
 uint8_t Sim::eff_dmg(uint8_t base, uint8_t lvl) {
   const float dmg = (float)base * (1.0f + 0.25f * (float)lvl);
-  const uint8_t eff = (uint8_t)(dmg + 0.5f); // half-up: 1-dmg guns step up at lvl 2 and 4
+  const uint8_t eff = (uint8_t)(dmg + 0.5f);
   return eff < 1 ? 1 : eff;
 }
 
 float Sim::spd_mult(uint8_t lvl) {
-  return 1.0f + 0.08f * (float)lvl; // +8%/level, +80% at max (balance pass owns the curve)
+  return 1.0f + 0.08f * (float)lvl;
 }
 
 float Sim::rpd_mult(uint8_t lvl) {
-  // multiplicative: ~-6%/level compounding, 0.54 at max, no dead levels past a floor
   float m = 1.0f;
   for (uint8_t i = 0; i < lvl; ++i) {
     m *= 0.94f;
@@ -30,19 +27,19 @@ uint32_t Sim::fire_cd(weapon w) {
   switch (w) {
     case weapon::smg: return 180;
     case weapon::shotgun: return 900;
-    case weapon::rifle: return 350; // laser: fast mid punch, still below the MP9 hose
-    case weapon::m16: return 600; // gap between bursts, rounds tick at burst_gap_ms
+    case weapon::rifle: return 350;
+    case weapon::m16: return 600;
     case weapon::sniper: return 1400;
-    default: return 500; // pistol
+    default: return 500;
   }
 }
 
 uint8_t Sim::base_dmg(weapon w) {
   switch (w) {
-    case weapon::rifle: return 3; // steady mid punch, one-shots early waves
-    case weapon::sniper: return 6; // one heavy round, worth the wait
-    case weapon::shotgun: return 2; // each pellet: 6/trigger split over 3 bodies
-    default: return 1; // pistol, smg and m16
+    case weapon::rifle: return 3;
+    case weapon::sniper: return 6;
+    case weapon::shotgun: return 2;
+    default: return 1;
   }
 }
 
@@ -60,7 +57,7 @@ uint8_t Sim::fire_one(uint32_t now, float dx, float dy, uint8_t dmg, uint8_t p) 
       return 1;
     }
   }
-  return 0; // rack is full: keep the cooldown so the next press retries
+  return 0;
 }
 
 uint8_t Sim::mag_size(weapon w) {
@@ -70,14 +67,14 @@ uint8_t Sim::mag_size(weapon w) {
     case weapon::rifle: return 30;
     case weapon::m16: return 30;
     case weapon::sniper: return 10;
-    default: return 15; // pistol
+    default: return 15;
   }
 }
 
 uint32_t Sim::reload_ms(weapon w) {
   switch (w) {
-    case weapon::sniper: return 2000; // heavy mag, worth the wait
-    case weapon::shotgun: return 1500; // shells, one by one
+    case weapon::sniper: return 2000;
+    case weapon::shotgun: return 1500;
     default: return 1000;
   }
 }
@@ -89,20 +86,20 @@ bool Sim::reloading(uint8_t p) {
 bool Sim::start_reload(uint32_t now, uint8_t p) {
   if (p >= NUM_PLAYERS || !alive(p) || reloading(p) ||
       s.ammo[p] >= mag_size(s.guns[p])) {
-    return false; // no such player, busy, or nothing to top up
+    return false;
   }
   s.reload_end[p] = now + reload_ms(s.guns[p]);
-  burst_left[p] = 0; // the swap interrupts a burst mid-flight
+  burst_left[p] = 0;
   s.last_event = event::reload;
   return true;
 }
 
 void Sim::do_fire(uint32_t now, uint8_t p) {
   if (reloading(p)) {
-    return; // hands busy with the mag
+    return;
   }
   if (s.ammo[p] == 0) {
-    start_reload(now, p); // auto on empty: the swap starts itself, no dry click
+    start_reload(now, p);
     return;
   }
   const uint32_t cd = (uint32_t)((float)fire_cd(s.guns[p]) * rpd_mult(s.rpd_lvl[p]));
@@ -110,7 +107,7 @@ void Sim::do_fire(uint32_t now, uint8_t p) {
     return;
   }
   if (fire_single(now, p) && s.guns[p] == weapon::m16) {
-    burst_left[p] = (uint8_t)(burst_shots - 1u); // first round out, the rest tick in step()
+    burst_left[p] = (uint8_t)(burst_shots - 1u);
     burst_next[p] = now + burst_gap_ms;
   }
 }
@@ -134,10 +131,10 @@ bool Sim::fire_single(uint32_t now, uint8_t p) {
     }
   }
   if (best < 0) {
-    return false; // nothing in reach: no round leaves, no burst is armed
+    return false;
   }
   if (s.ammo[p] == 0) {
-    start_reload(now, p); // burst tick ran dry mid-flight: swap, don't spin retrying
+    start_reload(now, p);
     return false;
   }
 
@@ -148,15 +145,14 @@ bool Sim::fire_single(uint32_t now, uint8_t p) {
   const float len = sqrtf(dx * dx + dy * dy);
   dx /= len;
   dy /= len;
-  s.players[p].facing = dir_of(dx, dy); // aim wins over the move dir
+  s.players[p].facing = dir_of(dx, dy);
   last_aim[p] = now;
 
   const uint8_t dmg = eff_dmg(base_dmg(s.guns[p]), s.dmg_lvl[p]);
   uint8_t fired = 0;
   if (s.guns[p] == weapon::shotgun) {
-    // 3 pellets fanned around the aim: straight, -0.15rad, +0.15rad
-    constexpr float c = 0.988771f; // cos(0.15)
-    constexpr float s = 0.149438f; // sin(0.15)
+    constexpr float c = 0.988771f;
+    constexpr float s = 0.149438f;
     fired += fire_one(now, dx, dy, dmg, p);
     fired += fire_one(now, dx * c - dy * s, dx * s + dy * c, dmg, p);
     fired += fire_one(now, dx * c + dy * s, -dx * s + dy * c, dmg, p);
@@ -164,15 +160,15 @@ bool Sim::fire_single(uint32_t now, uint8_t p) {
     fired = fire_one(now, dx, dy, dmg, p);
   }
   if (fired > 0) {
-    --s.ammo[p]; // one trigger pull, one round (pellets ride the same shell)
+    --s.ammo[p];
     s.last_event = event::shoot;
     if (s.ammo[p] == 0) {
-      start_reload(now, p); // last round out: swap starts at once (reload wins the jingle)
+      start_reload(now, p);
     }
   }
   return fired > 0;
 }
 
 bool Sim::auto_fire(weapon w) {
-  return w == weapon::smg || w == weapon::rifle; // MP9 + AR-15 hold, rest press
+  return w == weapon::smg || w == weapon::rifle;
 }

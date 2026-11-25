@@ -1,3 +1,5 @@
+// Joystick ADC1 and buttons; stick centre calibrated at boot
+
 #include <Arduino.h>
 
 #include "Input.h"
@@ -10,7 +12,7 @@ constexpr uint8_t calib_n = 20;
 
 float Input::stick_x = 0.0f;
 float Input::stick_y = 0.0f;
-uint16_t Input::cx = 2047; // calibrated rest centre, per board (pots differ)
+uint16_t Input::cx = 2047;
 uint16_t Input::cy = 2047;
 
 Input::button Input::fire;
@@ -27,10 +29,9 @@ bool Input::begin() {
   pinMode(BTN_INTERACT, INPUT_PULLUP);
   pinMode(BTN_PAUSE, INPUT_PULLUP);
 
-  // every pot rests elsewhere: average the stick at boot so release reads 0
-  // hands off during the logo or the centre learns an offset (same 200ms window)
   uint32_t sx = 0, sy = 0;
 
+  // Hands off during the ~200ms calibration window
   for (uint8_t i = 0; i < calib_n; ++i) {
     sx += analogRead(JOY_X);
     sy += analogRead(JOY_Y);
@@ -95,7 +96,7 @@ bool Input::pause_down() {
 
 float Input::axis(uint8_t pin) {
   const uint16_t c = (pin == JOY_X) ? cx : cy;
-  const float span = (float)((c > 2047) ? (4095 - c) : c); // headroom to the rail
+  const float span = (float)((c > 2047) ? (4095 - c) : c);
   const float v = (span > 0.0f) ? (float)((int)analogRead(pin) - (int)c) / span : 0.0f;
 
   if (v > -deadzone && v < deadzone) {
@@ -106,7 +107,7 @@ float Input::axis(uint8_t pin) {
 }
 
 void Input::poll_button(Input::button& b, uint8_t pin) {
-  const bool raw = (digitalRead(pin) == LOW); // active low, pull-up
+  const bool raw = (digitalRead(pin) == LOW);
   b.edge = false;
 
   if (raw != b.raw) {

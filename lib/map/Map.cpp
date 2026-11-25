@@ -1,3 +1,5 @@
+// Terrain, shop furniture and minimap tiles
+
 #include <Display.h>
 #include "Map.h"
 
@@ -51,7 +53,7 @@ namespace Tilemap {
       }
     }
 
-    if (spawn_px == 0 && spawn_py == 0) { // safety fallback = world center
+    if (spawn_px == 0 && spawn_py == 0) {
       spawn_px = WORLD_W / 2;
       spawn_py = WORLD_H / 2;
     }
@@ -95,23 +97,22 @@ namespace Tilemap {
   uint16_t color(uint8_t t) {
     switch (t) {
       case WALL:
-        return Display::rgb565(160, 160, 168); // pale concrete wall
+        return Display::rgb565(160, 160, 168);
       case VENDING:
-        return Display::rgb565(70, 200, 90); // heal green
+        return Display::rgb565(70, 200, 90);
       case V_DMG:
-        return Display::rgb565(220, 60, 50); // damage red
+        return Display::rgb565(220, 60, 50);
       case V_SPD:
-        return Display::rgb565(60, 130, 230); // speed blue
+        return Display::rgb565(60, 130, 230);
       case V_RPD:
-        return Display::rgb565(235, 140, 40); // rapid orange
+        return Display::rgb565(235, 140, 40);
       case ROULETTE:
-        return Display::rgb565(175, 145, 75); // aged brass
+        return Display::rgb565(175, 145, 75);
       default:
-        return Display::rgb565(100, 132, 88); // bright meadow floor
+        return Display::rgb565(100, 132, 88);
     }
   }
 
-  // scale an rgb565 colour by num/den with clamping
   static uint16_t shade(uint16_t col, uint8_t num, uint8_t den) {
     uint16_t r = (uint16_t)((col >> 11) & 0x1F);
     uint16_t g = (uint16_t)((col >> 5) & 0x3F);
@@ -125,7 +126,6 @@ namespace Tilemap {
     return (uint16_t)((r << 11) | (g << 5) | b);
   }
 
-  // The shop furniture gets real 16px sprites so it reads as what it is
   uint16_t color_at(int16_t wx, int16_t wy) {
     const uint8_t t = tile_at(wx, wy);
     const uint16_t base = color(t);
@@ -145,72 +145,69 @@ namespace Tilemap {
       case V_DMG:
       case V_SPD:
       case V_RPD: {
-        // 2x2 vending machine (32x32): local coords from the same-type neighbours above/left, so every quadrant draws its own quarter
         const int16_t gx = (tile_at(wx - TILE, wy) == t ? 16 : 0) + px;
         const int16_t gy = (tile_at(wx, wy - TILE) == t ? 16 : 0) + py;
         const bool edge_x = (gx == 0 || gx == 31);
         const bool edge_y = (gy == 0 || gy == 31);
         if (edge_x || edge_y) {
-          return Display::rgb565(15, 40, 55); // cabinet frame
+          return Display::rgb565(15, 40, 55);
         }
         if (gy <= 6) {
           if (gx >= 8 && gx <= 13 && gy >= 2 && gy <= 4) {
-            return Display::rgb565(10, 25, 35); // logo dots
+            return Display::rgb565(10, 25, 35);
           }
-          return Display::rgb565(210, 240, 250); // header light
+          return Display::rgb565(210, 240, 250);
         }
         if (gy >= 7 && gy <= 9) {
           return base;
         }
         if (gy >= 28) {
-          return Display::rgb565(20, 50, 65); // kick plate
+          return Display::rgb565(20, 50, 65);
         }
         if (gx >= 25) {
           if (gx >= 26 && gx <= 27 && gy >= 9 && gy <= 13) {
-            return Display::rgb565(10, 20, 25); // coin slot
+            return Display::rgb565(10, 20, 25);
           }
           if (gx >= 25 && gx <= 30 && gy >= 19 && gy <= 24) {
-            return Display::rgb565(10, 20, 25); // pickup flap
+            return Display::rgb565(10, 20, 25);
           }
-          return shade(base, 3, 4); // side panel
+          return shade(base, 3, 4);
         }
         if (gy == 12 || gy == 18 || gy == 24) {
-          return Display::rgb565(200, 220, 230); // shelf rails
+          return Display::rgb565(200, 220, 230);
         }
         if (gy == 10 || gy == 11 || gy == 16 || gy == 17 || gy == 22 || gy == 23) {
-          // stocked goods: red / yellow / green / orange cans
           if (gx >= 4 && gx <= 6) return Display::rgb565(220, 60, 50);
           if (gx >= 9 && gx <= 11) return Display::rgb565(230, 200, 60);
           if (gx >= 14 && gx <= 16) return Display::rgb565(70, 200, 90);
           if (gx >= 19 && gx <= 21) return Display::rgb565(230, 130, 40);
         }
-        return Display::rgb565(25, 60, 75); // dark glass
+        return Display::rgb565(25, 60, 75);
       }
       case ROULETTE: {
-        // 2x2 prize wheel (32x32)
         const int16_t gx = (tile_at(wx - TILE, wy) == ROULETTE ? 16 : 0) + px;
         const int16_t gy = (tile_at(wx, wy - TILE) == ROULETTE ? 16 : 0) + py;
         const int16_t dx = gx - 16;
         const int16_t dy = gy - 13;
         const int16_t d2 = dx * dx + dy * dy;
         if (gy >= 27) {
-          if (gx >= 14 && gx <= 17) return Display::rgb565(95, 65, 40); // post
+          if (gx >= 14 && gx <= 17) return Display::rgb565(95, 65, 40);
           if (gy >= 29 && gx >= 10 && gx <= 21) {
-            return Display::rgb565(75, 50, 32); // feet
+            return Display::rgb565(75, 50, 32);
           }
-          return color(FLOOR); // grass shows through around the stand
+          return color(FLOOR);
         }
         if (gy <= 3 && gx >= 14 && gx <= 17) {
-          return Display::rgb565(150, 55, 40); // pointer tip
+          return Display::rgb565(150, 55, 40);
         }
         if (d2 > 196) {
-          return color(FLOOR); // grass shows through outside the wheel
+          return color(FLOOR);
         }
         if (d2 > 169) {
-          return Display::rgb565(105, 65, 45); // rim
+          return Display::rgb565(105, 65, 45);
         }
         if (d2 <= 9) {
-          return Display::rgb565(215, 205, 185); // hub
+          return Display::rgb565(215, 205, 185);
         }
         int16_t ax = dx < 0 ? -dx : dx;
         int16_t ay = dy < 0 ? -dy : dy;
@@ -225,9 +222,8 @@ namespace Tilemap {
           zone = dy > 0 ? 3 : 5;
         }
         if (d2 >= 121 && d2 <= 144 && (((gx + gy) & 3) == 0)) {
-          return Display::rgb565(210, 198, 175); // bone pegs
+          return Display::rgb565(210, 198, 175);
         }
-        // casino wheel: red/yellow/green/blue rotating over the 8 zones
         switch (zone & 3) {
           case 0: return Display::rgb565(220, 60, 50);
           case 1: return Display::rgb565(230, 200, 60);
@@ -237,7 +233,7 @@ namespace Tilemap {
       }
       default: {
         if (px == 0 || px == 15 || py == 0 || py == 15) {
-          return shade(base, 4, 5); // 1px darker edge on plain solids
+          return shade(base, 4, 5);
         }
 
         return base;
@@ -256,10 +252,10 @@ namespace Tilemap {
       }
     }
     if (tx < 0 || tx >= (int16_t)COLS || ty < 0 || ty >= (int16_t)ROWS || solid(tx, ty)) {
-      return; // nothing to spread from: every tile stays UNREACHABLE
+      return;
     }
 
-    uint16_t head = 0, tail = 0; // each tile is queued at most once, so tail <= COLS * ROWS
+    uint16_t head = 0, tail = 0;
     f[ty][tx] = 0;
     queue[tail++] = (uint16_t)(ty * COLS + tx);
 

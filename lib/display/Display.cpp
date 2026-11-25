@@ -1,3 +1,5 @@
+// ST7789 panel setup for the 240x320 glass
+
 #include <Arduino.h>
 #include <TFT_eSPI.h>
 
@@ -12,9 +14,8 @@ bool Display::begin() {
   pinMode(TFT_BL, OUTPUT);
   digitalWrite(TFT_BL, HIGH);
 
-  tft.setRotation(1); // landscape 320x240
-  tft.setSwapBytes(true); // pushImage sends raw words: without the swap the blit/erase bursts come out byte-flipped (BGR glass),
-                           // fillRect/text/drawPixel are unaffected by this flag
+  tft.setRotation(1);
+  tft.setSwapBytes(true);
   tft.fillScreen(Colour::black);
 
   return true;

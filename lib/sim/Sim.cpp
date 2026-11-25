@@ -1,3 +1,5 @@
+// Sim step: actors, bullets and net sync
+
 #include <Arduino.h>
 #include <cmath>
 
@@ -5,10 +7,6 @@
 #include <Map.h>
 
 #include "Sim.h"
-
-// sim core: state, reset, players, the frame step and net snapshots. Wave,
-// combat and shop tables live in their own files; every static below is
-// defined once here and used across them
 
 Sim::state Sim::s;
 uint32_t Sim::last_ms = 0;
@@ -63,12 +61,12 @@ void Sim::reset() {
   bleed_acc[0] = bleed_acc[1] = 0;
   p2ctl = {};
 
-  s.players[0] = {(float)Tilemap::spawn_px - PLAYER_SIZE / 2.0f, (float)Tilemap::spawn_py - PLAYER_SIZE / 2.0f, PLAYER_HP_MAX, true, false, 0, 2}; // face south at spawn
-  s.players[1] = {s.players[0].x, s.players[0].y, 0, false, false, 0, 2}; // Solo: no peer yet
+  s.players[0] = {(float)Tilemap::spawn_px - PLAYER_SIZE / 2.0f, (float)Tilemap::spawn_py - PLAYER_SIZE / 2.0f, PLAYER_HP_MAX, true, false, 0, 2};
+  s.players[1] = {s.players[0].x, s.players[0].y, 0, false, false, 0, 2};
 
-  path_tx[0] = path_tx[1] = -1; // force fresh fields at the new spawn
+  path_tx[0] = path_tx[1] = -1;
   path_ty[0] = path_ty[1] = -1;
-  wave_break_until = 0; // run starts hot: wave 1 spawns below with no breather
+  wave_break_until = 0;
 
   spawn_wave();
 }
@@ -89,7 +87,7 @@ bool Sim::revive(uint8_t p) {
   s.players[p].bleed = 0;
   s.players[p].hp = REVIVE_HP;
   bleed_acc[p] = 0;
-  last_damage[p] = 0; // a breath before the next hit lands
+  last_damage[p] = 0;
   s.last_event = event::revive;
   return true;
 }
@@ -98,7 +96,7 @@ void Sim::set_p2_active(bool active) {
   s.players[1].active = active;
   if (active) {
     respawn(1);
-    s.guns[1] = weapon::pistol; // fresh join: own loadout from scratch
+    s.guns[1] = weapon::pistol;
     s.dmg_lvl[1] = 0;
     s.spd_lvl[1] = 0;
     s.rpd_lvl[1] = 0;
@@ -108,7 +106,7 @@ void Sim::set_p2_active(bool active) {
   } else {
     s.players[1].hp = 0;
   }
-  path_tx[1] = -1; // its field must rebuild for the new state
+  path_tx[1] = -1;
   path_ty[1] = -1;
 }
 
@@ -119,7 +117,7 @@ void Sim::set_p2(const ctl& c) {
 void Sim::respawn(uint8_t p) {
   s.players[p].x = (float)Tilemap::spawn_px - PLAYER_SIZE / 2.0f + (float)(p * (PLAYER_SIZE + 2));
   s.players[p].y = (float)Tilemap::spawn_py - PLAYER_SIZE / 2.0f;
-  s.players[p].hp = PLAYER_HP_MAX; // fresh spawn at full (join); wave rejoins cut to 1 HP below
+  s.players[p].hp = PLAYER_HP_MAX;
   s.players[p].downed = false;
   s.players[p].bleed = 0;
   s.players[p].facing = 2;
@@ -128,25 +126,24 @@ void Sim::respawn(uint8_t p) {
 }
 
 uint8_t Sim::dir_of(float dx, float dy) {
-  // screen coords (+y south): 0=E 1=SE 2=S 3=SW 4=W 5=NW 6=N 7=NE
-  const float a = atan2f(dy, dx) * 57.29578f; // -180..180
+  const float a = atan2f(dy, dx) * 57.29578f;
   return (uint8_t)(((int)(a + 360.0f + 22.5f) / 45) & 7);
 }
 
 void Sim::face_toward(uint8_t& facing, uint8_t& want, uint8_t& cnt, float dx, float dy) {
   const uint8_t sector = dir_of(dx, dy);
   if (sector == facing) {
-    want = sector; // already there: nothing pending
+    want = sector;
     cnt = 0;
     return;
   }
   if (sector != want) {
-    want = sector; // first sighting, needs repeats to count
+    want = sector;
     cnt = 1;
     return;
   }
   if (++cnt >= FACE_FRAMES) {
-    facing = sector; // held long enough: a real turn, not border noise
+    facing = sector;
   }
 }
 
@@ -166,13 +163,12 @@ void Sim::move_entity(float& x, float& y, float dx, float dy, uint8_t size) {
 
 bool Sim::step(uint32_t now) {
   float dt = (float)(now - last_ms) / 1000.0f;
-  if (dt > 0.05f) { // clamp big gaps (serial pauses, menu)
+  if (dt > 0.05f) {
     dt = 0.05f;
   }
   last_ms = now;
-  s.last_event = event::none; // buys after step() overwrite this for their frame
+  s.last_event = event::none;
 
-  // move + fire per player: player 0 reads the local sticks, player 1 the net ctl
   for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
     if (!alive(p)) {
       continue;
@@ -181,11 +177,11 @@ bool Sim::step(uint32_t now) {
     float dy = (p == 0) ? Input::jy() : p2ctl.jy;
 
     const float len = sqrtf(dx * dx + dy * dy);
-    if (len > 1.0f) { // keep diagonal speed equal
+    if (len > 1.0f) {
       dx /= len;
       dy /= len;
     }
-    if (len < 0.2f) { // stick at rest: no slide, same threshold as facing
+    if (len < 0.2f) {
       dx = dy = 0.0f;
     } else if (now - last_aim[p] > AIM_HOLD_MS) {
       face_toward(s.players[p].facing, face_want[p], face_cnt[p], dx, dy);
@@ -197,10 +193,10 @@ bool Sim::step(uint32_t now) {
     const bool held = (p == 0) ? Input::fire_down() : p2ctl.fire;
     const bool edge = (p == 0) ? Input::fire_pressed() : p2ctl.fire;
     if (auto_fire(s.guns[p]) ? held : edge) {
-      do_fire(now, p); // autos gate by gun cooldown, semis by the finger
+      do_fire(now, p);
     }
     if ((p == 0) ? Input::reload_pressed() : p2ctl.reload) {
-      start_reload(now, p); // manual top-up while partially spent (auto covers empty)
+      start_reload(now, p);
     }
     if (s.reload_end[p] != 0 && now >= s.reload_end[p]) {
       s.reload_end[p] = 0;
@@ -209,16 +205,16 @@ bool Sim::step(uint32_t now) {
     }
     if (burst_left[p] > 0) {
       if (s.guns[p] != weapon::m16) {
-        burst_left[p] = 0; // swapped mid-burst: cancel the rest
+        burst_left[p] = 0;
       } else if (s.ammo[p] == 0) {
-        burst_left[p] = 0; // ran dry mid-burst: swap at once, don't spin retrying
+        burst_left[p] = 0;
         start_reload(now, p);
       } else if (now >= burst_next[p]) {
         if (fire_single(now, p)) {
           --burst_left[p];
           burst_next[p] = now + burst_gap_ms;
         } else {
-          burst_next[p] = now + 50; // rack full or no target: retry shortly
+          burst_next[p] = now + 50;
         }
       }
     }
@@ -256,7 +252,6 @@ bool Sim::step(uint32_t now) {
           ++s.kills;
           s.points += kill_reward(s.zombies[z].kind, s.wave);
           if (wave_spawned < wave_quota) {
-            // immediate refill into the freed slot: the wave lasts the whole quota
             const bool boss = wave_boss(s.wave);
             const uint8_t runners = wave_runners(s.wave, wave_quota);
             spawn_into(z, wave_kind(wave_spawned, boss, runners, wave_quota));
@@ -270,7 +265,6 @@ bool Sim::step(uint32_t now) {
     }
   }
 
-  // one distance field per player, rebuilt when that player's tile changes
   for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
     if (!s.players[p].active) {
       continue;
@@ -295,7 +289,6 @@ bool Sim::step(uint32_t now) {
     float zcx = s.zombies[z].x + ZOMBIE_SIZE / 2.0f;
     float zcy = s.zombies[z].y + ZOMBIE_SIZE / 2.0f;
 
-    // chase the nearest alive player, down that player's field
     uint8_t tgt = 0;
     float best = 1e30f;
     for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
@@ -311,7 +304,7 @@ bool Sim::step(uint32_t now) {
       }
     }
     zombie_steer(z, pcx[tgt], pcy[tgt], dt, (tgt == 0) ? Tilemap::field : Tilemap::field2);
-    zcx = s.zombies[z].x + ZOMBIE_SIZE / 2.0f; // post-move: the contact test lands same-frame
+    zcx = s.zombies[z].x + ZOMBIE_SIZE / 2.0f;
     zcy = s.zombies[z].y + ZOMBIE_SIZE / 2.0f;
 
     for (uint8_t p = 0; p < NUM_PLAYERS; ++p) {
@@ -327,7 +320,7 @@ bool Sim::step(uint32_t now) {
         if (s.players[p].hp > dmg) {
           s.players[p].hp = (uint8_t)(s.players[p].hp - dmg);
         } else {
-          s.players[p].hp = 0; // down, not out: bleed-out decides the rest
+          s.players[p].hp = 0;
           s.players[p].downed = true;
           s.players[p].bleed = BLEED_SECS;
           bleed_acc[p] = 0;
@@ -349,10 +342,10 @@ bool Sim::step(uint32_t now) {
       float dy = s.zombies[j].y - s.zombies[i].y;
       float d2 = dx * dx + dy * dy;
       if (d2 >= declump_dist * declump_dist) {
-        continue; // already side by side
+        continue;
       }
       float d = sqrtf(d2);
-      if (d < 0.1f) { // same spot: split along x so the pair opens up
+      if (d < 0.1f) {
         dx = 1.0f;
         dy = 0.0f;
         d = 1.0f;
@@ -375,7 +368,7 @@ bool Sim::step(uint32_t now) {
       --s.players[p].bleed;
     }
     if (s.players[p].bleed == 0) {
-      s.players[p].downed = false; // bled out: dead until the next wave
+      s.players[p].downed = false;
     }
   }
 
@@ -385,7 +378,7 @@ bool Sim::step(uint32_t now) {
   }
   if (!anyone) {
     s.last_event = event::over;
-    return false; // the caller raises the game over screen, sim never touches it
+    return false;
   }
 
   bool any = false;
@@ -393,8 +386,6 @@ bool Sim::step(uint32_t now) {
     any |= s.zombies[i].active;
   }
   if (!any && wave_spawned >= wave_quota) {
-    // quota spent and table clean: 3s silent breather, then the next wave
-    // No prompt: the wave event (jingle + boss/roll banners) fires at spawn
     if (wave_break_until == 0) {
       wave_break_until = now + WAVE_BREAK_MS;
     } else if (now >= wave_break_until) {
@@ -453,7 +444,6 @@ void Sim::apply_snapshot(const Net::game_state_msg& n) {
     s.players[p].downed = (n.players[p].flags & Net::PF_DOWNED) != 0;
     s.players[p].facing = (uint8_t)((n.players[p].flags >> Net::PF_DIR_SHIFT) & Net::PF_DIR_MASK);
     s.players[p].bleed = n.players[p].bleed;
-    // client mirror only: nonzero paints RELOADING, the host owns the real timestamp
     s.reload_end[p] = (n.players[p].flags & Net::PF_RELOADING) ? 1 : 0;
   }
   s.wave = n.wave;

@@ -1,3 +1,5 @@
+// Jingle sequences, indexed by Buzz::jingle
+
 #include <Arduino.h>
 
 #include "Buzz.h"
@@ -13,7 +15,6 @@ namespace {
   const Buzz::note j_over[] = {{400, 120}, {300, 120}, {200, 120}, {150, 200}};
   const Buzz::note j_denied[] = {{200, 90}, {0, 40}, {200, 120}};
   const Buzz::note j_reload[] = {{1200, 30}, {0, 40}, {900, 50}};
-  // ~2.15s to fill one intro screen.
   const Buzz::note j_intro[] = {{294, 150}, {330, 150}, {349, 150}, {330, 150},
                                  {294, 200}, {262, 200}, {294, 450}, {0, 150},
                                  {220, 200}, {294, 350}};
@@ -23,14 +24,14 @@ namespace {
     uint8_t n;
   };
 
-  // indexed by Buzz::jingle, so the order here is the enum order
+  // Indexed by Buzz::jingle; order must match the enum
   const entry seqs[] = {
       {j_menu, 1}, {j_shoot, 1}, {j_buy, 2}, {j_roulette, 4},
       {j_hurt, 1}, {j_wave, 3}, {j_over, 4}, {j_denied, 3},
       {j_intro, 10}, {j_reload, 3},
   };
   static_assert(sizeof(seqs) / sizeof(seqs[0]) == 10, "one row per Buzz::jingle");
-} // namespace
+}
 
 const Buzz::note* Buzz::seq = nullptr;
 uint8_t Buzz::n = 0;
@@ -57,7 +58,7 @@ void Buzz::update(uint32_t now) {
     return;
   }
   if ((int32_t)(now - until) < 0) {
-    return; // wrap-safe
+    return;
   }
   const uint8_t next = (uint8_t)(i + 1u);
   if (next >= n) {
@@ -76,6 +77,6 @@ void Buzz::stop() {
 
 void Buzz::start_note(uint8_t i, uint32_t now) {
   i = i;
-  ledcWriteTone(ch, seq[i].freq); // 0 silences the channel, duty persists
+  ledcWriteTone(ch, seq[i].freq);
   until = now + seq[i].ms;
 }

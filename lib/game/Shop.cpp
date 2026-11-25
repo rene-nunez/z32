@@ -1,3 +1,5 @@
+// Game shop: proximity, buys, revive and prompts
+
 #include <cstdio>
 
 #include <Display.h>
@@ -8,15 +10,10 @@
 
 #include "Game.h"
 
-// game shop: machine scan, proximity, INTERACT buys, revive lifts and the prompt
-// order. Runs after Sim::step, owns no screen: results ride hint_buf/the strip
-
 uint8_t Game::roulette_active_at(uint16_t w, uint8_t n) {
   if (n == 0 || w == 0) {
     return 0;
   }
-  // 3-wave epochs from wave 3 on: stable for waves 1-2, 3-5, 6-8, ... yet host
-  // and client (plus late joiners) always derive the same pad with no extra net bytes
   const uint32_t e = (uint32_t)w / 3u;
   const uint32_t h = (e * 1103515245u + 12345u) & 0x7FFFFFFFu;
   return (uint8_t)((h >> 16u) % n);
@@ -36,13 +33,10 @@ void Game::push_roll_marker() {
     Panel::set_roll(-1, -1);
     return;
   }
-  // centres are exact tile multiples ((c+1)*TILE), so the top-left tile is one back
   Panel::set_roll((int16_t)(shop_rx[act] / Tilemap::TILE - 1), (int16_t)(shop_ry[act] / Tilemap::TILE - 1));
 }
 
 bool Game::roulette_moved() {
-  // the banner fires only on a real relocation: never on wave 1, and never when
-  // two epochs hash onto the same pad (the wheel did not move, nothing to say)
   const uint16_t w = Sim::view().wave;
   if (w <= 1 || shop_rn == 0) {
     return false;
@@ -62,7 +56,6 @@ void Game::scan_shops() {
   for (uint8_t r = 0; r < Tilemap::ROWS; ++r) {
     for (uint8_t c = 0; c < Tilemap::COLS; ++c) {
       const uint8_t t = Tilemap::tiles[r][c];
-      // top-left tile of the 2x2 block only, so each machine registers once
       if (c > 0 && Tilemap::tiles[r][c - 1] == t) {
         continue;
       }
@@ -77,8 +70,6 @@ void Game::scan_shops() {
         case Tilemap::V_SPD: ox = &shop_sx; oy = &shop_sy; break;
         case Tilemap::V_RPD: ox = &shop_cx; oy = &shop_cy; break;
         case Tilemap::ROULETTE:
-          // row-major scan order defines the pad index, shared with render tags:
-          // 0 = north, 1 = east, 2 = centre, 3 = SE on the shipped map
           if (shop_rn < MAX_PADS && shop_rx[shop_rn] < 0) {
             ox = &shop_rx[shop_rn];
             oy = &shop_ry[shop_rn];
@@ -86,7 +77,6 @@ void Game::scan_shops() {
           break;
         default: break;
       }
-      // first (top-left) tile of the 2x2 block wins, so the centre is one tile in
       if (ox != nullptr && *ox < 0) {
         *ox = (int16_t)(((uint16_t)c + 1u) * Tilemap::TILE);
         *oy = (int16_t)(((uint16_t)r + 1u) * Tilemap::TILE);
@@ -156,7 +146,7 @@ uint8_t Game::shop_at(uint8_t p) {
 bool Game::revive_near(uint8_t p) {
   const Sim::state& v = Sim::view();
   if (p >= Sim::NUM_PLAYERS || !v.players[p].active || v.players[p].hp == 0) {
-    return false; // only the standing can lift
+    return false;
   }
   const uint8_t q = (p == 0) ? 1 : 0;
   if (!v.players[q].active || !v.players[q].downed) {
@@ -171,22 +161,15 @@ bool Game::revive_update(uint32_t now) {
   const Sim::state& v = Sim::view();
   const bool d0 = v.players[0].active && v.players[0].downed;
   const bool d1 = net_multi && v.players[1].active && v.players[1].downed;
-  // bleed-outs announce once (2s): the strip frees after, the panel keeps the DOWN
-  // countdown. Falls stay silent now: the downed shout below + the panel cover it
-  // A lift below overwrites with the risen's THX
   const bool p0_died = was_down0 && !d0 && v.players[0].hp == 0;
   const bool p1_died = was_down1 && !d1 && v.players[1].hp == 0;
   if (p0_died || p1_died) {
     snprintf(hint_buf, sizeof(hint_buf), p0_died ? "P1: I'M OUT!" : "P2: I'M OUT!");
-    hint_col = p0_died ? Colour::green : mate_p2col; // the dead one's Colour
+    hint_col = p0_died ? Colour::green : mate_p2col;
     hint_until = now + 2000;
   }
-  // bled-out wave rejoins are announced in the wave-banner block below (BACK is
-  // the least important of the three wave messages); downed players that held on
-  // till the break rise silently (they never bled out). was_dead advances after
-  // the banners so they still see the previous frame
   if (!was_down0 && d0) {
-    shouted0 = false; // fall edge: HELP shows again until the first shout
+    shouted0 = false;
   }
   if (!was_down1 && d1) {
     shouted1 = false;
@@ -201,10 +184,10 @@ bool Game::revive_update(uint32_t now) {
     const uint8_t q = (p == 0) ? 1 : 0;
     if (Sim::revive(q)) {
       snprintf(hint_buf, sizeof(hint_buf), p == 0 ? "P2: THX!" : "P1: THX!");
-      hint_col = (p == 0) ? mate_p2col : Colour::green; // the risen one's Colour
+      hint_col = (p == 0) ? mate_p2col : Colour::green;
       hint_until = now + 1500;
       if (p == 1) {
-        p2_interact = false; // consumed: no accidental buy next frame
+        p2_interact = false;
       }
       return true;
     }
@@ -228,7 +211,7 @@ void Game::shop_update(uint32_t now) {
           hint_col = Colour::green;
         } else {
           snprintf(hint_buf, sizeof(hint_buf), v.players[0].hp >= Sim::PLAYER_HP_MAX ? "HP FULL" : "NEED %lu PTS", (unsigned long)Sim::PRICE_HEAL);
-          hint_col = Colour::white; // info, not danger: red never shows in the strip
+          hint_col = Colour::white;
         }
         break;
       case 2:
@@ -290,9 +273,6 @@ void Game::shop_update(uint32_t now) {
     hint_until = now + 1500;
   }
 
-  // player 2 shops from the shared wallet on its own INTERACT edge (net, F6.3 sets it)
-  // silent on the host screen: the buy runs, no P2 prompt/hint is painted here
-  // the client paints its own proximity off the snapshot
   if (p2_interact && shop2 != 0) {
     switch (shop2) {
       case 1: Sim::buy_heal(now, 1); break;
@@ -302,34 +282,31 @@ void Game::shop_update(uint32_t now) {
       default: Sim::roll_roulette(now, 1); break;
     }
   }
-  p2_interact = false; // consumed every frame, edge semantics
+  p2_interact = false;
 
-  // downed P1 mashing INTERACT with nothing actionable nearby screams SAVE ME
-  // (near a machine the buy below still wins, like a standing player)
   if (v.players[0].downed && v.players[1].hp > 0 && Input::interact_pressed() &&
       !revive_near(1) && shop == 0) {
     send_chat(0);
   }
 
   if (now < hint_until && hint_buf[0] != '\0') {
-    Render::prompt(hint_buf, hint_col); // recent P1 result wins over the prompt
+    Render::prompt(hint_buf, hint_col);
     return;
   }
   if (revive_near(0)) {
-    Render::prompt("PRESS INT TO REVIVE"); // INT verb stays yellow
+    Render::prompt("PRESS INT TO REVIVE");
     return;
   }
   if (urgent_callout(0)) {
-    return; // voluntary SAVE ME over the reload nag
+    return;
   }
   if (help_hint(0)) {
-    return; // PRESS INT FOR HELP until the first shout
+    return;
   }
   if (reload_prompt(0)) {
-    return; // own mag swap under the shout
+    return;
   }
   if (shop == 0) {
-    // standing on a dead wheel reads as moved, not as silence (P1 view only)
     if (near_inactive_roulette(0)) {
       Render::prompt("NO LUCK HERE", Colour::white);
       return;

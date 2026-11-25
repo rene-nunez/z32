@@ -1,3 +1,5 @@
+// Actors: sprite composites, facing art and bbox erase
+
 #include <pgmspace.h>
 
 #include <Display.h>
@@ -7,12 +9,6 @@
 
 #include "Render.h"
 
-// render actors: sprite composites, facing art selection and the opaque-bbox
-// erase. One RAM blit per actor, terrain under transparent pixels
-
-// Opaque bbox per art array, scanned once from PROGMEM: erase only repaints what draw
-// could have painted (transparent margins are never touched). The 32px boss is mostly
-// air, so this cuts its erase to the body. Cached by pointer (19 arts, one scan each)
 struct bbox {
   const uint16_t* img;
   uint8_t art;
@@ -21,8 +17,6 @@ struct bbox {
 static bbox bbox_cache[24];
 static uint8_t bbox_n = 0;
 
-// bbox of img (mirrored on x when flip, matching the composite blit below). Full rect
-// cache overflows (never: 19 arts). Empty art (never) yields w=h=0: caller skips
 void Render::art_bbox(const uint16_t* img, uint8_t art, bool flip, uint8_t& x0, uint8_t& y0, uint8_t& w, uint8_t& h) {
   const bbox* b = nullptr;
   for (uint8_t i = 0; i < bbox_n; ++i) {
@@ -64,7 +58,7 @@ void Render::art_bbox(const uint16_t* img, uint8_t art, bool flip, uint8_t& x0, 
       bbox_cache[bbox_n] = {img, art, ox0, oy0, bw, bh};
       b = &bbox_cache[bbox_n++];
     } else {
-      x0 = y0 = 0; // overflow fallback (never): full rect, always correct
+      x0 = y0 = 0;
       w = h = art;
       return;
     }
@@ -74,18 +68,12 @@ void Render::art_bbox(const uint16_t* img, uint8_t art, bool flip, uint8_t& x0, 
   w = b->w;
   h = b->h;
   if (flip && w > 0) {
-    x0 = (uint8_t)(art - x0 - w); // mirror of [x0,x0+w) under hflip
+    x0 = (uint8_t)(art - x0 - w);
   }
 }
 
-// One-frame blit buffer (32x32 max actor): terrain + sprite composite in RAM, then a
-// single SPI burst. Replaces hundreds of tiny fillRect runs (each a setup + a scan race
-// = partial "cut" sprite) with one atomic push. Transparency resolves against the
-// tilemap, exactly like the old run path (0x0000 = see-through)
 static uint16_t blit_buf[32 * 32];
 
-// terrain-only push of a world rect (actor erase). Same pixels as erase_world_area,
-// one burst instead of per-run fills
 void Render::erase_box(int16_t wx, int16_t wy, int16_t w, int16_t h) {
   if (w <= 0 || h <= 0) {
     return;
@@ -93,7 +81,7 @@ void Render::erase_box(int16_t wx, int16_t wy, int16_t w, int16_t h) {
   const int16_t sw = (int16_t)Display::width();
   int16_t sy0 = wy - cam_y() + HUD_H;
   int16_t x0 = wx, y0 = wy, bw = w, bh = h;
-  if (sy0 < HUD_H) { // clip to the arena, like fill_world_run
+  if (sy0 < HUD_H) {
     const int16_t cut = HUD_H - sy0;
     y0 += cut;
     bh -= cut;
@@ -125,14 +113,11 @@ void Render::erase_box(int16_t wx, int16_t wy, int16_t w, int16_t h) {
   Display::push_image(sx0, sy0, bw, bh, blit_buf);
 }
 
-// art centred on the hitbox: draw and erase share this so no pixel ghosts
 int16_t Render::sprite_tl(int16_t e, uint8_t hitbox, uint8_t art) {
   return e + ((int16_t)hitbox - (int16_t)art) / 2;
 }
 
 void Render::draw_actor(int16_t ex, int16_t ey, uint8_t hitbox, uint8_t art, const uint16_t* img, bool flip) {
-  // world -> screen, like fill_world_box: the erase path maps the same way, so a
-  // missing offset here paints where the erase never cleans (10px-high ghost band)
   const int16_t wtlx = sprite_tl(ex, hitbox, art);
   const int16_t wtly = sprite_tl(ey, hitbox, art);
   const int16_t sx = wtlx - camera_x;
@@ -172,10 +157,8 @@ void Render::draw_actor(int16_t ex, int16_t ey, uint8_t hitbox, uint8_t art, con
 }
 
 void Render::frame_box(int16_t sx, int16_t sy, uint16_t col) {
-  // sx/sy arrive in world coords (sprite top-left): map to screen like the actor above
   const int16_t x0 = sx - camera_x;
   const int16_t y0 = sy - camera_y + HUD_H;
-  // the downed frame only paints fully inside the arena, for the same erase symmetry
   if (x0 < 0 || y0 < HUD_H || x0 + SPRITE > (int16_t)Display::width() ||
       y0 + SPRITE > ARENA_BOTTOM) {
     return;
@@ -186,11 +169,8 @@ void Render::frame_box(int16_t sx, int16_t sy, uint16_t col) {
   Display::fill_rect(x0 + SPRITE - 1, y0, 1, SPRITE, col);
 }
 
-// 8-wind facing (0=E 1=SE 2=S 3=SW 4=W 5=NW 6=N 7=NE) onto stored art + mirror
-// Players store N,S,E,NE,SE (W side mirrored); zombies store N,S,E folded by
-// halves (northbound shows N, southbound S, pure E/W the profile)
 const uint16_t* Render::player_img(uint8_t p, uint8_t d, bool& flip) {
-  flip = (d == 3 || d == 4 || d == 5); // SW/W/NW mirror SE/E/NE
+  flip = (d == 3 || d == 4 || d == 5);
   const uint8_t base = (d == 3) ? 1 : (d == 4) ? 0 : (d == 5) ? 7 : d;
   if (p == 0) {
     switch (base) {
@@ -211,10 +191,7 @@ const uint16_t* Render::player_img(uint8_t p, uint8_t d, bool& flip) {
 }
 
 const uint16_t* Render::zombie_img(Sim::actor_kind k, uint8_t d, bool& flip) {
-  // 3-art fold by halves: northbound (5,6,7) shows N, southbound (1,2,3)
-  // shows S, pure E/W keep the profile (W mirrored). Jitter inside a half
-  // paints the same art, so straight chases never mirror-blink
-  flip = (d == 4); // pure west only
+  flip = (d == 4);
   const bool south = (d == 1 || d == 2 || d == 3);
   const bool north = (d == 5 || d == 6 || d == 7);
   if (k == Sim::actor_kind::runner) {
