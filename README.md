@@ -118,4 +118,4 @@ The serial console (115200) logs events only, e.g. run saves and multiplayer joi
 
 ## License
 
-GPL-2.0, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE).

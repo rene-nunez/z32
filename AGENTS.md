@@ -33,7 +33,7 @@ Gameplay numbers (prices, stats, waves) live in README.md; code truth is the
 ## Display
 
 - glass 240x320 ST7789; world 960x480 (60x30 x16px); bands HUD 10 / arena 160 / panel 70
-- arena 320x160, camera clamped to an exact 3x3 grid, hard-cut by cell; repaint 80 rows/frame; frame deadline 33ms (not delay)
+- arena 320x160, camera clamped to an exact 3x3 grid, hard-cut by cell; repaint 80 rows/frame; 33ms frame budget, target-paced via `delay()` so a heavy frame never triggers catch-up
 - menus paint on entry + cursor lines only; items size 2 at `y0 + i*24`; wrap via `Screens::count`; `static_assert` one table row per `Screens::id`; entering `playing` calls `Screens::invalidate()`
 - erase is terrain-exact; frame order `Render::clear()` → `Sim::step()` → `Render::update_camera()` → `Render::draw()` owned by `Game`; arena fills clip to `[10,170)`
 - `test_native` never compiles Game/Sim/Render/Panel/Screens (need Arduino); menu geometry verified on glass
