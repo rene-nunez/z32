@@ -8,7 +8,9 @@
 #define TFT_SCLK 18
 #define TFT_BL 21
 #define TFT_MISO 19
-#define SD_CS 22 // MicroSD card adapter chip select pin; SPI shared with display
+
+// microSD
+#define SD_CS 22
 
 // Joystick
 #define JOY_X 32
