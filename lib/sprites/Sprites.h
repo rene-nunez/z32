@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Player1.h>
-#include <Player2.h>
-#include <Zombie.h>
-#include <Zombie_boss.h>
-#include <Zombie_runner.h>
+#include <player1.h>
+#include <player2.h>
+#include <zombie.h>
+#include <zombie_boss.h>
+#include <zombie_runner.h>
