@@ -45,7 +45,7 @@ namespace {
     {"GAME OVER", over_items, 2, true, Colour::red, "JOY: move   FIRE: select"}, // game over
     {"WAITING", nullptr, 0, false, Colour::lime, nullptr}, // waiting (custom peer text, no items)
   };
-  static_assert(sizeof(tables) / sizeof(tables[0]) == 9, "one row per screens::id");
+  static_assert(sizeof(tables) / sizeof(tables[0]) == 9, "one row per Screens::id");
 
   const list& table(Screens::id scr) {
     return tables[(uint8_t)scr];

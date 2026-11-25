@@ -180,7 +180,7 @@ int main() {
   }
   printf("walkable px %d, of which %d straddle a cell edge (%.1f%%)\n",
          walkable_total, straddling, 100.0 * straddling / walkable_total);
-  printf("  (those are 2-frame transitions, and _fill_world_box clips them)\n");
+  printf("  (those are 2-frame transitions, and fill_world_box clips them)\n");
 
   // 4) how many world rows no camera position ever shows
   int hidden = 0;

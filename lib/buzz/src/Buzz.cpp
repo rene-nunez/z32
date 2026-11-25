@@ -29,7 +29,7 @@ namespace {
       {j_hurt, 1}, {j_wave, 3}, {j_over, 4}, {j_denied, 3},
       {j_intro, 10}, {j_reload, 3},
   };
-  static_assert(sizeof(seqs) / sizeof(seqs[0]) == 10, "one row per buzz::jingle");
+  static_assert(sizeof(seqs) / sizeof(seqs[0]) == 10, "one row per Buzz::jingle");
 } // namespace
 
 const Buzz::note* Buzz::seq = nullptr;
